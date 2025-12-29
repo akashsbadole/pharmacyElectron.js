@@ -39,6 +39,7 @@ const paths = {
         "assets/plugins/dataTables/buttons.html5.min.js",
         "assets/plugins/dataTables/pdfmake.min.js",
         "assets/plugins/dataTables/vfs_fonts.js",
+        "assets/plugins/jsbarcode/JsBarcode.all.min.js",
     ],
 };
 
@@ -77,3 +78,5 @@ function reload(done) {
 
 const watch = () => gulp.watch(paths.syncFiles, gulp.series(reload));
 exports.default = gulp.parallel(watch, sync);
+exports.packJs = packJs;
+exports.packCss = packCss;

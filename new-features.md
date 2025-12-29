@@ -1,14 +1,14 @@
 
 
-### **Current Features in PharmaSpot**
+### **Current Features in Pharmingo**
 - **Staff Accounts and Permissions:** Create user accounts with different permission levels.
 - **Product and Category Management:** Add, edit, and categorize products.
 - **Point of Sale (POS) System:** Basic sales processing and receipt generation.
 
 ---
 
-### **Missing Features (Not Yet Implemented in PharmaSpot)**
-These are features that are standard in pharmacy management systems but are **not present** in the current PharmaSpot repository:
+### **Missing Features (Not Yet Implemented in Pharmingo)**
+These are features that are standard in pharmacy management systems but are **not present** in the current Pharmingo repository:
 
 1. **Inventory Tracking & Alerts**
    - Real-time stock updates, low stock alerts, and automated reordering.

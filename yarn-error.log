@@ -18,8 +18,8 @@ Trace:
 
 npm manifest: 
   {
-    "name": "PharmaSpot",
-    "productName": "Pharmaspot",
+    "name": "pharmingo",
+    "productName": "Pharmingo",
     "version": "1.3.2",
     "description": "Easy Point of Sale for Pharmacies",
     "author": "Patterns Digital Limited",
@@ -27,7 +27,7 @@ npm manifest:
     "private": true,
     "main": "start.js",
     "build": {
-      "appId": "com.patternsdigital.pharmaspot",
+      "appId": "com.patternsdigital.pharmingo",
       "directories": {
         "buildResources": "assets"
       }
@@ -67,7 +67,7 @@ npm manifest:
     "scripts": {
       "electron": "cross-env NODE_ENV=dev nodemon --exec \"\"electron .\"\"",
       "electron-build": "electron-builder",
-      "package-win": "electron-packager . PharmaSpot --overwrite --asar=false --platform=win32 --arch=x64 --icon=assets/images/icon.ico --prune=true --out=release-builds --version-string.ProductName=\"PharmaSpot\"",
+      "package-win": "electron-packager . Pharmingo --overwrite --asar=false --platform=win32 --arch=x64 --icon=assets/images/icon.ico --prune=true --out=release-builds --version-string.ProductName=\"Pharmingo\"",
       "start": "electron-forge start",
       "package": "electron-forge package",
       "make": "electron-forge make",

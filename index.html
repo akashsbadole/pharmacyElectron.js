@@ -3,8 +3,37 @@
 
 <head>
     <meta charset="UTF-8">
-    <title></title>
+    <title>Pharmingo - Pharmaceutical Management System</title>
     <link href="assets/dist/css/bundle.min.css" rel="stylesheet" type="text/css" />
+    <style>
+        /* Module container styles */
+        .module-view {
+            display: block;
+        }
+
+        .module-view.hidden {
+            display: none !important;
+        }
+
+        .module-view.active {
+            display: block !important;
+        }
+
+        .main-content {
+            padding: 20px;
+        }
+
+        .module-header {
+            margin-bottom: 20px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .module-title {
+            margin: 0;
+            color: #333;
+        }
+    </style>
 </head>
 
 <body>
@@ -31,38 +60,57 @@
     <div id="main_app">
         <div class="container">
             <div class="row">
-                <div class="col-md-6">
-                    <div class="button-list pull-left m-t-15 m-l-10">
+                <div class="col-md-12">
+                    <div class="button-list pull-left m-t-10 m-l-8">
                         <div class="btn-group p_one">
-                            <button id="productModal" data-toggle="modal" data-target="#Products" type="button" class="btn btn-success waves-effect waves-light">
+                            <button id="productModal" data-toggle="modal" data-target="#Products" type="button"
+                                class="btn btn-success waves-effect waves-light">
                                 <span class="btn-label"><i class="  glyphicon glyphicon-barcode"></i> </span> Products
                             </button>
-                            <button id="newProductModal" data-toggle="modal" data-target="#newProduct" type="button" class="btn btn-warning waves-effect waves-light">
+                            <button id="newProductModal" data-toggle="modal" data-target="#newProduct" type="button"
+                                class="btn btn-warning waves-effect waves-light">
                                 <i class="fa fa-plus"></i>
+                            </button>
+                            <button id="exportCSV" type="button" class="btn btn-info waves-effect waves-light"
+                                title="Export Products to CSV">
+                                <i class="fa fa-download"></i>
+                            </button>
+                            <button id="importCSV" data-toggle="modal" data-target="#importCSVPModal" type="button"
+                                class="btn btn-info waves-effect waves-light" title="Import Products from CSV">
+                                <i class="fa fa-upload"></i>
+                            </button>
+                            <button id="downloadTemplate" type="button" class="btn btn-info waves-effect waves-light"
+                                title="Download CSV Template">
+                                <i class="fa fa-file-text"></i>
                             </button>
                         </div>
                         <div class="btn-group p_two">
-                            <button id="categoryModal" data-toggle="modal" data-target="#Categories" type="button" class="btn btn-success waves-effect waves-light">
+                            <button id="categoryModal" data-toggle="modal" data-target="#Categories" type="button"
+                                class="btn btn-success waves-effect waves-light">
                                 <span class="btn-label"><i class="glyphicon glyphicon-th"></i> </span> Categories
                             </button>
-                            <button id="newCategoryModal" data-toggle="modal" data-target="#newCategory" type="button" class="btn btn-warning waves-effect waves-light">
+                            <button id="newCategoryModal" data-toggle="modal" data-target="#newCategory" type="button"
+                                class="btn btn-warning waves-effect waves-light">
                                 <i class="fa fa-plus"></i>
                             </button>
                         </div>
-                        <button id="viewRefOrders" data-toggle="modal" data-target="#holdOrdersModal" type="button" class="btn btn-info waves-effect waves-light">
+                        <button id="viewRefOrders" data-toggle="modal" data-target="#holdOrdersModal" type="button"
+                            class="btn btn-info waves-effect waves-light">
                             <span class="btn-label"><i class="fa fa-shopping-basket"></i> </span> Open Tabs
                         </button>
-                        <button id="viewCustomerOrders" data-toggle="modal" data-target="#customerModal" type="button" onclick="$(this).getCustomerOrders()" class="btn btn-info waves-effect waves-light">
+                        <button id="viewCustomerOrders" data-toggle="modal" data-target="#customerModal" type="button"
+                            onclick="$.fn.getCustomerOrders()" class="btn btn-info waves-effect waves-light">
                             <span class="btn-label"><i class="fa fa-shopping-cart"></i></span> Orders
                         </button>
                     </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="button-list m-t-15">
-                        <button id="settings" data-toggle="modal" data-target="#settingsModal" type="button" class="btn btn-success waves-effect waves-light p_five">
+
+                    <div class="button-list m-t-10">
+                        <button id="settings" data-toggle="modal" data-target="#settingsModal" type="button"
+                            class="btn btn-success waves-effect waves-light p_five">
                             <i class="glyphicon glyphicon-cog"></i>
                         </button>
-                        <button id="transactions" type="button" class="btn btn-success waves-effect waves-light p_three">
+                        <button id="transactions" type="button"
+                            class="btn btn-success waves-effect waves-light p_three">
                             <span class="btn-label"><i class="  glyphicon glyphicon-credit-card"></i> </span>
                             Transactions
                         </button>
@@ -71,15 +119,33 @@
                             Sale
                         </button>
                         <div class="btn-group p_four">
-                            <button id="usersModal" data-toggle="modal" data-target="#Users" type="button" class="btn btn-success waves-effect waves-light">
+                            <button id="usersModal" data-toggle="modal" data-target="#Users" type="button"
+                                class="btn btn-success waves-effect waves-light">
                                 <span class="btn-label"><i class="  glyphicon glyphicon-user"></i> </span> Users
                             </button>
-                            <button id="add-user" data-toggle="modal" type="button" class="btn btn-warning waves-effect waves-light">
+                            <button id="add-user" data-toggle="modal" type="button"
+                                class="btn btn-warning waves-effect waves-light">
                                 <i class="fa fa-plus"></i>
                             </button>
                         </div>
-                        <button type="button" title="My Profile" class="btn btn-default waves-effect waves-light" id="cashier">
-                            <span class="btn-label"><i class="glyphicon glyphicon-user"></i> </span> <span id="loggedin-user"></span>
+                        <div class="btn-group p_suppliers">
+                            <button id="suppliersModal" data-toggle="modal" data-target="#Suppliers" type="button"
+                                class="btn btn-success waves-effect waves-light">
+                                <span class="btn-label"><i class="glyphicon glyphicon-briefcase"></i> </span> Suppliers
+                            </button>
+                            <button id="newSupplierModal" data-toggle="modal" data-target="#newSupplier" type="button"
+                                class="btn btn-warning waves-effect waves-light">
+                                <i class="fa fa-plus"></i>
+                            </button>
+                        </div>
+                        <button id="purchaseOrdersModal" data-toggle="modal" data-target="#PurchaseOrders" type="button"
+                            class="btn btn-info waves-effect waves-light">
+                            <span class="btn-label"><i class="fa fa-shopping-cart"></i> </span> Purchase Orders
+                        </button>
+                        <button type="button" title="My Profile" class="btn btn-default waves-effect waves-light"
+                            id="cashier">
+                            <span class="btn-label"><i class="glyphicon glyphicon-user"></i> </span> <span
+                                id="loggedin-user"></span>
                         </button>
                         <button id="log-out" type="button" class="btn btn-warning waves-effect waves-light">
                             <i class="glyphicon glyphicon-log-out"></i> <span>Log out</span>
@@ -89,7 +155,7 @@
             </div>
             <div id="transactions_view">
                 <div class="container">
-                    <div class="row text-center m-t-20" id="totals">
+                    <div class="row text-center m-t-12" id="totals">
                         <div id="total_sales" class="col-md-3 py-2 bg-success">
                             <h5>SALES</h5>
                             <span id="counter">0</span>
@@ -107,8 +173,8 @@
                             <span id="counter">0</span>
                         </div>
                     </div>
-                    <div class="row p-t-10 p-b-10 bg-white m-t-10 m-b-20">
-                        <h3 class="col-md-2">Transactions</h3>
+                    <div class="row p-t-8 p-b-8 bg-white m-t-8 m-b-12">
+                        <h3 class="col-md-2">Reports</h3>
                         <div class="col-md-2">
                             <div class="input-group">
                                 <span class="input-group-addon" id="till-addon">Till</span>
@@ -125,10 +191,11 @@
                         </div>
                         <div class="col-md-2">
                             <div class="input-group">
-                                <span class="input-group-addon" id="status-addon">Status</span>
-                                <select id="status" class="form-control" aria-describedby="">
-                                    <option value="1">Paid</option>
-                                    <option value="0">Unpaid</option>
+                                <span class="input-group-addon" id="groupBy-addon">Group By</span>
+                                <select id="groupBy" class="form-control" aria-describedby="">
+                                    <option value="day">Day</option>
+                                    <option value="month">Month</option>
+                                    <option value="year">Year</option>
                                 </select>
                             </div>
                         </div>
@@ -142,733 +209,1602 @@
                             </div>
                         </div>
                     </div>
-                    <div class="row">
-                        <div class="col-md-4 bg-white" id="productSales">
-                            <div class="card-box">
-                                <div class="card-title">
-                                    <h4>Products</h4>
-                                </div>
-                                <div class="card-body">
-                                    <table class="table tablesaw-enhanced table-responsive" id="productsSold">
-                                        <thead>
-                                            <tr>
-                                                <th>Name</th>
-                                                <th>Sold</th>
-                                                <th>Available</th>
-                                                <th>Sales</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="product_sales"></tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-8" id="transactionDetails">
-                            <div class="card-box">
-                                <div class="card-title">
-                                    <h4>Transaction Details</h4>
-                                </div>
-                                <div class="card-body">
-                                    <table class="table table-striped table-bordered table-responsive" id="transactionList">
-                                        <thead>
-                                            <tr>
-                                                <th>Invoice</th>
-                                                <th>Date</th>
-                                                <th>Total</th>
-                                                <th>Paid</th>
-                                                <th>Change</th>
-                                                <th>Method</th>
-                                                <th>Till</th>
-                                                <th>Cashier</th>
-                                                <th>View</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="transaction_list"></tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div id="pos_view">
-                <div class="row m-t-20">
-                    <div class="col-md-6">
-                        <div class="card-box" id="card-box">
-                            <div class="col-md-12">
-                                <div class="row">
-                                    <div class="col-md-10">
-                                        <div class="input-group">
-                                            <select name="" id="customer" class="form-control">
-                                            </select>
-                                            <span class="input-group-btn">
-                                                <button id="newCustomerModal" data-toggle="modal" data-target="#newCustomer" class="btn btn-success"><i class="fa fa-plus"></i></button>
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-10 m-t-5">
-                                        <form action="" id="searchBarCode">
-                                            <div class="input-group">
-                                                <input type="text" required id="skuCode" name="skuCode" class="form-control number-input" placeholder="Scan barcode or type the number then hit enter" aria-label="barcode" aria-describedby="basic-addon2">
-                                                <span class="input-group-btn">
-                                                    <button type="submit" class="btn btn-default search-barcode-btn"><i class="glyphicon glyphicon-ok"></i></button>
-                                                </span>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                                <div class="row p-t-10" id="cartTable">
+                    <ul class="nav nav-tabs">
+                        <li class="active"><a href="#transactions-tab" data-toggle="tab">Transactions</a></li>
+                        <li><a href="#sales-tab" data-toggle="tab">Sales Report</a></li>
+                        <li><a href="#inventory-tab" data-toggle="tab">Inventory Turnover</a></li>
+                        <li><a href="#staff-tab" data-toggle="tab">Staff Activity</a></li>
+                    </ul>
+                    <div class="tab-content">
+                        <!-- Transactions Tab -->
+                        <div class="tab-pane active" id="transactions-tab">
+                            <div class="row">
+                                <div class="col-md-4 bg-white" id="productSales">
                                     <div class="card-box">
                                         <div class="card-title">
-                                            <div class="row">
-                                                <div class="col-md-1"><strong>#</strong></div>
-                                                <div class="col-md-3"><strong>Item</strong></div>
-                                                <div class="col-md-3"><strong>Qty</strong></div>
-                                                <div class="col-md-3"><strong>Price</strong></div>
-                                                <div class="col-md-1"><button onclick="$(this).cancelOrder()" class="btn btn-light btn-xs"><i class="fa fa-times"></i></button>
+                                            <h4>Products</h4>
+                                        </div>
+                                        <div class="card-body">
+                                            <table class="table tablesaw-enhanced table-responsive" id="productsSold">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Name</th>
+                                                        <th>Sold</th>
+                                                        <th>Available</th>
+                                                        <th>Sales</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="product_sales"></tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-8" id="transactionDetails">
+                                    <div class="card-box">
+                                        <div class="card-title">
+                                            <h4>Transaction Details</h4>
+                                        </div>
+                                        <div class="card-body">
+                                            <table class="table table-striped table-bordered table-responsive"
+                                                id="transactionList">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Invoice</th>
+                                                        <th>Date</th>
+                                                        <th>Total</th>
+                                                        <th>Paid</th>
+                                                        <th>Change</th>
+                                                        <th>Method</th>
+                                                        <th>Till</th>
+                                                        <th>Cashier</th>
+                                                        <th>View</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="transaction_list"></tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sales Report Tab -->
+                        <div class="tab-pane" id="sales-tab">
+                            <div class="row">
+                                <div class="col-md-12 bg-white">
+                                    <div class="card-box">
+                                        <div class="card-title">
+                                            <h4>Sales Report</h4>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="row m-b-20">
+                                                <div class="col-md-3">
+                                                    <div class="widget-box">
+                                                        <div class="widget-header">
+                                                            <h5 class="widget-title">Total Revenue</h5>
+                                                        </div>
+                                                        <div class="widget-body">
+                                                            <h3 id="totalRevenue">$0.00</h3>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="widget-box">
+                                                        <div class="widget-header">
+                                                            <h5 class="widget-title">Total Profit</h5>
+                                                        </div>
+                                                        <div class="widget-body">
+                                                            <h3 id="totalProfit">$0.00</h3>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
+                                            <table class="table table-striped table-bordered table-responsive"
+                                                id="salesReportTable">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Date</th>
+                                                        <th>Revenue</th>
+                                                        <th>Profit</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="sales_report_data"></tbody>
+                                            </table>
                                         </div>
-                                        <div class="card-body"></div>
                                     </div>
                                 </div>
                             </div>
-                            <hr>
-                            <div class="m-t-5">
-                                <div class="row">
-                                    <div class="col-md-3">Total Item(s)</div>
-                                    <div class="col-md-3">: <span id="total">0</span>
-                                    </div>
-                                    <div class="col-md-3">Price :</div>
-                                    <div class="col-md-3">: <span id="price">0.0</span></div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-3">Discount</div>
-                                    <div class="col-md-3"><input class="form-control" type="number" id="inputDiscount" minimum="0" placeholder="amount" oninput="$(this).calculateCart();"></div>
-                                    <div class="col-md-3">Gross Price (inc <span id="taxInfo"></span>% Tax)</div>
-                                    <div class="col-md-3">
-                                        <h3 id="gross_price">0.00</h3>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="button-list pull-right">
-                                <button onclick="$(this).submitDueOrder(3);" type="button" class="btn btn-info waves-effect waves-light">
-                                    <i class="fa fa-print"></i>
-                                </button>
-                                <button onclick="$(this).cancelOrder()" type="button" class="btn btn-danger waves-effect waves-light">
-                                    <span class="btn-label"><i class="fa fa-ban"></i></span>Cancel
-                                </button>
-                                <button type="button" id="hold" class="btn btn-info waves-effect waves-light">
-                                    <span class="btn-label"><i class="fa fa-hand-paper-o"></i></span>Hold
-                                </button>
-                                <button type="button" id="payButton" class="btn btn-success waves-effect waves-light">
-                                    <span class="btn-label"><i class="fa fa-money"></i></span>Pay
-                                </button>
-                            </div>
-                            <hr>
                         </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="card-box">
+
+                        <!-- Inventory Turnover Tab -->
+                        <div class="tab-pane" id="inventory-tab">
                             <div class="row">
-                                <div class="col-md-6">
-                                    <input type="text" id="search" class="form-control" placeholder="Search product by name or sku">
-                                </div>
-                                <div class="col-md-6">
-                                    <select id="categories" class="form-control">
-                                    </select>
-                                </div>
-                            </div>
-                            <hr>
-                            <div class="row" id="parent">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div id="dueModal" class="modal fade bs-example-modal-sm" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-sm">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-                        <h4 class="modal-title" id="mySmallModalLabel">Hold Order
-                        </h4>
-                    </div>
-                    <div class="modal-body">
-                        <form action="">
-                            <input type="text" id="refNumber" placeholder="Enter a reference" class="form-control">
-                        </form>
-                        <hr>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <button data-val="1" data-isdue="true" class="btn btn-success btn-lg btn-block keypad-btn">1</button>
-                            </div>
-                            <div class="col-md-4">
-                                <button data-val="2" data-isdue="true" class="btn btn-success btn-lg btn-block keypad-btn">2</button>
-                            </div>
-                            <div class="col-md-4">
-                                <button data-val="3" data-isdue="true" class="btn btn-success btn-lg btn-block keypad-btn">3</button>
-                            </div>
-                        </div>
-                        <br>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <button data-val="4" data-isdue="true" class="btn btn-success btn-lg btn-block keypad-btn">4</button>
-                            </div>
-                            <div class="col-md-4">
-                                <button data-val="5" data-isdue="true" class="btn btn-success btn-lg btn-block keypad-btn">5</button>
-                            </div>
-                            <div class="col-md-4">
-                                <button data-val="6" data-isdue="true" class="btn btn-success btn-lg btn-block keypad-btn">6</button>
-                            </div>
-                        </div>
-                        <br>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <button data-val="7" data-isdue="true" class="btn btn-success btn-lg btn-block keypad-btn">7</button>
-                            </div>
-                            <div class="col-md-4">
-                                <button data-val="8" data-isdue="true" class="btn btn-success btn-lg btn-block keypad-btn">8</button>
-                            </div>
-                            <div class="col-md-4">
-                                <button data-val="9" data-isdue="true" class="btn btn-success btn-lg btn-block keypad-btn">9</button>
-                            </div>
-                        </div>
-                        <br>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <button data-val="del" class="btn btn-warning btn-lg btn-block">⌫</button>
-                            </div>
-                            <div class="col-md-4">
-                                <button data-val="0" data-isdue="true" class="btn btn-success btn-lg btn-block keypad-btn">0</button>
-                            </div>
-                            <div class="col-md-4">
-                                <button data-val="ac" data-isdue="true" class="btn btn-danger btn-lg btn-block keypad-btn">AC</button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" onclick="$(this).submitDueOrder(0);" class="btn btn-primary btn-block btn-lg waves-effect waves-light">Hold Order</button>
-                    </div>
-                </div><!-- /.modal-content -->
-            </div><!-- /.modal-dialog -->
-        </div><!-- /.modal -->
-        <!--  Modal content for the above example -->
-        <div id="paymentModel" class="modal fade bs-example-modal-lg" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-                        <h4 class="modal-title" id="myLargeModalLabel">Payment</h4>
-                    </div>
-                    <div class="modal-body">
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="list-group">
-                                    <a href="javascript:void(0)" data-payment-method="Cash" data-payment-type="1" class="list-group-item active">
-                                        Cash
-                                    </a>
-                                    <a href="javascript:void(0)" data-payment-method="Card" data-payment-type="3" class="list-group-item">Card</a>
-                                </div>
-                            </div>
-                            <div class="col-md-8">
-                                <div class="input-group">
-                                    <span class="input-group-addon" id="basic-addon3">Price <span id="price_curr"></span></span>
-                                    <input id="payablePrice" readonly type="text" class="form-control" aria-describedby="basic-addon3">
-                                </div>
-                                <br>
-                                <div class="input-group">
-                                    <span class="input-group-addon" id="basic-addon3">Payment <span id="payment_curr"></span> </span>
-                                    <input type="text" placeholder="0.0" class="form-control" id="paymentText" aria-describedby="basic-addon3" readonly>
-                                    <input type="hidden" class="form-control" id="payment" aria-describedby="basic-addon3">
-                                </div>
-                                <hr>
-                                <div class="row">
-                                    <div class="col-md-9">
-                                        <div class="row">
-                                            <div class="col-md-3">
-                                                <button data-val="1" data-isdue="false" class="btn btn-success btn-lg btn-block keypad-btn">1</button>
-                                            </div>
-                                            <div class="col-md-3">
-                                                <button data-val="2" data-isdue="false" class="btn btn-success btn-lg btn-block keypad-btn">2</button>
-                                            </div>
-                                            <div class="col-md-3">
-                                                <button data-val="3" data-isdue="false" class="btn btn-success btn-lg btn-block keypad-btn">3</button>
-                                            </div>
-                                            <div class="col-md-3"></div>
+                                <div class="col-md-12 bg-white">
+                                    <div class="card-box">
+                                        <div class="card-title">
+                                            <h4>Inventory Turnover Report</h4>
                                         </div>
-                                        <br>
-                                        <div class="row">
-                                            <div class="col-md-3">
-                                                <button data-val="4" data-isdue="false" class="btn btn-success btn-lg btn-block keypad-btn">4</button>
-                                            </div>
-                                            <div class="col-md-3">
-                                                <button data-val="5" data-isdue="false" class="btn btn-success btn-lg btn-block keypad-btn">5</button>
-                                            </div>
-                                            <div class="col-md-3">
-                                                <button data-val="6" data-isdue="false" class="btn btn-success btn-lg btn-block keypad-btn">6</button>
-                                            </div>
-                                            <div class="col-md-3"></div>
-                                        </div>
-                                        <br>
-                                        <div class="row">
-                                            <div class="col-md-3">
-                                                <button data-val="7" data-isdue="false" class="btn btn-success btn-lg btn-block keypad-btn">7</button>
-                                            </div>
-                                            <div class="col-md-3">
-                                                <button data-val="8" data-isdue="false" class="btn btn-success btn-lg btn-block keypad-btn">8</button>
-                                            </div>
-                                            <div class="col-md-3">
-                                                <button data-val="9" data-isdue="false" class="btn btn-success btn-outline-success btn-lg btn-block keypad-btn">9</button>
-                                            </div>
-                                            <div class="col-md-3"></div>
-                                        </div>
-                                        <br>
-                                        <div class="row">
-                                            <div class="col-md-3">
-                                                <button data-val="del" class="btn btn-danger btn-lg btn-block keypad-btn">⌫</button>
-                                            </div>
-                                            <div class="col-md-3">
-                                                <button data-val="0" data-isdue="false" class="btn btn-success btn-lg btn-block keypad-btn">0</button>
-                                            </div>
-                                            <div class="col-md-3">
-                                                <button data-val="." data-isdue="false" class="btn btn-warning btn-lg btn-block">.</button>
-                                            </div>
-                                            <div class="col-md-3"></div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <button data-val="ac" data-isdue="false" class="btn btn-danger btn-block btn-lg keypad-btn">AC</button>
-                                    </div>
-                                </div>
-                                <br>
-                                <div class="input-group" id="cardInfo">
-                                    <span class="input-group-addon" id="basic-addon3">Card Info </span>
-                                    <input type="text" class="form-control" id="paymentInfo" aria-describedby="basic-addon3">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="btn btn-primary btn-block btn-lg waves-effect waves-light">Change <span id="change_curr"></span><span id="change"></span> </div>
-                            </div>
-                            <div class="col-md-6">
-                                <button type="button" id="confirmPayment" class="btn btn-success btn-block btn-lg waves-effect waves-light">Confirm
-                                Payment</button>
-                            </div>
-                        </div>
-                    </div>
-                </div><!-- /.modal-content -->
-            </div><!-- /.modal-dialog -->
-        </div><!-- /.modal -->
-        <div id="newCustomer" class="modal fade bs-example-modal-sm" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-sm">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-                        <h4 class="modal-title" id="mySmallModalLabel">New Customer
-                        </h4>
-                    </div>
-                    <div class="modal-body">
-                        <form id="saveCustomer" data-parsley-validate>
-                            <div class="form-group">
-                                <label for="userName">Customer Name*</label>
-                                <input type="text" required="required" name="name" parsley-trigger="change" placeholder="Enter name" class="form-control" id="userName">
-                            </div>
-                            <div class="form-group">
-                                <label for="userName">Customer Phone</label>
-                                <input type="text" name="phone" parsley-trigger="change" placeholder="Enter Phone number" class="form-control" id="phoneNumber">
-                            </div>
-                            <div class="form-group">
-                                <label for="userName">Customer Email</label>
-                                <input type="email" name="email" parsley-trigger="change" placeholder="Enter email address" class="form-control" id="emailAddress">
-                            </div>
-                            <div class="form-group">
-                                <label for="userName">Customer Address</label>
-                                <input type="text" name="address" parsley-trigger="change" placeholder="Enter address" class="form-control" id="userAddress">
-                            </div>
-                            <input type="submit" class="btn btn-primary btn-block waves-effect waves-light">
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div id="newProduct" class="modal fade bs-example-modal-sm" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-sm">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-                        <h4 class="modal-title" id="mySmallModalLabel">Product
-                        </h4>
-                    </div>
-                    <div class="modal-body">
-                        <form id="saveProduct" encType="multipart/form-data">
-                            <input type="hidden" name="id" id="product_id">
-                            <input type="hidden" name="img" id="img">
-                            <input type="hidden" name="remove" id="remove_img">
-                            <div class="form-group">
-                                <label for="category">Category</label>
-                                <select name="category" class="form-control" id="category"></select>
-                            </div>
-                            <div class="form-group">
-                                <label for="productName">Product Name</label>
-                                <input type="text" required="required" name="name" parsley-trigger="change" placeholder="Enter a product name" class="form-control" id="productName">
-                            </div>
-                            <div class="form-group">
-                                <label for="barcode">BarCode</label>
-                                <input type="text" required="required" name="barcode" parsley-trigger="change" placeholder="Enter product barcode" class="form-control number-input" id="barcode">
-                            </div>
-                            <div class="form-group">
-                                <label for="product_price">Price</label>
-                                <input type="text" required="required" name="price" placeholder="Price" class="form-control number-input" id="product_price">
-                            </div>
-                            <div class="form-group">
-                                <label for="expirationDate">Expiry Date</label>
-                                <input type="text" name="expirationDate" parsley-trigger="change" placeholder="dd/mm/yyyy" class="form-control" id="expirationDate" readonly>
-                            </div>
-                            <div class="form-group">
-                                <label for="quantity">Stock</label>
-                                <input type="number" name="quantity" placeholder="Available stock" class="form-control" id="quantity" min="0">
-                            </div>
-                            <div class="form-group">
-                                <label for="quantity">Minimum Stock</label>
-                                <input type="number" name="minStock" placeholder="Minimum Stock" class="form-control" id="minStock" min="1">
-                            </div>
-                            <div class="form-group">
-                                <label><input type="checkbox" name="stock" id="stock"> Disable stock check </label>
-                            </div>
-                            <div class="form-group">
-                                <label for="imagename"><span id="rmv_img" class="btn btn-xs btn-warning">Remove</span>
-                                Picture </label>
-                                <div id="current_img"></div>
-                                <input type="file" name="imagename" id="imagename">
-                            </div>
-                            <input type="submit" id="submitProduct" class="btn btn-primary btn-block waves-effect waves-light">
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div id="newCategory" class="modal fade bs-example-modal-sm" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-md">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-                        <h4 class="modal-title" id="mySmallModalLabel">Category
-                        </h4>
-                    </div>
-                    <div class="modal-body">
-                        <form id="saveCategory">
-                            <div class="form-group">
-                                <label for="userName">Name</label>
-                                <input id="category_id" type="hidden" name="id">
-                                <input id="categoryName" type="text" required="required" name="name" placeholder="Enter a category name" class="form-control">
-                            </div>
-                            <input type="submit" id="submitCategory" class="btn btn-primary btn-block waves-effect waves-light">
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div id="Products" class="modal fade bs-example-modal-sm" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-                        <h4 class="modal-title" id="mySmallModalLabel">Products
-                        </h4>
-                    </div>
-                    <div class="modal-body p-20 p-r-40" id="all_products">
-                        <table class="table table-bordered" id="productList">
-                            <thead>
-                                <tr>
-                                    <th>Barcode</th>
-                                    <th>Item</th>
-                                    <th>Name</th>
-                                    <th>Price</th>
-                                    <th>Stock</th>
-                                    <th>Expiry Date</th>
-                                    <th>Category</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="product_list"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div id="Users" class="modal fade bs-example-modal-sm" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-                        <h4 class="modal-title" id="mySmallModalLabel">Users
-                        </h4>
-                    </div>
-                    <div class="modal-body p-20 p-r-20" id="all_userss">
-                        <table class="table table-bordered" id="userList">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Username</th>
-                                    <th>Status</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="user_list"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div id="Categories" class="modal fade bs-example-modal-sm" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-md">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-                        <h4 class="modal-title" id="mySmallModalLabel">Categories
-                        </h4>
-                    </div>
-                    <div class="modal-body">
-                        <table class="table table-bordered" id="categoryList">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="category_list"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div id="userModal" class="modal fade bs-example-modal-sm" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-sm">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-                        <h4 class="modal-title" id="mySmallModalLabel">Account Infomarion
-                        </h4>
-                    </div>
-                    <div class="modal-body">
-                        <form id="saveUser" data-parsley-validate>
-                            <input type="hidden" name="id" id="user_id">
-                            <div class="form-group">
-                                <label for="userName">Name*</label>
-                                <input type="text" required="required" name="fullname" parsley-trigger="change" placeholder="Enter name" class="form-control" id="fullname">
-                            </div>
-                            <div class="form-group">
-                                <label for="userName">Username*</label>
-                                <input type="text" name="username" parsley-trigger="change" placeholder="Login Username" class="form-control" id="username">
-                            </div>
-                            <div class="form-group">
-                                <label for="userName">Password</label>
-                                <input type="password" name="password" parsley-trigger="change" placeholder="Password" class="form-control" id="password">
-                            </div>
-                            <div class="form-group">
-                                <label for="userName">Repeat Password</label>
-                                <input type="password" name="pass" parsley-trigger="change" placeholder="Repeat" class="form-control" id="pass">
-                            </div>
-                            <div class="perms">
-                                <h3 class="m-t-20">Permissions</h3>
-                                <hr>
-                                <div class="form-group">
-                                    <span><input type="checkbox" name="perm_products" id="perm_products"> Manage
-                                    Products and Stock </span>
-                                </div>
-                                <div class="form-group">
-                                    <span><input type="checkbox" name="perm_categories" id="perm_categories"> Manage
-                                    Product Categories </span>
-                                </div>
-                                <div class="form-group">
-                                    <span><input type="checkbox" name="perm_transactions" id="perm_transactions"> View
-                                    Transactions </span>
-                                </div>
-                                <div class="form-group">
-                                    <span><input type="checkbox" name="perm_users" id="perm_users"> Manage Users and
-                                    Permissions </span>
-                                </div>
-                                <div class="form-group">
-                                    <span><input type="checkbox" name="perm_settings" id="perm_settings"> Manage
-                                    Settings </span>
-                                </div>
-                            </div>
-                            <input type="submit" class="btn btn-primary btn-block waves-effect waves-light">
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div id="holdOrdersModal" class="modal fade bs-example-modal-lg" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-                        <h4 class="modal-title" id="myLargeModalLabel">Open Orders</h4>
-                    </div>
-                    <div class="modal-body">
-                        <input type="text" id="holdOrderInput" placeholder="Search order by reference" class="holdOrderInput form-control">
-                        <div class="holdOrderKeyboard"></div>
-                        <br>
-                        <div class="row" id="renderHoldOrders">
-                            <p>Please wait <span class="dot"></span> </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div id="customerModal" class="modal fade bs-example-modal-lg" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-                        <h4 class="modal-title" id="myLargeModalLabel">Customer Orders</h4>
-                    </div>
-                    <div class="modal-body">
-                        <input type="text" id="holdCustomerOrderInput" placeholder="Search order by customer name" class="holdCustomerOrderInput form-control">
-                        <div class="customerOrderKeyboard"></div>
-                        <br>
-                        <div class="row" id="renderCustomerOrders">
-                            <p>please wait <span class="dot"></span> </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div id="orderModal" class="modal fade bs-example-modal-sm" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-sm">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <button class="btn btn-sm btn-success" onclick="$(this).print()">Print</button> <br> <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-                    </div>
-                    <div class="modal-body" id="viewTransaction">
-                    </div>
-                    <div class="alert alert-danger">Right-Click and Reload if you get stuck after cancelling a print.
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div id="settingsModal" class="modal fade bs-example-modal-sm" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-md">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-                        <h4 class="modal-title" id="mySmallModalLabel">Settings
-                        </h4>
-                    </div>
-                    <div class="modal-body">
-                        <div class="container">
-                            <div class="row">
-                                <div class="form-group">
-                                    <label for="app">Application</label>
-                                    <select name="app" id="app" class="form-control">
-                                        <option value="Standalone Point of Sale">Standalone Point of Sale</option>
-                                        <option value="Network Point of Sale Terminal">Network Point of Sale Terminal</option>
-                                        <option value="Network Point of Sale Server">Network Point of Sale Server</option>
-                                    </select>
-                                </div>
-                                <form id="net_settings_form">
-                                    <div class="form-group">
-                                        <label for="ip">Server IP Address*</label>
-                                        <input type="text" required="required" placeholder="Enter the IP address of the admin computer." name="ip" class="form-control" id="ip">
-                                    </div>
-                                    <div class="col-md-5">
-                                        <div class="form-group">
-                                            <label for="till">Till Number*</label>
-                                            <input type="text" required="required" placeholder="Enter a number" name="till" class="form-control" id="till">
-                                        </div>
-                                    </div>
-                                    <div class="col-md-7">
-                                        <div class="form-group">
-                                            <label for="mac">Hardware Identification Number </label>
-                                            <input type="text" required="required" name="mac" class="form-control" id="mac" readonly="readonly">
-                                        </div>
-                                    </div>
-                                    <div class="form-group">
-                                        <input id="save_settings" type="submit" class="btn btn-success btn-block waves-effect waves-light" value="Save Settings">
-                                    </div>
-                                </form>
-                            </div>
-                            <form id="settings_form" encType="multipart/form-data">
-                                <input type="hidden" name="id" id="settings_id">
-                                <input type="hidden" name="img" id="logo_img">
-                                <input type="hidden" name="remove" id="remove_logo">
-                                <div class="container">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="userName">Store Name</label>
-                                            <input type="text" required="required" name="store" class="form-control" id="store" placeholder="Cool Pharmacy">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="userName">Address Line 1</label>
-                                            <input type="text" required="required" name="address_one" class="form-control" id="address_one" placeholder="123 Main Street, Building#">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="userName">Address Line 2</label>
-                                            <input type="text" required="required" name="address_two" class="form-control" id="address_two" placeholder="City, Country">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="userName">Contact Number</label>
-                                            <input type="tel" name="contact" class="form-control" id="contact" placeholder="0800 111 000">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="userName">Vat Number</label>
-                                            <input type="text" name="tax" parsley-trigger="change" class="form-control number-input" id="tax">
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="userName">Currency Symbol</label>
-                                            <input type="text" required="required" name="symbol" class="form-control" id="symbol" minlength="1" maxlength="3" placeholder="USD">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="userName">Vat Percentage</label>
-                                            <div class="pull-left">
-                                                <div class="col-md-6">
-                                                    <div class="input-group" style="width:130%">
-                                                        <input type="number" min="0" max="100" required="required" name="percentage" class="form-control" id="percentage">
-                                                        <span class="input-group-addon">%</span>
+                                        <div class="card-body">
+                                            <div class="row m-b-20">
+                                                <div class="col-md-3">
+                                                    <div class="widget-box">
+                                                        <div class="widget-header">
+                                                            <h5 class="widget-title">Turnover Rate</h5>
+                                                        </div>
+                                                        <div class="widget-body">
+                                                            <h3 id="turnoverRate">0.00</h3>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="widget-box">
+                                                        <div class="widget-header">
+                                                            <h5 class="widget-title">Days in Stock</h5>
+                                                        </div>
+                                                        <div class="widget-body">
+                                                            <h3 id="daysInStock">0</h3>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="widget-box">
+                                                        <div class="widget-header">
+                                                            <h5 class="widget-title">Total COGS</h5>
+                                                        </div>
+                                                        <div class="widget-body">
+                                                            <h3 id="totalCOGS">$0.00</h3>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="widget-box">
+                                                        <div class="widget-header">
+                                                            <h5 class="widget-title">Avg Inventory Value</h5>
+                                                        </div>
+                                                        <div class="widget-body">
+                                                            <h3 id="averageInventoryValue">$0.00</h3>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
-                                        <br><br>
-                                        <div class="form-group">
-                                            <label><input type="checkbox" name="charge_tax" id="charge_tax"> Charge
-                                            Vat</label>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="userName"><span id="rmv_logo" class="btn btn-xs btn-warning">Remove</span> Logo </label>
-                                            <div id="current_logo"></div>
-                                            <input type="file" name="imagename" id="logoname" accept=".jpg,.jpeg,.png,.webp">
-                                            <small class="text-gray">
-                                            Max filesize: <strong>2MB</strong>; Allowed image types:<strong> jpeg, jpg, png or webp</strong></small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
+                        <!-- Staff Activity Tab -->
+                        <div class="tab-pane" id="staff-tab">
+                            <div class="row">
+                                <div class="col-md-12 bg-white">
+                                    <div class="card-box">
+                                        <div class="card-title">
+                                            <h4>Staff Activity Report</h4>
                                         </div>
-                                        <div class="form-group">
-                                            <label for="userName">Receipt Footer</label>
-                                            <textarea name="footer" class="form-control" id="footer"></textarea>
+                                        <div class="card-body">
+                                            <table class="table table-striped table-bordered table-responsive"
+                                                id="staffActivityTable">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Staff Name</th>
+                                                        <th>Login Count</th>
+                                                        <th>Last Login</th>
+                                                        <th>Total Sales</th>
+                                                        <th>Transaction Count</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="staff_activity_data"></tbody>
+                                            </table>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="form-group">
-                                    <input id="save_settings" type="submit" class="btn btn-success btn-block waves-effect waves-light" value="Save Settings">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="pos_view">
+                    <div class="row m-t-12">
+                        <div class="col-md-6">
+                            <div class="card-box" id="card-box">
+                                <div class="col-md-12">
+                                    <div class="row">
+                                        <div class="col-md-10">
+                                            <div class="input-group">
+                                                <select name="" id="customer" class="form-control">
+                                                </select>
+                                                <span class="input-group-btn">
+                                                    <button id="viewCustomerDetails" class="btn btn-info"
+                                                        title="View Details"><i class="fa fa-eye"></i></button>
+                                                    <button id="newCustomerModal" data-toggle="modal"
+                                                        data-target="#newCustomer" class="btn btn-success"><i
+                                                            class="fa fa-plus"></i></button>
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-10 m-t-5">
+                                            <form action="" id="searchBarCode">
+                                                <div class="input-group">
+                                                    <input type="text" required id="skuCode" name="skuCode"
+                                                        class="form-control number-input"
+                                                        placeholder="Scan barcode or type the number then hit enter"
+                                                        aria-label="barcode" aria-describedby="basic-addon2">
+                                                    <span class="input-group-btn">
+                                                        <button type="submit"
+                                                            class="btn btn-default search-barcode-btn"><i
+                                                                class="glyphicon glyphicon-ok"></i></button>
+                                                    </span>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                    <div class="row p-t-10" id="cartTable">
+                                        <div class="card-box">
+                                            <div class="card-title">
+                                                <div class="row">
+                                                    <div class="col-md-1"><strong>#</strong></div>
+                                                    <div class="col-md-3"><strong>Item</strong></div>
+                                                    <div class="col-md-3"><strong>Qty</strong></div>
+                                                    <div class="col-md-3"><strong>Price</strong></div>
+                                                    <div class="col-md-1"><button onclick="$(this).cancelOrder()"
+                                                            class="btn btn-light btn-xs"><i
+                                                                class="fa fa-times"></i></button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="card-body"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <hr>
+                                <div class="m-t-5">
+                                    <div class="row">
+                                        <div class="col-md-3">Total Item(s)</div>
+                                        <div class="col-md-3">: <span id="total">0</span>
+                                        </div>
+                                        <div class="col-md-3">Price :</div>
+                                        <div class="col-md-3">: <span id="price">0.0</span></div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-3">Discount</div>
+                                        <div class="col-md-3"><input class="form-control" type="number"
+                                                id="inputDiscount" minimum="0" placeholder="amount"
+                                                oninput="$(this).calculateCart();"></div>
+                                        <div class="col-md-3">Gross Price (inc <span id="taxInfo"></span>% Tax)</div>
+                                        <div class="col-md-3">
+                                            <h3 id="gross_price">0.00</h3>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="button-list pull-right">
+                                    <button onclick="$(this).submitDueOrder(3);" type="button"
+                                        class="btn btn-info waves-effect waves-light">
+                                        <i class="fa fa-print"></i>
+                                    </button>
+                                    <button onclick="$(this).cancelOrder()" type="button"
+                                        class="btn btn-danger waves-effect waves-light">
+                                        <span class="btn-label"><i class="fa fa-ban"></i></span>Cancel
+                                    </button>
+                                    <button type="button" id="hold" class="btn btn-info waves-effect waves-light">
+                                        <span class="btn-label"><i class="fa fa-hand-paper-o"></i></span>Hold
+                                    </button>
+                                    <button type="button" id="payButton"
+                                        class="btn btn-success waves-effect waves-light">
+                                        <span class="btn-label"><i class="fa fa-money"></i></span>Pay
+                                    </button>
+                                </div>
+                                <hr>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card-box">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <input type="text" id="search" class="form-control"
+                                            placeholder="Search product by name or sku">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <select id="categories" class="form-control">
+                                        </select>
+                                    </div>
+                                </div>
+                                <hr>
+                                <div class="row" id="parent">
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="dueModal" class="modal fade bs-example-modal-sm" tabindex="-1" role="dialog"
+                aria-labelledby="mySmallModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-sm">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                            <h4 class="modal-title" id="mySmallModalLabel">Hold Order
+                            </h4>
+                        </div>
+                        <div class="modal-body">
+                            <form action="">
+                                <input type="text" id="refNumber" placeholder="Enter a reference" class="form-control">
+                            </form>
+                            <hr>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <button data-val="1" data-isdue="true"
+                                        class="btn btn-success btn-lg btn-block keypad-btn">1</button>
+                                </div>
+                                <div class="col-md-4">
+                                    <button data-val="2" data-isdue="true"
+                                        class="btn btn-success btn-lg btn-block keypad-btn">2</button>
+                                </div>
+                                <div class="col-md-4">
+                                    <button data-val="3" data-isdue="true"
+                                        class="btn btn-success btn-lg btn-block keypad-btn">3</button>
+                                </div>
+                            </div>
+                            <br>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <button data-val="4" data-isdue="true"
+                                        class="btn btn-success btn-lg btn-block keypad-btn">4</button>
+                                </div>
+                                <div class="col-md-4">
+                                    <button data-val="5" data-isdue="true"
+                                        class="btn btn-success btn-lg btn-block keypad-btn">5</button>
+                                </div>
+                                <div class="col-md-4">
+                                    <button data-val="6" data-isdue="true"
+                                        class="btn btn-success btn-lg btn-block keypad-btn">6</button>
+                                </div>
+                            </div>
+                            <br>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <button data-val="7" data-isdue="true"
+                                        class="btn btn-success btn-lg btn-block keypad-btn">7</button>
+                                </div>
+                                <div class="col-md-4">
+                                    <button data-val="8" data-isdue="true"
+                                        class="btn btn-success btn-lg btn-block keypad-btn">8</button>
+                                </div>
+                                <div class="col-md-4">
+                                    <button data-val="9" data-isdue="true"
+                                        class="btn btn-success btn-lg btn-block keypad-btn">9</button>
+                                </div>
+                            </div>
+                            <br>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <button data-val="del" class="btn btn-warning btn-lg btn-block">⌫</button>
+                                </div>
+                                <div class="col-md-4">
+                                    <button data-val="0" data-isdue="true"
+                                        class="btn btn-success btn-lg btn-block keypad-btn">0</button>
+                                </div>
+                                <div class="col-md-4">
+                                    <button data-val="ac" data-isdue="true"
+                                        class="btn btn-danger btn-lg btn-block keypad-btn">AC</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" onclick="$(this).submitDueOrder(0);"
+                                class="btn btn-primary btn-block btn-lg waves-effect waves-light">Hold Order</button>
+                        </div>
+                    </div><!-- /.modal-content -->
+                </div><!-- /.modal-dialog -->
+            </div><!-- /.modal -->
+            <!--  Modal content for the above example -->
+            <div id="paymentModel" class="modal fade bs-example-modal-lg" tabindex="-1" role="dialog"
+                aria-labelledby="myLargeModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                            <h4 class="modal-title" id="myLargeModalLabel">Payment</h4>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="list-group">
+                                        <a href="javascript:void(0)" data-payment-method="Cash" data-payment-type="1"
+                                            class="list-group-item active">
+                                            Cash
+                                        </a>
+                                        <a href="javascript:void(0)" data-payment-method="Card" data-payment-type="3"
+                                            class="list-group-item">Card</a>
+                                    </div>
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="input-group">
+                                        <span class="input-group-addon" id="basic-addon3">Price <span
+                                                id="price_curr"></span></span>
+                                        <input id="payablePrice" readonly type="text" class="form-control"
+                                            aria-describedby="basic-addon3">
+                                    </div>
+                                    <br>
+                                    <div class="input-group">
+                                        <span class="input-group-addon" id="basic-addon3">Payment <span
+                                                id="payment_curr"></span> </span>
+                                        <input type="text" placeholder="0.0" class="form-control" id="paymentText"
+                                            aria-describedby="basic-addon3" readonly>
+                                        <input type="hidden" class="form-control" id="payment"
+                                            aria-describedby="basic-addon3">
+                                    </div>
+                                    <hr>
+                                    <div class="row">
+                                        <div class="col-md-9">
+                                            <div class="row">
+                                                <div class="col-md-3">
+                                                    <button data-val="1" data-isdue="false"
+                                                        class="btn btn-success btn-lg btn-block keypad-btn">1</button>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <button data-val="2" data-isdue="false"
+                                                        class="btn btn-success btn-lg btn-block keypad-btn">2</button>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <button data-val="3" data-isdue="false"
+                                                        class="btn btn-success btn-lg btn-block keypad-btn">3</button>
+                                                </div>
+                                                <div class="col-md-3"></div>
+                                            </div>
+                                            <br>
+                                            <div class="row">
+                                                <div class="col-md-3">
+                                                    <button data-val="4" data-isdue="false"
+                                                        class="btn btn-success btn-lg btn-block keypad-btn">4</button>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <button data-val="5" data-isdue="false"
+                                                        class="btn btn-success btn-lg btn-block keypad-btn">5</button>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <button data-val="6" data-isdue="false"
+                                                        class="btn btn-success btn-lg btn-block keypad-btn">6</button>
+                                                </div>
+                                                <div class="col-md-3"></div>
+                                            </div>
+                                            <br>
+                                            <div class="row">
+                                                <div class="col-md-3">
+                                                    <button data-val="7" data-isdue="false"
+                                                        class="btn btn-success btn-lg btn-block keypad-btn">7</button>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <button data-val="8" data-isdue="false"
+                                                        class="btn btn-success btn-lg btn-block keypad-btn">8</button>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <button data-val="9" data-isdue="false"
+                                                        class="btn btn-success btn-outline-success btn-lg btn-block keypad-btn">9</button>
+                                                </div>
+                                                <div class="col-md-3"></div>
+                                            </div>
+                                            <br>
+                                            <div class="row">
+                                                <div class="col-md-3">
+                                                    <button data-val="del"
+                                                        class="btn btn-danger btn-lg btn-block keypad-btn">⌫</button>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <button data-val="0" data-isdue="false"
+                                                        class="btn btn-success btn-lg btn-block keypad-btn">0</button>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <button data-val="." data-isdue="false"
+                                                        class="btn btn-warning btn-lg btn-block">.</button>
+                                                </div>
+                                                <div class="col-md-3"></div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <button data-val="ac" data-isdue="false"
+                                                class="btn btn-danger btn-block btn-lg keypad-btn">AC</button>
+                                        </div>
+                                    </div>
+                                    <br>
+                                    <div class="input-group" id="cardInfo">
+                                        <span class="input-group-addon" id="basic-addon3">Card Info </span>
+                                        <input type="text" class="form-control" id="paymentInfo"
+                                            aria-describedby="basic-addon3">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="btn btn-primary btn-block btn-lg waves-effect waves-light">Change <span
+                                            id="change_curr"></span><span id="change"></span> </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <button type="button" id="confirmPayment"
+                                        class="btn btn-success btn-block btn-lg waves-effect waves-light">Confirm
+                                        Payment</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div><!-- /.modal-content -->
+                </div><!-- /.modal-dialog -->
+            </div><!-- /.modal -->
+            <div id="newCustomer" class="modal fade bs-example-modal-sm" tabindex="-1" role="dialog"
+                aria-labelledby="mySmallModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-sm">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                            <h4 class="modal-title" id="mySmallModalLabel">New Customer
+                            </h4>
+                        </div>
+                        <div class="modal-body">
+                            <form id="saveCustomer" data-parsley-validate>
+                                <div class="form-group">
+                                    <label for="userName">Customer Name*</label>
+                                    <input type="text" required="required" name="name" parsley-trigger="change"
+                                        placeholder="Enter name" class="form-control" id="userName">
+                                </div>
+                                <div class="form-group">
+                                    <label for="userName">Customer Phone</label>
+                                    <input type="text" name="phone" parsley-trigger="change"
+                                        placeholder="Enter Phone number" class="form-control" id="phoneNumber">
+                                </div>
+                                <div class="form-group">
+                                    <label for="userName">Customer Email</label>
+                                    <input type="email" name="email" parsley-trigger="change"
+                                        placeholder="Enter email address" class="form-control" id="emailAddress">
+                                </div>
+                                <div class="form-group">
+                                    <label for="userName">Customer Address</label>
+                                    <input type="text" name="address" parsley-trigger="change"
+                                        placeholder="Enter address" class="form-control" id="userAddress">
+                                </div>
+                                <input type="submit" class="btn btn-primary btn-block waves-effect waves-light">
                             </form>
                         </div>
                     </div>
                 </div>
             </div>
+            <div id="newProduct" class="modal fade bs-example-modal-sm" tabindex="-1" role="dialog"
+                aria-labelledby="mySmallModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-sm">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                            <h4 class="modal-title" id="mySmallModalLabel">Product
+                            </h4>
+                        </div>
+                        <div class="modal-body">
+                            <form id="saveProduct" encType="multipart/form-data">
+                                <input type="hidden" name="id" id="product_id">
+                                <input type="hidden" name="img" id="img">
+                                <input type="hidden" name="remove" id="remove_img">
+                                <div class="form-group">
+                                    <label for="category">Category</label>
+                                    <select name="category" class="form-control" id="category"></select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="productName">Product Name</label>
+                                    <input type="text" required="required" name="name" parsley-trigger="change"
+                                        placeholder="Enter a product name" class="form-control" id="productName">
+                                </div>
+                                <div class="form-group">
+                                    <label for="barcode">BarCode</label>
+                                    <input type="text" required="required" name="barcode" parsley-trigger="change"
+                                        placeholder="Enter product barcode" class="form-control number-input"
+                                        id="barcode">
+                                </div>
+                                <div class="form-group">
+                                    <label for="product_price">Price</label>
+                                    <input type="text" required="required" name="price" placeholder="Price"
+                                        class="form-control number-input" id="product_price">
+                                </div>
+                                <div class="form-group">
+                                    <label for="cost_price">Cost Price</label>
+                                    <input type="text" name="cost" placeholder="Cost Price (for profit calculations)"
+                                        class="form-control number-input" id="cost_price">
+                                </div>
+                                <div class="form-group">
+                                    <label for="expirationDate">Expiry Date</label>
+                                    <input type="text" name="expirationDate" parsley-trigger="change"
+                                        placeholder="dd/mm/yyyy" class="form-control" id="expirationDate" readonly>
+                                </div>
+                                <div class="form-group">
+                                    <label for="quantity">Stock</label>
+                                    <input type="number" name="quantity" placeholder="Available stock"
+                                        class="form-control" id="quantity" min="0">
+                                </div>
+                                <div class="form-group">
+                                    <label for="quantity">Minimum Stock</label>
+                                    <input type="number" name="minStock" placeholder="Minimum Stock"
+                                        class="form-control" id="minStock" min="1">
+                                </div>
+                                <div class="form-group">
+                                    <label><input type="checkbox" name="stock" id="stock"> Disable stock check </label>
+                                </div>
+                                <div class="form-group">
+                                    <label><input type="checkbox" name="requires_prescription"
+                                            id="requires_prescription"> Requires Prescription </label>
+                                </div>
+                                <div class="form-group">
+                                    <label for="imagename"><span id="rmv_img"
+                                            class="btn btn-xs btn-warning">Remove</span>
+                                        Picture </label>
+                                    <div id="current_img"></div>
+                                    <input type="file" name="imagename" id="imagename">
+                                </div>
+                                <input type="submit" id="submitProduct"
+                                    class="btn btn-primary btn-block waves-effect waves-light">
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="newCategory" class="modal fade bs-example-modal-sm" tabindex="-1" role="dialog"
+                aria-labelledby="mySmallModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-md">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                            <h4 class="modal-title" id="mySmallModalLabel">Category
+                            </h4>
+                        </div>
+                        <div class="modal-body">
+                            <form id="saveCategory">
+                                <div class="form-group">
+                                    <label for="userName">Name</label>
+                                    <input id="category_id" type="hidden" name="id">
+                                    <input id="categoryName" type="text" required="required" name="name"
+                                        placeholder="Enter a category name" class="form-control">
+                                </div>
+                                <input type="submit" id="submitCategory"
+                                    class="btn btn-primary btn-block waves-effect waves-light">
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="Products" class="modal fade bs-example-modal-sm" tabindex="-1" role="dialog"
+                aria-labelledby="mySmallModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                            <h4 class="modal-title" id="mySmallModalLabel">Products
+                            </h4>
+                        </div>
+                        <div class="modal-body p-20 p-r-40" id="all_products">
+                            <table class="table table-bordered" id="productList">
+                                <thead>
+                                    <tr>
+                                        <th>Barcode</th>
+                                        <th>Item</th>
+                                        <th>Name</th>
+                                        <th>Price</th>
+                                        <th>Stock</th>
+                                        <th>Expiry Date</th>
+                                        <th>Category</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="product_list"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="Users" class="modal fade bs-example-modal-sm" tabindex="-1" role="dialog"
+                aria-labelledby="mySmallModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                            <h4 class="modal-title" id="mySmallModalLabel">Users
+                            </h4>
+                        </div>
+                        <div class="modal-body p-20 p-r-20" id="all_userss">
+                            <table class="table table-bordered" id="userList">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Username</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="user_list"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="Categories" class="modal fade bs-example-modal-sm" tabindex="-1" role="dialog"
+                aria-labelledby="mySmallModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-md">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                            <h4 class="modal-title" id="mySmallModalLabel">Categories
+                            </h4>
+                        </div>
+                        <div class="modal-body">
+                            <table class="table table-bordered" id="categoryList">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="category_list"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="userModal" class="modal fade bs-example-modal-sm" tabindex="-1" role="dialog"
+                aria-labelledby="mySmallModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-sm">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                            <h4 class="modal-title" id="mySmallModalLabel">Account Infomarion
+                            </h4>
+                        </div>
+                        <div class="modal-body">
+                            <form id="saveUser" data-parsley-validate>
+                                <input type="hidden" name="id" id="user_id">
+                                <div class="form-group">
+                                    <label for="userName">Name*</label>
+                                    <input type="text" required="required" name="fullname" parsley-trigger="change"
+                                        placeholder="Enter name" class="form-control" id="fullname">
+                                </div>
+                                <div class="form-group">
+                                    <label for="userName">Username*</label>
+                                    <input type="text" name="username" parsley-trigger="change"
+                                        placeholder="Login Username" class="form-control" id="username">
+                                </div>
+                                <div class="form-group">
+                                    <label for="userName">Password</label>
+                                    <input type="password" name="password" parsley-trigger="change"
+                                        placeholder="Password" class="form-control" id="password">
+                                </div>
+                                <div class="form-group">
+                                    <label for="userName">Repeat Password</label>
+                                    <input type="password" name="pass" parsley-trigger="change" placeholder="Repeat"
+                                        class="form-control" id="pass">
+                                </div>
+                                <div class="perms">
+                                    <h3 class="m-t-20">Permissions</h3>
+                                    <hr>
+                                    <div class="form-group">
+                                        <span><input type="checkbox" name="perm_products" id="perm_products"> Manage
+                                            Products and Stock </span>
+                                    </div>
+                                    <div class="form-group">
+                                        <span><input type="checkbox" name="perm_categories" id="perm_categories"> Manage
+                                            Product Categories </span>
+                                    </div>
+                                    <div class="form-group">
+                                        <span><input type="checkbox" name="perm_transactions" id="perm_transactions">
+                                            View
+                                            Transactions </span>
+                                    </div>
+                                    <div class="form-group">
+                                        <span><input type="checkbox" name="perm_users" id="perm_users"> Manage Users and
+                                            Permissions </span>
+                                    </div>
+                                    <div class="form-group">
+                                        <span><input type="checkbox" name="perm_settings" id="perm_settings"> Manage
+                                            Settings </span>
+                                    </div>
+                                </div>
+                                <input type="submit" class="btn btn-primary btn-block waves-effect waves-light">
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="holdOrdersModal" class="modal fade bs-example-modal-lg" tabindex="-1" role="dialog"
+                aria-labelledby="myLargeModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                            <h4 class="modal-title" id="myLargeModalLabel">Open Orders</h4>
+                        </div>
+                        <div class="modal-body">
+                            <input type="text" id="holdOrderInput" placeholder="Search order by reference"
+                                class="holdOrderInput form-control">
+                            <div class="holdOrderKeyboard"></div>
+                            <br>
+                            <div class="row" id="renderHoldOrders">
+                                <p>Please wait <span class="dot"></span> </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="customerModal" class="modal fade bs-example-modal-lg" tabindex="-1" role="dialog"
+                aria-labelledby="myLargeModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                            <h4 class="modal-title" id="myLargeModalLabel">Customer Orders</h4>
+                        </div>
+                        <div class="modal-body">
+                            <input type="text" id="holdCustomerOrderInput" placeholder="Search order by customer name"
+                                class="holdCustomerOrderInput form-control">
+                            <div class="customerOrderKeyboard"></div>
+                            <br>
+                            <div class="row" id="renderCustomerOrders">
+                                <p>please wait <span class="dot"></span> </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="orderModal" class="modal fade bs-example-modal-sm" tabindex="-1" role="dialog"
+                aria-labelledby="myLargeModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-sm">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button class="btn btn-sm btn-success" onclick="$(this).print()">Print</button> <br> <button
+                                type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                        </div>
+                        <div class="modal-body" id="viewTransaction">
+                        </div>
+                        <div class="alert alert-danger">Right-Click and Reload if you get stuck after cancelling a
+                            print.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="settingsModal" class="modal fade bs-example-modal-lg" tabindex="-1" role="dialog"
+                aria-labelledby="myLargeModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                            <h4 class="modal-title" id="myLargeModalLabel">Settings
+                            </h4>
+                        </div>
+                        <div class="modal-body">
+                            <ul class="nav nav-tabs" role="tablist">
+                                <li role="presentation" class="active"><a href="#generalSettingsTab"
+                                        aria-controls="generalSettingsTab" role="tab" data-toggle="tab">General
+                                        Settings</a></li>
+                                <li role="presentation"><a href="#networkSettingsTab" aria-controls="networkSettingsTab"
+                                        role="tab" data-toggle="tab">Network Settings</a></li>
+                                <li role="presentation"><a href="#backupRestoreTab" aria-controls="backupRestoreTab"
+                                        role="tab" data-toggle="tab">Backup & Restore</a></li>
+                            </ul>
+                            <div class="tab-content">
+                                <!-- General Settings Tab -->
+                                <div role="tabpanel" class="tab-pane active" id="generalSettingsTab">
+                                    <form id="settings_form" encType="multipart/form-data">
+                                        <input type="hidden" name="id" id="settings_id">
+                                        <input type="hidden" name="img" id="logo_img">
+                                        <input type="hidden" name="remove" id="remove_logo">
+                                        <div class="container">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <div class="form-group">
+                                                        <label for="userName">Store Name</label>
+                                                        <input type="text" required="required" name="store"
+                                                            class="form-control" id="store" placeholder="Cool Pharmacy">
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="userName">Address Line 1</label>
+                                                        <input type="text" required="required" name="address_one"
+                                                            class="form-control" id="address_one"
+                                                            placeholder="123 Main Street, Building#">
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="userName">Address Line 2</label>
+                                                        <input type="text" required="required" name="address_two"
+                                                            class="form-control" id="address_two"
+                                                            placeholder="City, Country">
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="userName">Contact Number</label>
+                                                        <input type="tel" name="contact" class="form-control"
+                                                            id="contact" placeholder="0800 111 000">
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="userName">Vat Number</label>
+                                                        <input type="text" name="tax" parsley-trigger="change"
+                                                            class="form-control number-input" id="tax">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="form-group">
+                                                        <label for="userName">Currency Symbol</label>
+                                                        <input type="text" required="required" name="symbol"
+                                                            class="form-control" id="symbol" minlength="1" maxlength="3"
+                                                            placeholder="USD">
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="userName">Vat Percentage</label>
+                                                        <div class="pull-left">
+                                                            <div class="col-md-6">
+                                                                <div class="input-group" style="width:130%">
+                                                                    <input type="number" min="0" max="100"
+                                                                        required="required" name="percentage"
+                                                                        class="form-control" id="percentage">
+                                                                    <span class="input-group-addon">%</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <br><br>
+                                                    <div class="form-group">
+                                                        <label><input type="checkbox" name="charge_tax" id="charge_tax">
+                                                            Charge
+                                                            Vat</label>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="userName"><span id="rmv_logo"
+                                                                class="btn btn-xs btn-warning">Remove</span> Logo
+                                                        </label>
+                                                        <div id="current_logo"></div>
+                                                        <input type="file" name="imagename" id="logoname"
+                                                            accept=".jpg,.jpeg,.png,.webp">
+                                                        <small class="text-gray">
+                                                            Max filesize: <strong>2MB</strong>; Allowed image
+                                                            types:<strong> jpeg, jpg, png or webp</strong></small>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="userName">Receipt Footer</label>
+                                                        <textarea name="footer" class="form-control"
+                                                            id="footer"></textarea>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="form-group">
+                                                <input id="save_settings" type="submit"
+                                                    class="btn btn-success btn-block waves-effect waves-light"
+                                                    value="Save Settings">
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+
+                                <!-- Network Settings Tab -->
+                                <div role="tabpanel" class="tab-pane" id="networkSettingsTab">
+                                    <div class="row">
+                                        <div class="form-group">
+                                            <label for="app">Application</label>
+                                            <select name="app" id="app" class="form-control">
+                                                <option value="Standalone Point of Sale">Standalone Point of Sale
+                                                </option>
+                                                <option value="Network Point of Sale Terminal">Network Point of Sale
+                                                    Terminal</option>
+                                                <option value="Network Point of Sale Server">Network Point of Sale
+                                                    Server</option>
+                                            </select>
+                                        </div>
+                                        <form id="net_settings_form">
+                                            <div class="form-group">
+                                                <label for="ip">Server IP Address*</label>
+                                                <input type="text" required="required"
+                                                    placeholder="Enter the IP address of the admin computer." name="ip"
+                                                    class="form-control" id="ip">
+                                            </div>
+                                            <div class="col-md-5">
+                                                <div class="form-group">
+                                                    <label for="till">Till Number*</label>
+                                                    <input type="text" required="required" placeholder="Enter a number"
+                                                        name="till" class="form-control" id="till">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-7">
+                                                <div class="form-group">
+                                                    <label for="mac">Hardware Identification Number </label>
+                                                    <input type="text" required="required" name="mac"
+                                                        class="form-control" id="mac" readonly="readonly">
+                                                </div>
+                                            </div>
+                                            <div class="form-group">
+                                                <input id="save_settings" type="submit"
+                                                    class="btn btn-success btn-block waves-effect waves-light"
+                                                    value="Save Settings">
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+
+                                <!-- Backup & Restore Tab -->
+                                <div role="tabpanel" class="tab-pane" id="backupRestoreTab">
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <h4>Backup & Restore Database</h4>
+                                            <p class="text-muted">Create backups of your database and restore from
+                                                previous backups. Backup files are automatically compressed to save
+                                                space.</p>
+
+                                            <!-- Backup Statistics -->
+                                            <div class="row m-b-20">
+                                                <div class="col-md-3">
+                                                    <div class="widget-box">
+                                                        <div class="widget-header">
+                                                            <h5 class="widget-title">Total Backups</h5>
+                                                        </div>
+                                                        <div class="widget-body">
+                                                            <h3 id="totalBackupsCount">0</h3>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="widget-box">
+                                                        <div class="widget-header">
+                                                            <h5 class="widget-title">Backup Size</h5>
+                                                        </div>
+                                                        <div class="widget-body">
+                                                            <h3 id="totalBackupSize">0 MB</h3>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="widget-box">
+                                                        <div class="widget-header">
+                                                            <h5 class="widget-title">Database Size</h5>
+                                                        </div>
+                                                        <div class="widget-body">
+                                                            <h3 id="totalDbSize">0 MB</h3>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="widget-box">
+                                                        <div class="widget-header">
+                                                            <h5 class="widget-title">Last Backup</h5>
+                                                        </div>
+                                                        <div class="widget-body">
+                                                            <h3 id="lastBackupDate">Never</h3>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Backup Actions -->
+                                            <div class="row m-b-20">
+                                                <div class="col-md-6">
+                                                    <div class="card-box">
+                                                        <div class="card-title">
+                                                            <h4><i class="fa fa-download"></i> Create Backup</h4>
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <p>Create a new backup of all your database files. The
+                                                                backup will include all products, transactions, users,
+                                                                and settings.</p>
+                                                            <div class="form-group">
+                                                                <label for="backupLocation">Backup Location</label>
+                                                                <input type="text" id="backupLocation"
+                                                                    class="form-control"
+                                                                    placeholder="Default location will be used"
+                                                                    readonly>
+                                                            </div>
+                                                            <button type="button" id="createBackupBtn"
+                                                                class="btn btn-success btn-block waves-effect waves-light">
+                                                                <i class="fa fa-download"></i> Create Backup
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="card-box">
+                                                        <div class="card-title">
+                                                            <h4><i class="fa fa-upload"></i> Restore Backup</h4>
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <p>Restore your database from a previous backup. A safety
+                                                                backup will be created automatically before restore.</p>
+                                                            <button type="button" id="restoreBackupBtn"
+                                                                class="btn btn-warning btn-block waves-effect waves-light"
+                                                                data-toggle="modal" data-target="#restoreBackupModal">
+                                                                <i class="fa fa-upload"></i> Restore from Backup
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Backup Progress -->
+                                            <div id="backupProgressContainer" class="row" style="display: none;">
+                                                <div class="col-md-12">
+                                                    <div class="card-box">
+                                                        <div class="card-title">
+                                                            <h4 id="backupProgressTitle">Processing...</h4>
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <div class="progress">
+                                                                <div id="backupProgressBar"
+                                                                    class="progress-bar progress-bar-success"
+                                                                    role="progressbar" style="width: 0%">
+                                                                    0%
+                                                                </div>
+                                                            </div>
+                                                            <p id="backupProgressMessage" class="text-muted m-t-10">
+                                                                Initializing...</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Backup History -->
+                                            <div class="row">
+                                                <div class="col-md-12">
+                                                    <div class="card-box">
+                                                        <div class="card-title">
+                                                            <h4><i class="fa fa-history"></i> Backup History</h4>
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <div class="table-responsive">
+                                                                <table class="table table-striped table-bordered"
+                                                                    id="backupHistoryTable">
+                                                                    <thead>
+                                                                        <tr>
+                                                                            <th>Date Created</th>
+                                                                            <th>File Name</th>
+                                                                            <th>Size</th>
+                                                                            <th>Actions</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody id="backupHistoryBody">
+                                                                        <tr>
+                                                                            <td colspan="4" class="text-center">Loading
+                                                                                backup history...</td>
+                                                                        </tr>
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="customerDetailsModal" class="modal fade bs-example-modal-lg" tabindex="-1" role="dialog"
+                aria-labelledby="myLargeModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                            <h4 class="modal-title" id="myLargeModalLabel">Customer Details</h4>
+                        </div>
+                        <div class="modal-body">
+                            <ul class="nav nav-tabs" role="tablist">
+                                <li role="presentation" class="active"><a href="#customerInfoTab"
+                                        aria-controls="customerInfoTab" role="tab" data-toggle="tab">Customer Info</a>
+                                </li>
+                                <li role="presentation"><a href="#prescriptionsTab" aria-controls="prescriptionsTab"
+                                        role="tab" data-toggle="tab">Prescriptions</a></li>
+                            </ul>
+                            <div class="tab-content">
+                                <div role="tabpanel" class="tab-pane active" id="customerInfoTab">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <p><strong>Name:</strong> <span id="customerName"></span></p>
+                                            <p><strong>Phone:</strong> <span id="customerPhone"></span></p>
+                                            <p><strong>Email:</strong> <span id="customerEmail"></span></p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <p><strong>Address:</strong> <span id="customerAddress"></span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div role="tabpanel" class="tab-pane" id="prescriptionsTab">
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <h4>Existing Prescriptions</h4>
+                                            <div id="prescriptionsList">
+                                                <!-- Prescriptions will be loaded here -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <hr>
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <h4>Upload New Prescription</h4>
+                                            <form id="uploadPrescriptionForm" enctype="multipart/form-data">
+                                                <input type="hidden" id="uploadCustomerId" name="customer_id">
+                                                <div class="form-group">
+                                                    <label for="product_id">Product IDs (comma separated,
+                                                        optional)</label>
+                                                    <input type="text" name="product_id" class="form-control"
+                                                        placeholder="e.g., 1,2,3">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="doctor_name">Doctor Name</label>
+                                                    <input type="text" name="doctor_name" class="form-control">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="notes">Notes</label>
+                                                    <textarea name="notes" class="form-control"></textarea>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="prescription_file">Prescription File</label>
+                                                    <input type="file" name="prescription_file" id="prescription_file"
+                                                        accept=".jpg,.jpeg,.png,.pdf">
+                                                </div>
+                                                <button type="submit" class="btn btn-primary">Upload</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="Suppliers" class="modal fade bs-example-modal-lg" tabindex="-1" role="dialog"
+                aria-labelledby="myLargeModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                            <h4 class="modal-title" id="myLargeModalLabel">Suppliers</h4>
+                        </div>
+                        <div class="modal-body p-20 p-r-20">
+                            <table class="table table-bordered" id="supplierList">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Contact Person</th>
+                                        <th>Phone</th>
+                                        <th>Email</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="supplier_list"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="newSupplier" class="modal fade bs-example-modal-sm" tabindex="-1" role="dialog"
+                aria-labelledby="mySmallModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-sm">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                            <h4 class="modal-title" id="mySmallModalLabel">Supplier</h4>
+                        </div>
+                        <div class="modal-body">
+                            <form id="saveSupplier" data-parsley-validate>
+                                <input type="hidden" name="id" id="supplier_id">
+                                <div class="form-group">
+                                    <label for="supplierName">Supplier Name*</label>
+                                    <input type="text" required="required" name="name" parsley-trigger="change"
+                                        placeholder="Enter supplier name" class="form-control" id="supplierName">
+                                </div>
+                                <div class="form-group">
+                                    <label for="contactPerson">Contact Person</label>
+                                    <input type="text" name="contact_person" parsley-trigger="change"
+                                        placeholder="Enter contact person" class="form-control" id="contactPerson">
+                                </div>
+                                <div class="form-group">
+                                    <label for="supplierPhone">Phone</label>
+                                    <input type="text" name="phone" parsley-trigger="change"
+                                        placeholder="Enter phone number" class="form-control" id="supplierPhone">
+                                </div>
+                                <div class="form-group">
+                                    <label for="supplierEmail">Email</label>
+                                    <input type="email" name="email" parsley-trigger="change"
+                                        placeholder="Enter email address" class="form-control" id="supplierEmail">
+                                </div>
+                                <div class="form-group">
+                                    <label for="supplierAddress">Address</label>
+                                    <input type="text" name="address" parsley-trigger="change"
+                                        placeholder="Enter address" class="form-control" id="supplierAddress">
+                                </div>
+                                <div class="form-group">
+                                    <label for="paymentTerms">Payment Terms</label>
+                                    <input type="text" name="payment_terms" parsley-trigger="change"
+                                        placeholder="e.g., Net 30" class="form-control" id="paymentTerms">
+                                </div>
+                                <input type="submit" class="btn btn-primary btn-block waves-effect waves-light">
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="PurchaseOrders" class="modal fade bs-example-modal-lg" tabindex="-1" role="dialog"
+                aria-labelledby="myLargeModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                            <h4 class="modal-title" id="myLargeModalLabel">Purchase Orders</h4>
+                            <button id="newPurchaseOrderModal" data-toggle="modal" data-target="#newPurchaseOrder"
+                                type="button" class="btn btn-success btn-sm">New Order</button>
+                        </div>
+                        <div class="modal-body p-20 p-r-20">
+                            <table class="table table-bordered" id="purchaseOrderList">
+                                <thead>
+                                    <tr>
+                                        <th>Order ID</th>
+                                        <th>Supplier</th>
+                                        <th>Order Date</th>
+                                        <th>Expected Delivery</th>
+                                        <th>Status</th>
+                                        <th>Total Cost</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="purchase_order_list"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="newPurchaseOrder" class="modal fade bs-example-modal-md" tabindex="-1" role="dialog"
+                aria-labelledby="myLargeModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-md">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                            <h4 class="modal-title" id="myLargeModalLabel">New Purchase Order</h4>
+                        </div>
+                        <div class="modal-body">
+                            <form id="savePurchaseOrder" data-parsley-validate>
+                                <div class="form-group">
+                                    <label for="po_supplier">Supplier*</label>
+                                    <select name="supplier_id" class="form-control" id="po_supplier" required></select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Items</label>
+                                    <table class="table table-bordered" id="po_items_table">
+                                        <thead>
+                                            <tr>
+                                                <th>Product</th>
+                                                <th>Quantity</th>
+                                                <th>Unit Cost</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="po_items_body">
+                                            <tr>
+                                                <td><select class="form-control po_product" name="product_id[]">
+                                                        <option value="">Select Product</option>
+                                                    </select></td>
+                                                <td><input type="number" class="form-control po_quantity"
+                                                        name="quantity[]" min="1" placeholder="Qty"></td>
+                                                <td><input type="number" step="0.01" class="form-control po_cost"
+                                                        name="unit_cost[]" min="0" placeholder="Cost"></td>
+                                                <td><button type="button"
+                                                        class="btn btn-danger btn-sm remove_item">Remove</button></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                    <button type="button" id="add_po_item" class="btn btn-info btn-sm">Add Item</button>
+                                </div>
+                                <div class="form-group">
+                                    <label for="expected_delivery">Expected Delivery</label>
+                                    <input type="date" name="expected_delivery" class="form-control"
+                                        id="expected_delivery" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="po_notes">Notes</label>
+                                    <textarea name="notes" class="form-control" id="po_notes"></textarea>
+                                </div>
+                                <input type="submit" class="btn btn-primary btn-block waves-effect waves-light">
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CSV Import/Export Modal -->
+            <div id="importCSVPModal" class="modal fade bs-example-modal-sm" tabindex="-1" role="dialog"
+                aria-labelledby="importCSVModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-sm">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                            <h4 class="modal-title" id="importCSVModalLabel">Import Products from CSV</h4>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label for="csvFileInput">Select CSV File</label>
+                                <input type="file" id="csvFileInput" accept=".csv" class="form-control">
+                                <small class="text-muted">
+                                    <strong>Instructions:</strong><br>
+                                    • CSV file must contain 'name' and 'price' columns<br>
+                                    • Maximum file size: 5MB<br>
+                                    • Duplicate products will be skipped by default<br>
+                                    • Download the template for proper format
+                                </small>
+                            </div>
+                            <div class="form-group">
+                                <label for="duplicateAction">Handle Duplicates</label>
+                                <select id="duplicateAction" class="form-control">
+                                    <option value="skip">Skip duplicates (default)</option>
+                                    <option value="update">Update existing products</option>
+                                </select>
+                            </div>
+                            <hr>
+                            <div class="text-center">
+                                <button type="button" id="startImport" class="btn btn-primary waves-effect waves-light">
+                                    <i class="fa fa-upload"></i> Start Import
+                                </button>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Restore Backup Modal -->
+            <div id="restoreBackupModal" class="modal fade bs-example-modal-lg" tabindex="-1" role="dialog"
+                aria-labelledby="restoreBackupModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                            <h4 class="modal-title" id="restoreBackupModalLabel">Restore from Backup</h4>
+                        </div>
+                        <div class="modal-body">
+                            <div class="alert alert-warning">
+                                <strong>Warning:</strong> This will replace all current data with the backup data. A
+                                safety backup of your current data will be created automatically.
+                            </div>
+
+                            <!-- Available Backups List -->
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <h5>Available Backups</h5>
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-bordered" id="availableBackupsTable">
+                                            <thead>
+                                                <tr>
+                                                    <th>Select</th>
+                                                    <th>Date Created</th>
+                                                    <th>File Name</th>
+                                                    <th>Size</th>
+                                                    <th>Validation</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="availableBackupsBody">
+                                                <tr>
+                                                    <td colspan="6" class="text-center">Loading available backups...
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Restore Progress -->
+                            <div id="restoreProgressContainer" class="row" style="display: none;">
+                                <div class="col-md-12">
+                                    <div class="card-box">
+                                        <div class="card-title">
+                                            <h4 id="restoreProgressTitle">Restoring Backup...</h4>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="progress">
+                                                <div id="restoreProgressBar" class="progress-bar progress-bar-warning"
+                                                    role="progressbar" style="width: 0%">
+                                                    0%
+                                                </div>
+                                            </div>
+                                            <p id="restoreProgressMessage" class="text-muted m-t-10">Initializing
+                                                restore process...</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                            <button type="button" id="confirmRestoreBtn" class="btn btn-warning" disabled>
+                                <i class="fa fa-upload"></i> Confirm Restore
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Module Containers for Modern App Interface -->
+            <div class="main-content" style="display: none;">
+                <div class="content-wrapper">
+                    <!-- Dashboard Module -->
+                    <div id="module-dashboard" class="module-view active">
+                        <div class="module-header">
+                            <h1 class="module-title">Dashboard</h1>
+                        </div>
+                        <div class="module-content">
+                            <!-- Dashboard content will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Point of Sale Module -->
+                    <div id="module-pos" class="module-view hidden">
+                        <div class="module-header">
+                            <h1 class="module-title">Point of Sale</h1>
+                        </div>
+                        <div class="module-content">
+                            <!-- POS content will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Inventory Module -->
+                    <div id="module-inventory" class="module-view hidden">
+                        <div class="module-header">
+                            <h1 class="module-title">Inventory Management</h1>
+                        </div>
+                        <div class="module-content">
+                            <!-- Inventory content will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Prescriptions Module -->
+                    <div id="module-prescriptions" class="module-view hidden">
+                        <div class="module-header">
+                            <h1 class="module-title">Prescriptions</h1>
+                        </div>
+                        <div class="module-content">
+                            <!-- Prescriptions content will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Customers Module -->
+                    <div id="module-customers" class="module-view hidden">
+                        <div class="module-header">
+                            <h1 class="module-title">Customer Management</h1>
+                        </div>
+                        <div class="module-content">
+                            <!-- Customers content will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Suppliers Module -->
+                    <div id="module-suppliers" class="module-view hidden">
+                        <div class="module-header">
+                            <h1 class="module-title">Supplier Management</h1>
+                        </div>
+                        <div class="module-content">
+                            <!-- Suppliers content will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Reports Module -->
+                    <div id="module-reports" class="module-view hidden">
+                        <div class="module-header">
+                            <h1 class="module-title">Reports & Analytics</h1>
+                        </div>
+                        <div class="module-content">
+                            <!-- Reports content will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Settings Module -->
+                    <div id="module-settings" class="module-view hidden">
+                        <div class="module-header">
+                            <h1 class="module-title">Settings</h1>
+                        </div>
+                        <div class="module-content">
+                            <!-- Settings content will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
-    <script src="assets/dist/js/bundle.min.js"></script>
+        <!-- Scripts loaded via renderer.js -->
+        <script src="assets/dist/js/bundle.min.js"></script>
 </body>
 
 </html>

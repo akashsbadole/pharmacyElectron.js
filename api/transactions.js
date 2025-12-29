@@ -248,3 +248,231 @@ app.get("/:transactionId", function (req, res) {
     if (doc) res.send(doc[0]);
   });
 });
+
+/**
+ * GET endpoint: Get sales report with revenue, profit, and trends.
+ * Query parameters: start, end, user, till, groupBy
+ */
+app.get("/reports/sales", function (req, res) {
+  let startDate = new Date(req.query.start);
+  let endDate = new Date(req.query.end);
+  let userFilter = req.query.user && req.query.user != 0 ? parseInt(req.query.user) : null;
+  let tillFilter = req.query.till && req.query.till != 0 ? parseInt(req.query.till) : null;
+  let groupBy = req.query.groupBy || 'day';
+
+  let query = {
+    $and: [
+      { date: { $gte: startDate.toISOString(), $lte: endDate.toISOString() } },
+      { status: 1 }
+    ]
+  };
+
+  if (userFilter) query.$and.push({ user_id: userFilter });
+  if (tillFilter) query.$and.push({ till: tillFilter });
+
+  transactionsDB.find(query, function (err, transactions) {
+    if (err) {
+      console.error(err);
+      res.status(500).json({ error: "Internal Server Error" });
+      return;
+    }
+
+    // Calculate total revenue and profit
+    let totalRevenue = 0;
+    let totalProfit = 0;
+    let trends = {};
+
+    // Get inventory data for profit calculation
+    Inventory.getInventory(function(inventory) {
+      const inventoryMap = {};
+      inventory.forEach(item => {
+        inventoryMap[item._id] = item;
+      });
+
+      transactions.forEach(transaction => {
+        let revenue = parseFloat(transaction.total) || 0;
+        totalRevenue += revenue;
+
+        // Calculate profit if cost data available
+        if (transaction.items && Array.isArray(transaction.items)) {
+          transaction.items.forEach(item => {
+            const inventoryItem = inventoryMap[item.id];
+            if (inventoryItem && inventoryItem.cost) {
+              const cost = parseFloat(inventoryItem.cost) || 0;
+              const price = parseFloat(item.price) || 0;
+              const quantity = parseInt(item.quantity) || 0;
+              totalProfit += (price - cost) * quantity;
+            }
+          });
+        }
+
+        // Group trends by date
+        let dateKey;
+        let transactionDate = new Date(transaction.date);
+        
+        switch(groupBy) {
+          case 'month':
+            dateKey = `${transactionDate.getFullYear()}-${String(transactionDate.getMonth() + 1).padStart(2, '0')}`;
+            break;
+          case 'year':
+            dateKey = `${transactionDate.getFullYear()}`;
+            break;
+          default: // day
+            dateKey = transactionDate.toISOString().split('T')[0];
+        }
+
+        if (!trends[dateKey]) {
+          trends[dateKey] = { date: dateKey, revenue: 0, profit: 0 };
+        }
+        trends[dateKey].revenue += revenue;
+        
+        // Calculate profit for this trend entry
+        if (transaction.items && Array.isArray(transaction.items)) {
+          transaction.items.forEach(item => {
+            const inventoryItem = inventoryMap[item.id];
+            if (inventoryItem && inventoryItem.cost) {
+              const cost = parseFloat(inventoryItem.cost) || 0;
+              const price = parseFloat(item.price) || 0;
+              const quantity = parseInt(item.quantity) || 0;
+              trends[dateKey].profit += (price - cost) * quantity;
+            }
+          });
+        }
+      });
+
+      res.json({
+        totalRevenue: totalRevenue,
+        totalProfit: totalProfit,
+        trends: Object.values(trends)
+      });
+    });
+  });
+});
+
+/**
+ * GET endpoint: Get inventory turnover report.
+ * Query parameters: start, end
+ */
+app.get("/reports/inventory-turnover", function (req, res) {
+  let startDate = new Date(req.query.start);
+  let endDate = new Date(req.query.end);
+
+  transactionsDB.find({
+    $and: [
+      { date: { $gte: startDate.toISOString(), $lte: endDate.toISOString() } },
+      { status: 1 }
+    ]
+  }, function (err, transactions) {
+    if (err) {
+      console.error(err);
+      res.status(500).json({ error: "Internal Server Error" });
+      return;
+    }
+
+    // Calculate total COGS
+    let totalCOGS = 0;
+
+    // Get inventory data for cost calculation
+    Inventory.getInventory(function(inventory) {
+      const inventoryMap = {};
+      inventory.forEach(item => {
+        inventoryMap[item._id] = item;
+      });
+
+      transactions.forEach(transaction => {
+        if (transaction.items && Array.isArray(transaction.items)) {
+          transaction.items.forEach(item => {
+            const inventoryItem = inventoryMap[item.id];
+            if (inventoryItem && inventoryItem.cost) {
+              const cost = parseFloat(inventoryItem.cost) || 0;
+              const quantity = parseInt(item.quantity) || 0;
+              totalCOGS += cost * quantity;
+            }
+          });
+        }
+      });
+
+      // Calculate average inventory value
+      let totalInventoryValue = 0;
+      inventory.forEach(item => {
+        const quantity = parseInt(item.quantity) || 0;
+        const price = parseFloat(item.price) || 0;
+        totalInventoryValue += quantity * price;
+      });
+
+      let averageInventoryValue = inventory.length > 0 ? totalInventoryValue / inventory.length : 0;
+      let turnoverRate = averageInventoryValue > 0 ? totalCOGS / averageInventoryValue : 0;
+      let daysInStock = turnoverRate > 0 ? 365 / turnoverRate : 0;
+
+      res.json({
+        turnoverRate: parseFloat(turnoverRate.toFixed(2)),
+        daysInStock: parseFloat(daysInStock.toFixed(1)),
+        totalCOGS: parseFloat(totalCOGS.toFixed(2)),
+        averageInventoryValue: parseFloat(averageInventoryValue.toFixed(2))
+      });
+    });
+  });
+});
+
+/**
+ * GET endpoint: Get staff activity report.
+ * Query parameters: start, end
+ */
+app.get("/reports/staff-activity", function (req, res) {
+  let startDate = new Date(req.query.start);
+  let endDate = new Date(req.query.end);
+
+  // Get transaction data for staff performance
+  transactionsDB.find({
+    $and: [
+      { date: { $gte: startDate.toISOString(), $lte: endDate.toISOString() } },
+      { status: 1 }
+    ]
+  }, function (err, transactions) {
+    if (err) {
+      console.error(err);
+      res.status(500).json({ error: "Internal Server Error" });
+      return;
+    }
+
+    // Group by user_id
+    let staffData = {};
+    
+    transactions.forEach(transaction => {
+      const userId = transaction.user_id;
+      if (!staffData[userId]) {
+        staffData[userId] = {
+          userId: userId,
+          name: `User ${userId}`, // Will be updated with actual names
+          loginCount: 0,
+          lastLogin: null,
+          totalSales: 0,
+          transactionCount: 0
+        };
+      }
+      
+      staffData[userId].totalSales += parseFloat(transaction.total) || 0;
+      staffData[userId].transactionCount += 1;
+    });
+
+    // Get user names from users database
+    const Users = require("./users");
+    Users.getUsers(function(users) {
+      users.forEach(user => {
+        if (staffData[user._id]) {
+          staffData[user._id].name = user.name || user.username || `User ${user._id}`;
+        }
+      });
+
+      // For now, set loginCount to 0 as session logging integration will be handled separately
+      // In a full implementation, we would query session_logs here
+      const staffArray = Object.values(staffData).map(staff => ({
+        ...staff,
+        loginCount: 0, // Placeholder - will be populated with session log data
+        lastLogin: null // Placeholder - will be populated with session log data
+      }));
+
+      res.json({ staff: staffArray });
+    });
+  });
+});

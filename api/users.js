@@ -6,6 +6,7 @@ const bcrypt = require("bcrypt");
 const saltRounds = 10;
 const validator = require("validator");
 const path = require("path");
+const request = require("request");
 const dbPath = path.join(
     process.env.APPDATA,
     process.env.APPNAME,
@@ -24,6 +25,21 @@ let usersDB = new Datastore({
 });
 
 usersDB.ensureIndex({ fieldName: "username", unique: true });
+
+let sessionLogsPath = path.join(
+    process.env.APPDATA,
+    process.env.APPNAME,
+    "server",
+    "databases",
+    "session_logs.db",
+);
+
+let sessionLogsDB = new Datastore({
+    filename: sessionLogsPath,
+    autoload: true,
+});
+
+sessionLogsDB.ensureIndex({ fieldName: "_id", unique: true });
 
 /**
  * GET endpoint: Get the welcome message for the Users API.
@@ -81,6 +97,12 @@ app.get("/logout/:userId", function (req, res) {
             {},
         );
 
+        sessionLogsDB.insert({
+            user_id: parseInt(req.params.userId),
+            action: 'logout',
+            timestamp: new Date().toISOString()
+        });
+
         res.sendStatus(200);
     }
 });
@@ -115,6 +137,11 @@ app.post("/login", function (req, res) {
                                 },
                                 {},
                             );
+                            sessionLogsDB.insert({
+                                user_id: docs._id,
+                                action: 'login',
+                                timestamp: new Date().toISOString()
+                            });
                             res.send({ ...docs, auth: true });
                         }
                         //Invalid password
@@ -309,3 +336,20 @@ app.get("/check", function (req, res) {
         },
     );
 });
+
+/**
+ * Get all users (for reporting functions)
+ *
+ * @param {Function} callback - Callback function to receive users data
+ * @returns {void}
+ */
+app.getUsers = function (callback) {
+    usersDB.find({}, function (err, docs) {
+        if (err) {
+            console.error(err);
+            callback([]);
+        } else {
+            callback(docs);
+        }
+    });
+};

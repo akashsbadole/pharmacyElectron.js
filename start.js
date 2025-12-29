@@ -4,8 +4,9 @@ const setupEvents = require("./installers/setupEvents");
 if (setupEvents.handleSquirrelEvent()) {
     return;
 }
-const server = require('./server');
-const { app, BrowserWindow, ipcMain, screen} = require("electron");
+const { app, BrowserWindow, ipcMain, screen } = require("electron");
+const serverModule = require('./server');
+const { restartServer, io } = serverModule;
 const path = require("path");
 const contextMenu = require("electron-context-menu");
 let { Menu, template } = require("./assets/js/native_menu/menu");
@@ -32,7 +33,7 @@ function createWindow() {
             contextIsolation: false,
         },
     });
-    menuController.initializeMainWindow(mainWindow); 
+    menuController.initializeMainWindow(mainWindow);
     mainWindow.maximize();
     mainWindow.show();
 
@@ -41,15 +42,36 @@ function createWindow() {
     mainWindow.on("closed", () => {
         mainWindow = null;
     });
-    
+
 }
 
 app.on("browser-window-created", (_, window) => {
     require("@electron/remote/main").enable(window.webContents);
 });
 
+let serverReady = false;
+
 app.whenReady().then(() => {
     createWindow();
+
+    // Monitor for server readiness
+    const checkServerReady = () => {
+        if (process.env.PORT && mainWindow && !isNaN(process.env.PORT)) {
+            serverReady = true;
+            console.log('Server ready detected, PORT:', process.env.PORT);
+            console.log('Sending server config to renderer:', { port: process.env.PORT, host: 'localhost' });
+            mainWindow.webContents.send('server-config', {
+                port: process.env.PORT,
+                host: 'localhost'
+            });
+        } else {
+            // Keep checking until we have both PORT and mainWindow
+            setTimeout(checkServerReady, 100);
+        }
+    };
+
+    // Start monitoring immediately
+    checkServerReady();
 });
 
 app.on("window-all-closed", () => {
@@ -84,6 +106,15 @@ ipcMain.on("restart-app", () => {
     autoUpdater.quitAndInstall();
 });
 
+ipcMain.on("get-server-config", (event) => {
+    if (process.env.PORT) {
+        event.reply('server-config', {
+            port: process.env.PORT,
+            host: 'localhost'
+        });
+    }
+});
+
 //Context menu
 contextMenu({
     prepend: (params, browserWindow) => [
@@ -100,7 +131,7 @@ contextMenu({
 if (!isPackaged) {
     try {
         require("electron-reloader")(module);
-    } catch (_) {}
+    } catch (_) { }
 }
 
 
