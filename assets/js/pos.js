@@ -702,7 +702,8 @@ function initializeApp() {
             );
 
             customers.forEach((cust) => {
-              let customer = `<option value='{"id": ${cust._id}, "name": "${cust.name}"}'>${cust.name}</option>`;
+              let customerValue = JSON.stringify({ id: cust._id, name: cust.name });
+              let customer = `<option value='${customerValue}'>${cust.name}</option>`;
               $("#customer").append(customer);
             });
           })
@@ -1632,13 +1633,13 @@ function initializeApp() {
             $("#customer").append(
               $("<option>", {
                 text: custData.name,
-                value: `{"id": ${custData._id}, "name": ${custData.name}}`,
+                value: JSON.stringify({ id: custData._id, name: custData.name }),
                 selected: "selected",
               }),
             );
 
             $("#customer")
-              .val(`{"id": ${custData._id}, "name": ${custData.name}}`)
+              .val(JSON.stringify({ id: custData._id, name: custData.name }))
               .trigger("chosen:updated");
           },
           error: function (xhr, status, error) {
