@@ -2,6 +2,15 @@
   display: none;
 }
 
+/* Override minified CSS for proper view switching */
+#pointofsale {
+  display: block !important;
+}
+
+#transactions {
+  display: block !important;
+}
+
 #card-box tr {
   display: block;
 }

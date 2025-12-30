@@ -54,11 +54,16 @@ function loadSupplierList() {
 
 // Load suppliers into dropdowns
 function loadSuppliers() {
-    $.get(window.api + "suppliers", function (data) {
-        allSuppliers = data;
-        populateSupplierDropdowns();
-        loadSupplierList();
-    });
+    $.get(window.api + "suppliers")
+        .done(function (data) {
+            allSuppliers = data;
+            populateSupplierDropdowns();
+            loadSupplierList();
+        })
+        .fail(function (xhr, status, error) {
+            console.error('Failed to load suppliers:', error);
+            notiflix.Report.failure('Error', 'Failed to load suppliers', 'Ok');
+        });
 }
 
 // Function to initialize suppliers functionality when API is ready
@@ -118,10 +123,21 @@ $(document).ready(function () {
                 loadSuppliers();
                 notiflix.Report.success("Success!", "Supplier saved successfully!", "Ok");
             },
-            error: function (jqXHR) {
+            error: function (xhr, status, error) {
+                console.error('Failed to save supplier:', error);
+                
+                let errorMessage = "Failed to save supplier";
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                } else if (xhr.status === 0) {
+                    errorMessage = "Network error. Please check your connection and try again.";
+                } else if (xhr.status >= 500) {
+                    errorMessage = "Server error. Please try again later.";
+                }
+                
                 notiflix.Report.failure(
-                    jqXHR.responseJSON.error,
-                    jqXHR.responseJSON.message,
+                    "Error",
+                    errorMessage,
                     "Ok"
                 );
             }
@@ -157,10 +173,21 @@ $(document).ready(function () {
                         loadSuppliers();
                         notiflix.Report.success("Deleted!", "Supplier deleted", "Ok");
                     },
-                    error: function (jqXHR) {
+                    error: function (xhr, status, error) {
+                        console.error('Failed to delete supplier:', error);
+                        
+                        let errorMessage = "Failed to delete supplier";
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        } else if (xhr.status === 0) {
+                            errorMessage = "Network error. Please check your connection and try again.";
+                        } else if (xhr.status >= 500) {
+                            errorMessage = "Server error. Please try again later.";
+                        }
+                        
                         notiflix.Report.failure(
-                            jqXHR.responseJSON.error,
-                            jqXHR.responseJSON.message,
+                            "Error",
+                            errorMessage,
                             "Ok"
                         );
                     }

@@ -5,10 +5,15 @@ $(document).ready(function() {
 
     // Load purchase orders
     function loadPurchaseOrders() {
-        $.get(api + "purchase_orders/all", function(data) {
-            allPurchaseOrders = data;
-            loadPurchaseOrderList();
-        });
+        $.get(api + "purchase_orders/all")
+            .done(function(data) {
+                allPurchaseOrders = data;
+                loadPurchaseOrderList();
+            })
+            .fail(function(xhr, status, error) {
+                console.error('Failed to load purchase orders:', error);
+                notiflix.Report.failure('Error', 'Failed to load purchase orders', 'Ok');
+            });
     }
 
     function loadPurchaseOrderList() {
@@ -26,7 +31,7 @@ $(document).ready(function() {
                 <td>${moment(order.order_date).format("DD-MMM-YYYY")}</td>
                 <td>${order.expected_delivery ? moment(order.expected_delivery).format("DD-MMM-YYYY") : ""}</td>
                 <td>${statusBadge}</td>
-                <td>${validator.unescape(settings.symbol)}${order.total_cost.toFixed(2)}</td>
+                <td>${settings && settings.symbol ? (typeof safeUnescape !== 'undefined' ? safeUnescape(settings.symbol) : '$') : '$'}${order.total_cost.toFixed(2)}</td>
                 <td>
                     <select class="form-control status-select" data-order-id="${order._id}">
                         <option value="pending" ${order.status === "pending" ? "selected" : ""}>Pending</option>
@@ -147,10 +152,21 @@ $(document).ready(function() {
                 loadPurchaseOrders();
                 notiflix.Report.success("Success!", "Purchase order created successfully!", "Ok");
             },
-            error: function(jqXHR) {
+            error: function(xhr, status, error) {
+                console.error('Failed to create purchase order:', error);
+                
+                let errorMessage = "Failed to create purchase order";
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                } else if (xhr.status === 0) {
+                    errorMessage = "Network error. Please check your connection and try again.";
+                } else if (xhr.status >= 500) {
+                    errorMessage = "Server error. Please try again later.";
+                }
+                
                 notiflix.Report.failure(
-                    jqXHR.responseJSON.error,
-                    jqXHR.responseJSON.message,
+                    "Error",
+                    errorMessage,
                     "Ok"
                 );
             }
@@ -178,10 +194,21 @@ $(document).ready(function() {
                     loadProducts();
                 }
             },
-            error: function(jqXHR) {
+            error: function(xhr, status, error) {
+                console.error('Failed to update purchase order status:', error);
+                
+                let errorMessage = "Failed to update purchase order status";
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                } else if (xhr.status === 0) {
+                    errorMessage = "Network error. Please check your connection and try again.";
+                } else if (xhr.status >= 500) {
+                    errorMessage = "Server error. Please try again later.";
+                }
+                
                 notiflix.Report.failure(
-                    jqXHR.responseJSON.error,
-                    jqXHR.responseJSON.message,
+                    "Error",
+                    errorMessage,
                     "Ok"
                 );
             }

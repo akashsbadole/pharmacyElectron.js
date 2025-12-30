@@ -38,15 +38,23 @@ window.api = null; // Will be configured when port is received
 
 // Function to configure API when port is received
 function configureAPI() {
+  console.log('🔧 DEBUG: configureAPI() called');
+  console.log('🔧 DEBUG: window.port =', window.port);
+  console.log('🔧 DEBUG: window.host =', window.host);
+  
   if (window.port && window.host) {
     window.api = "http://" + window.host + ":" + window.port + "/api/";
+    console.log('🔧 DEBUG: API configured:', window.api);
 
     // Update store with API configuration
-    const { setApiConfig } = useStore.getState();
-    setApiConfig(window.api, window.host, window.port);
+    if (typeof useStore !== 'undefined') {
+      const { setApiConfig } = useStore.getState();
+      setApiConfig(window.api, window.host, window.port);
+    }
 
     // Reinitialize socket connection with correct port
     if (typeof io !== 'undefined') {
+      console.log('🔧 DEBUG: Initializing socket connection');
       window.socket = io('http://' + window.host + ':' + window.port);
 
       // Set up socket event listeners after socket is created
@@ -54,13 +62,15 @@ function configureAPI() {
         notiflix.Notify.warning('Low stock alert: ' + data.name);
 
         // Add alert to store
-        const { addAlert } = useStore.getState();
-        addAlert({
-          id: Date.now(),
-          type: 'warning',
-          message: `Low stock alert: ${data.name}`,
-          data: data
-        });
+        if (typeof useStore !== 'undefined') {
+          const { addAlert } = useStore.getState();
+          addAlert({
+            id: Date.now(),
+            type: 'warning',
+            message: `Low stock alert: ${data.name}`,
+            data: data
+          });
+        }
 
         if (typeof loadAlerts === 'function') {
           loadAlerts();
@@ -68,12 +78,15 @@ function configureAPI() {
       });
     }
 
-    console.log('API configured in pos.js:', window.api);
+    console.log('✅ DEBUG: API configured successfully in pos.js:', window.api);
 
     // Dispatch custom event to notify other components
     window.dispatchEvent(new CustomEvent('api-configured', {
       detail: { api: window.api, port: window.port }
     }));
+  } else {
+    console.error('❌ DEBUG: API configuration failed - missing port or host');
+    console.error('❌ DEBUG: window.port:', window.port, 'window.host:', window.host);
   }
 }
 
@@ -91,6 +104,54 @@ window.addEventListener('api-configured', (event) => {
   // Don't call configureAPI again to avoid infinite recursion
   // The API is already configured when this event is dispatched
 });
+
+// ============================================
+// AJAX ERROR HANDLING UTILITIES
+// ============================================
+
+/**
+ * Generic AJAX error handler that provides user-friendly error messages
+ * and prevents JSON parsing errors from unhandled HTTP responses
+ */
+function handleAjaxError(xhr, status, error, customMessage) {
+  console.error('AJAX Error:', error, 'Status:', xhr.status, 'Response:', xhr.responseText);
+  
+  let errorMessage = customMessage || "An unexpected error occurred";
+  
+  // Handle different error scenarios
+  if (xhr.status === 0) {
+    errorMessage = "Network error. Please check your connection and try again.";
+  } else if (xhr.status === 400) {
+    errorMessage = "Invalid request. Please check your input and try again.";
+  } else if (xhr.status === 401) {
+    errorMessage = "Authentication failed. Please log in again.";
+  } else if (xhr.status === 403) {
+    errorMessage = "You don't have permission to perform this action.";
+  } else if (xhr.status === 404) {
+    errorMessage = "The requested resource was not found.";
+  } else if (xhr.status === 422) {
+    errorMessage = "Validation error. Please check your input.";
+  } else if (xhr.status >= 500) {
+    errorMessage = "Server error. Please try again later.";
+  } else if (xhr.responseJSON && xhr.responseJSON.message) {
+    errorMessage = xhr.responseJSON.message;
+  }
+  
+  return errorMessage;
+}
+
+/**
+ * Safe AJAX call wrapper that handles JSON parsing errors
+ */
+function safeAjaxCall(options) {
+  return $.ajax(options).fail(function (xhr, status, error) {
+    // Prevent unhandled promise rejections
+    if (!options.suppressErrorHandling) {
+      const errorMessage = handleAjaxError(xhr, status, error);
+      console.warn('Request failed:', errorMessage);
+    }
+  });
+}
 
 const io = require('socket.io-client');
 const remote = require("@electron/remote");
@@ -291,8 +352,13 @@ $("#main_app").hide();
 
 // Wait for API to be configured before making requests
 function initializeApp() {
+  console.log('🚀 DEBUG: initializeApp() called');
+  console.log('🚀 DEBUG: Current window.api =', window.api);
+  console.log('🚀 DEBUG: Current window.port =', window.port);
+  console.log('🚀 DEBUG: Current window.host =', window.host);
+  
   if (!window.api) {
-    console.log('API not yet configured, retrying in 500ms...');
+    console.log('⏳ DEBUG: API not yet configured, retrying in 500ms...');
 
     // Request server config from main process as fallback
     ipcRenderer.send('get-server-config');
@@ -300,11 +366,23 @@ function initializeApp() {
     setTimeout(initializeApp, 500);
     return;
   }
+  
+  console.log('✅ DEBUG: API is configured, proceeding with initialization');
+  console.log('✅ DEBUG: API URL:', window.api);
 
   if (auth == undefined) {
-    $.get(window.api + "users/check/", function () {
-      // API check completed
-    });
+    console.log('🔐 DEBUG: No auth found, checking API connection');
+    $.get(window.api + "users/check/")
+      .done(function () {
+        console.log('🔐 DEBUG: API check completed successfully');
+        // API check completed
+      })
+      .fail(function (xhr, status, error) {
+        console.warn('⚠️ DEBUG: API check failed:', error);
+        console.warn('⚠️ DEBUG: XHR status:', xhr.status);
+        console.warn('⚠️ DEBUG: XHR response:', xhr.responseText);
+        // Continue with authentication even if API check fails
+      });
 
     authenticate();
   } else {
@@ -319,53 +397,67 @@ function initializeApp() {
       }
     }
 
-    $.get(window.api + "users/user/" + user._id, function (data) {
-      user = data;
+    $.get(window.api + "users/user/" + user._id)
+      .done(function (data) {
+        user = data;
 
-      // Update store if available
-      if (typeof useStore !== 'undefined') {
-        const { setUser } = useStore.getState();
-        setUser(user);
-      }
-
-      $("#loggedin-user").text(user.fullname);
-    });
-
-    $.get(window.api + "settings/get", function (data) {
-      settings = data.settings;
-
-      // Update store if available
-      if (typeof useStore !== 'undefined') {
-        const { setSettings, setVat } = useStore.getState();
-        setSettings(settings);
-        if (settings && settings.percentage) {
-          setVat(parseFloat(validator.unescape(settings.percentage)));
+        // Update store if available
+        if (typeof useStore !== 'undefined') {
+          const { setUser } = useStore.getState();
+          setUser(user);
         }
-      }
 
-      // Update title after settings are loaded
-      updateAppTitle();
+        $("#loggedin-user").text(user.fullname);
+      })
+      .fail(function (xhr, status, error) {
+        console.error('Failed to load user data:', error);
+        notiflix.Report.failure('Error', 'Failed to load user information', 'Ok');
+      });
 
-      // Update currency symbols after settings load
-      if (settings && validator.unescape(settings.symbol)) {
-        $("#price_curr, #payment_curr, #change_curr").text(validator.unescape(settings.symbol));
-      }
+    $.get(window.api + "settings/get")
+      .done(function (data) {
+        settings = data.settings;
 
-      // Update tax info after settings load
-      if (settings) {
-        vat = parseFloat(validator.unescape(settings.percentage));
-        $("#taxInfo").text(settings.charge_tax ? vat : 0);
-      }
-    });
+        // Update store if available
+        if (typeof useStore !== 'undefined') {
+          const { setSettings, setVat } = useStore.getState();
+          setSettings(settings);
+          if (settings && settings.percentage) {
+            setVat(parseFloat(safeUnescape(settings.percentage)));
+          }
+        }
 
-    $.get(window.api + "users/all", function (users) {
-      allUsers = [...users];
-    });
+        // Update title after settings are loaded
+        updateAppTitle();
+
+        // Update currency symbols after settings load
+        if (settings && settings.symbol) {
+          $("#price_curr, #payment_curr, #change_curr").text(getCurrencySymbol());
+        }
+
+        // Update tax info after settings load
+        if (settings) {
+          vat = parseFloat(safeUnescape(settings.percentage));
+          $("#taxInfo").text(settings.charge_tax ? vat : 0);
+        }
+      })
+      .fail(function (xhr, status, error) {
+        console.error('Failed to load settings:', error);
+        notiflix.Report.failure('Error', 'Failed to load application settings', 'Ok');
+      });
+
+    $.get(window.api + "users/all")
+      .done(function (users) {
+        allUsers = [...users];
+      })
+      .fail(function (xhr, status, error) {
+        console.error('Failed to load users:', error);
+      });
 
     // Define updateAppTitle function in accessible scope
     function updateAppTitle() {
       if (settings && settings.store) {
-        let appTitle = `${validator.unescape(settings.store)} - ${appName}`;
+        let appTitle = `${safeUnescape(settings.store)} - ${appName}`;
         $("title").text(appTitle);
       } else {
         $("title").text(appName);
@@ -376,17 +468,26 @@ function initializeApp() {
       // Initial title update
       updateAppTitle();
 
+      console.log('🎨 DEBUG: jQuery document ready function called');
+      console.log('🎨 DEBUG: Current window.api =', window.api);
+      console.log('🎨 DEBUG: Loading interface components...');
+
       $(".loading").hide();
 
       // Show POS view by default
+      console.log('🎨 DEBUG: Showing POS view and hiding transactions view');
       $("#pos_view").show();
       $("#transactions").show();
       $("#transactions_view").hide();
       $("#pointofsale").hide();
-
+      
+      console.log('🎨 DEBUG: About to call loadCategories()');
       loadCategories();
+      console.log('🎨 DEBUG: About to call loadProducts()');
       loadProducts();
+      console.log('🎨 DEBUG: About to call loadCustomers()');
       loadCustomers();
+      console.log('🎨 DEBUG: About to call loadAlerts()');
       loadAlerts();
 
       setTimeout(function () {
@@ -420,168 +521,250 @@ function initializeApp() {
       }
 
       function loadProducts() {
+        console.log('🔍 DEBUG: loadProducts() function called');
+        console.log('🔍 DEBUG: window.api =', window.api);
+        console.log('🔍 DEBUG: window.api is configured?', window.api ? 'YES' : 'NO');
+        
         // Update store if available
         if (typeof useStore !== 'undefined') {
           const { setLoading } = useStore.getState();
           setLoading(true);
         }
 
-        $.get(window.api + "inventory/products", function (data) {
-          data.forEach((item) => {
-            item.price = parseFloat(item.price).toFixed(2);
-          });
+        const apiUrl = window.api + "inventory/products";
+        console.log('🔍 DEBUG: Making API call to:', apiUrl);
+        
+        $.get(apiUrl)
+          .done(function (data) {
+            console.log('🔍 DEBUG: API call successful');
+            console.log('🔍 DEBUG: Received data:', data);
+            console.log('🔍 DEBUG: Data type:', typeof data);
+            console.log('🔍 DEBUG: Data length:', Array.isArray(data) ? data.length : 'not an array');
+            
+            if (!data || data.length === 0) {
+              console.log('⚠️ DEBUG: No products received from API');
+              $('#parent').html('<div class="col-md-12"><div class="alert alert-warning">No products found in inventory.</div></div>');
+              return;
+            }
+            
+            data.forEach((item) => {
+              item.price = parseFloat(item.price).toFixed(2);
+            });
 
-          allProducts = [...data];
+            allProducts = [...data];
 
-          // Update store if available
-          if (typeof useStore !== 'undefined') {
-            const { setAllProducts, setLoading } = useStore.getState();
-            setAllProducts(data);
-            setLoading(false);
-          }
+            // Update store if available
+            if (typeof useStore !== 'undefined') {
+              const { setAllProducts, setLoading } = useStore.getState();
+              setAllProducts(data);
+              setLoading(false);
+            }
 
-          loadProductList();
+            loadProductList();
 
-          let expiredCount = 0;
-          allProducts.forEach((product) => {
-            let expiryDate = moment(product.expirationDate, DATE_FORMAT);
+            let expiredCount = 0;
+            allProducts.forEach((product) => {
+              let expiryDate = moment(product.expirationDate, DATE_FORMAT);
 
-            if (!isExpired(expiryDate)) {
-              const diffDays = daysToExpire(expiryDate);
+              if (!isExpired(expiryDate)) {
+                const diffDays = daysToExpire(expiryDate);
 
-              if (diffDays > 0 && diffDays <= 30) {
-                var days_noun = diffDays > 1 ? "days" : "day";
-                notiflix.Notify.warning(
-                  `${product.name} has only ${diffDays} ${days_noun} left to expiry`,
-                );
+                if (diffDays > 0 && diffDays <= 30) {
+                  var days_noun = diffDays > 1 ? "days" : "day";
+                  notiflix.Notify.warning(
+                    `${product.name} has only ${diffDays} ${days_noun} left to expiry`,
+                  );
+                }
+              } else {
+                expiredCount++;
               }
-            } else {
-              expiredCount++;
-            }
-          });
+            });
 
-          //Show notification if there are any expired goods.
-          if (expiredCount > 0) {
-            notiflix.Notify.failure(
-              `${expiredCount} ${expiredCount > 0 ? "products" : "product"
-              } expired. Please restock!`,
-            );
-          }
-
-
-          $("#parent").text("");
-
-          data.forEach((item) => {
-            if (!categories.includes(item.category)) {
-              categories.push(item.category);
-            }
-            let item_isExpired = isExpired(item.expirationDate);
-            let item_stockStatus = getStockStatus(item.quantity, item.minStock);
-            if (item.img === "") {
-              item_img = default_item_img;
-            }
-            else {
-              item_img = path.join(img_path, item.img);
-              item_img = checkFileExists(item_img) ? item_img : default_item_img;
+            //Show notification if there are any expired goods.
+            if (expiredCount > 0) {
+              notiflix.Notify.failure(
+                `${expiredCount} ${expiredCount > 0 ? "products" : "product"
+                } expired. Please restock!`,
+              );
             }
 
 
-            let item_info = `<div class="col-lg-2 box ${item.category}"
-                                onclick="$(this).addToCart(${item._id}, ${item.quantity
-              }, ${item.stock})">
+            console.log('🔍 DEBUG: DOM manipulation: Clearing #parent');
+            $("#parent").text("");
+            console.log('🔍 DEBUG: #parent cleared, starting product rendering');
+
+            let productCount = 0;
+            data.forEach((item) => {
+              productCount++;
+              console.log('🔍 DEBUG: Processing product', productCount, ':', item.name);
+              
+              if (!categories.includes(item.category)) {
+                categories.push(item.category);
+              }
+              let item_isExpired = isExpired(item.expirationDate);
+              let item_stockStatus = getStockStatus(item.quantity, item.minStock);
+              if (item.img === "") {
+                item_img = default_item_img;
+              }
+              else {
+                item_img = path.join(img_path, item.img);
+                item_img = checkFileExists(item_img) ? item_img : default_item_img;
+              }
+
+              let item_info = `<div class="col-lg-2 box ${item.category}"
+                                onclick="$(this).addToCart(${item._id}, ${item.quantity}, ${item.stock})">
                             <div class="widget-panel widget-style-2 " title="${item.name}">                    
                             <div id="image"><img src="${item_img}" id="product_img" alt=""></div>                    
                                         <div class="text-muted m-t-5 text-center">
-                                        <div class="name" id="product_name"><span class="${item_isExpired ? "text-danger" : ""
-              }">${item.name}</span></div> 
-                                        <span class="sku">${item.barcode || item._id
-              }</span>
+                                        <div class="name" id="product_name"><span class="${item_isExpired ? "text-danger" : ""}">${item.name}</span></div> 
+                                        <span class="sku">${item.barcode || item._id}</span>
                                         <span class="${item_stockStatus < 1 ? 'text-danger' : ''}"><span class="stock">STOCK </span><span class="count">${item.stock == 1
-                ? item.quantity
-                : "N/A"
-              }</span></span></div>
-                                        <span class="text-success text-center"><b data-plugin="counterup">${validator.unescape(settings.symbol) +
-              moneyFormat(item.price)
-              }</b> </span>
+                  ? item.quantity
+                  : "N/A"
+                }</span></span></div>
+                                        <span class="text-success text-center"><b data-plugin="counterup">${getCurrencySymbol() +
+                moneyFormat(item.price)
+                }</b> </span>
                             </div>
                         </div>`;
-            $("#parent").append(item_info);
+                        
+              console.log('🔍 DEBUG: Appending product to DOM:', item.name);
+              $("#parent").append(item_info);
+            });
+            
+            console.log('🔍 DEBUG: Completed rendering', productCount, 'products');
+            console.log('🔍 DEBUG: Checking if products are visible in DOM');
+            console.log('🔍 DEBUG: #parent innerHTML length:', $("#parent").html().length);
+            console.log('🔍 DEBUG: #parent children count:', $("#parent").children().length);
+          })
+          .fail(function (xhr, status, error) {
+            console.error('🔍 DEBUG: API call FAILED');
+            console.error('🔍 DEBUG: Error details:', error);
+            console.error('🔍 DEBUG: Status:', status);
+            console.error('🔍 DEBUG: XHR response:', xhr.responseText);
+            console.error('🔍 DEBUG: XHR status:', xhr.status);
+            console.error('🔍 DEBUG: window.api value:', window.api);
+            console.error('🔍 DEBUG: Full API URL attempted:', apiUrl);
+            
+            notiflix.Report.failure('Error', 'Failed to load products', 'Ok');
+            
+            // Update store if available
+            if (typeof useStore !== 'undefined') {
+              const { setLoading } = useStore.getState();
+              setLoading(false);
+            }
           });
-        });
       }
 
       function loadCategories() {
-        $.get(window.api + "categories/all", function (data) {
-          allCategories = data;
+        console.log('📁 DEBUG: loadCategories() function called');
+        console.log('📁 DEBUG: window.api =', window.api);
+        
+        const apiUrl = window.api + "categories/all";
+        console.log('📁 DEBUG: Making API call to:', apiUrl);
+        
+        $.get(apiUrl)
+          .done(function (data) {
+            console.log('📁 DEBUG: Categories API call successful');
+            console.log('📁 DEBUG: Categories data:', data);
+            allCategories = data;
 
-          // Update store if available
-          if (typeof useStore !== 'undefined') {
-            const { setAllCategories } = useStore.getState();
-            setAllCategories(data);
-          }
+            // Update store if available
+            if (typeof useStore !== 'undefined') {
+              const { setAllCategories } = useStore.getState();
+              setAllCategories(data);
+            }
 
-          loadCategoryList();
-          $("#category,#categories").html(`<option value="0">Select</option>`);
-          allCategories.forEach((category) => {
-            $("#category,#categories").append(
-              `<option value="${category._id}">${category.name}</option>`,
-            );
+            loadCategoryList();
+            $("#category,#categories").html(`<option value="0">Select</option>`);
+            allCategories.forEach((category) => {
+              $("#category,#categories").append(
+                `<option value="${category._id}">${category.name}</option>`,
+              );
+            });
+          })
+          .fail(function (xhr, status, error) {
+            console.error('📁 DEBUG: Categories API call FAILED');
+            console.error('📁 DEBUG: Error details:', error);
+            console.error('📁 DEBUG: Status:', status);
+            console.error('📁 DEBUG: XHR status:', xhr.status);
+            console.error('📁 DEBUG: XHR response:', xhr.responseText);
+            notiflix.Report.failure('Error', 'Failed to load categories', 'Ok');
           });
-        });
       }
 
       function loadCustomers() {
-        $.get(window.api + "customers/all", function (customers) {
-          $("#customer").html(
-            `<option value="0" selected="selected">Walk in customer</option>`,
-          );
+        $.get(window.api + "customers/all")
+          .done(function (customers) {
+            $("#customer").html(
+              `<option value="0" selected="selected">Walk in customer</option>`,
+            );
 
-          customers.forEach((cust) => {
-            let customer = `<option value='{"id": ${cust._id}, "name": "${cust.name}"}'>${cust.name}</option>`;
-            $("#customer").append(customer);
+            customers.forEach((cust) => {
+              let customer = `<option value='{"id": ${cust._id}, "name": "${cust.name}"}'>${cust.name}</option>`;
+              $("#customer").append(customer);
+            });
+          })
+          .fail(function (xhr, status, error) {
+            console.error('Failed to load customers:', error);
+            notiflix.Report.failure('Error', 'Failed to load customers', 'Ok');
           });
-        });
       }
 
       function loadAlerts() {
-        $.get(window.api + "inventory/alerts", function (data) {
-          $("#alerts-section").empty();
-          data.forEach(function (alert) {
-            $("#alerts-section").append('<div class="alert alert-danger">' + alert.name + ' is low on stock (' + alert.quantity + ' <= ' + alert.minStock + ')</div>');
+        $.get(window.api + "inventory/alerts")
+          .done(function (data) {
+            $("#alerts-section").empty();
+            data.forEach(function (alert) {
+              $("#alerts-section").append('<div class="alert alert-danger">' + alert.name + ' is low on stock (' + alert.quantity + ' <= ' + alert.minStock + ')</div>');
+            });
+          })
+          .fail(function (xhr, status, error) {
+            console.error('Failed to load alerts:', error);
+            // Don't show error for alerts as it's not critical
           });
-        });
       }
 
       $.fn.reorder = function (id) {
-        $.post(window.api + "inventory/reorder", { productId: id }, function () {
-          loadProducts();
-          loadAlerts();
-          notiflix.Notify.success('Reordered product');
-        });
+        $.post(window.api + "inventory/reorder", { productId: id })
+          .done(function () {
+            loadProducts();
+            loadAlerts();
+            notiflix.Notify.success('Reordered product');
+          })
+          .fail(function (xhr, status, error) {
+            console.error('Failed to reorder product:', error);
+            notiflix.Report.failure('Error', 'Failed to reorder product', 'Ok');
+          });
       }
 
       $.fn.addToCart = function (id, count, stock) {
-        $.get(window.api + "inventory/product/" + id, function (product) {
-          if (isExpired(product.expirationDate)) {
-            notiflix.Report.failure(
-              "Expired",
-              `${product.name} is expired! Please restock.`,
-              "Ok",
-            );
-          } else {
-            if (count > 0) {
-              $(this).addProductToCart(product);
+        $.get(window.api + "inventory/product/" + id)
+          .done(function (product) {
+            if (isExpired(product.expirationDate)) {
+              notiflix.Report.failure(
+                "Expired",
+                `${product.name} is expired! Please restock.`,
+                "Ok",
+              );
             } else {
-              if (stock == 1) {
-                notiflix.Report.failure(
-                  "Out of stock!",
-                  `${product.name} is out of stock! Please restock.`,
-                  "Ok",
-                );
+              if (count > 0) {
+                $(this).addProductToCart(product);
+              } else {
+                if (stock == 1) {
+                  notiflix.Report.failure(
+                    "Out of stock!",
+                    `${product.name} is out of stock! Please restock.`,
+                    "Ok",
+                  );
+                }
               }
             }
-          }
-        });
+          })
+          .fail(function (xhr, status, error) {
+            console.error('Failed to load product:', error);
+            notiflix.Report.failure('Error', 'Failed to load product details', 'Ok');
+          });
       };
 
       function barcodeSearch(e) {
@@ -639,22 +822,36 @@ function initializeApp() {
               );
             }
           },
-          error: function (err) {
-            if (err.status === 422) {
-              $(this).showValidationError(data);
+          error: function (xhr, status, error) {
+            $(".search-barcode-btn").html(searchBarCodeIcon);
+            console.error('Barcode search failed:', error);
+            
+            if (xhr.status === 422) {
+              // Handle validation errors
               $("#basic-addon2").append(
                 $("<i>", { class: "glyphicon glyphicon-remove" }),
               );
-            } else if (err.status === 404) {
+            } else if (xhr.status === 404) {
+              // Handle not found
               $("#basic-addon2").empty();
               $("#basic-addon2").append(
                 $("<i>", { class: "glyphicon glyphicon-remove" }),
               );
+              notiflix.Report.warning(
+                "Not Found!",
+                "<b>" + $("#skuCode").val() + "</b> is not a valid barcode!",
+                "Ok",
+              );
             } else {
-              $(this).showServerError();
+              // Handle other errors
               $("#basic-addon2").empty();
               $("#basic-addon2").append(
                 $("<i>", { class: "glyphicon glyphicon-warning-sign" }),
+              );
+              notiflix.Report.failure(
+                "Error!",
+                "Failed to search for product. Please try again.",
+                "Ok",
               );
             }
           },
@@ -714,7 +911,7 @@ function initializeApp() {
         });
         $("#total").text(total_items);
         total = total - $("#inputDiscount").val();
-        $("#price").text(validator.unescape(settings.symbol) + moneyFormat(total.toFixed(2)));
+        $("#price").text(getCurrencySymbol() + moneyFormat(total.toFixed(2)));
 
         subTotal = total;
 
@@ -731,7 +928,7 @@ function initializeApp() {
 
         orderTotal = grossTotal.toFixed(2);
 
-        $("#gross_price").text(validator.unescape(settings.symbol) + moneyFormat(orderTotal));
+        $("#gross_price").text(getCurrencySymbol() + moneyFormat(orderTotal));
         $("#payablePrice").val(moneyFormat(grossTotal));
       };
 
@@ -770,7 +967,7 @@ function initializeApp() {
               $("<div>", {
                 class: "col-md-3",
                 text:
-                  validator.unescape(settings.symbol) +
+                  getCurrencySymbol() +
                   moneyFormat((data.price * data.quantity).toFixed(2)),
               }),
               $("<div>", { class: "col-md-1" }).append(
@@ -887,11 +1084,11 @@ function initializeApp() {
 
       $.fn.submitDueOrder = function (status) {
         let items = "";
-        let payment = 0;
-        paymentType = $('.list-group-item.active').data('payment-type');
+        let payment = "";
+        let paymentType = $('.list-group-item.active').data('payment-type');
         cart.forEach((item) => {
           items += `<tr><td>${DOMPurify.sanitize(item.product_name)}</td><td>${DOMPurify.sanitize(item.quantity)
-            } </td><td class="text-right"> ${DOMPurify.sanitize(validator.unescape(settings.symbol))} ${moneyFormat(
+            } </td><td class="text-right"> ${DOMPurify.sanitize(getCurrencySymbol())} ${moneyFormat(
               DOMPurify.sanitize(Math.abs(item.price).toFixed(2)),
             )} </td></tr>`;
         });
@@ -923,14 +1120,14 @@ function initializeApp() {
           payment = `<tr>
                             <td>Paid</td>
                             <td>:</td>
-                            <td class="text-right">${validator.unescape(settings.symbol)} ${moneyFormat(
+                            <td class="text-right">${getCurrencySymbol()} ${moneyFormat(
             Math.abs(paid).toFixed(2),
           )}</td>
                         </tr>
                         <tr>
                             <td>Change</td>
                             <td>:</td>
-                            <td class="text-right">${validator.unescape(settings.symbol)} ${moneyFormat(
+                            <td class="text-right">${getCurrencySymbol()} ${moneyFormat(
             Math.abs(change).toFixed(2),
           )}</td>
                         </tr>
@@ -943,9 +1140,9 @@ function initializeApp() {
 
         if (settings.charge_tax) {
           tax_row = `<tr>
-                        <td>VAT(${validator.unescape(settings.percentage)})% </td>
+                        <td>VAT(${safeUnescape(settings.percentage)})% </td>
                         <td>:</td>
-                        <td class="text-right">${validator.unescape(settings.symbol)} ${moneyFormat(
+                        <td class="text-right">${getCurrencySymbol()} ${moneyFormat(
             parseFloat(totalVat).toFixed(2),
           )}</td>
                     </tr>`;
@@ -972,7 +1169,7 @@ function initializeApp() {
           method = "POST";
         }
 
-        logo = path.join(img_path, validator.unescape(settings.img));
+        let logo = path.join(img_path, safeUnescape(settings.img));
 
         receipt = `<div style="font-size: 10px">                            
         <p style="text-align: center;">
@@ -980,12 +1177,12 @@ function initializeApp() {
             ? `<img style='max-width: 50px' src='${logo}' /><br>`
             : ``
           }
-            <span style="font-size: 22px;">${validator.unescape(settings.store)}</span> <br>
-            ${validator.unescape(settings.address_one)} <br>
-            ${validator.unescape(settings.address_two)} <br>
-            ${validator.unescape(settings.contact) != "" ? "Tel: " + validator.unescape(settings.contact) + "<br>" : ""
+            <span style="font-size: 22px;">${safeUnescape(settings.store)}</span> <br>
+            ${safeUnescape(settings.address_one)} <br>
+            ${safeUnescape(settings.address_two)} <br>
+            ${safeUnescape(settings.contact) != "" ? "Tel: " + safeUnescape(settings.contact) + "<br>" : ""
           } 
-            ${validator.unescape(settings.tax) != "" ? "Vat No: " + validator.unescape(settings.tax) + "<br>" : ""} 
+            ${safeUnescape(settings.tax) != "" ? "Vat No: " + safeUnescape(settings.tax) + "<br>" : ""} 
         </p>
         <hr>
         <left>
@@ -1014,7 +1211,7 @@ function initializeApp() {
             <tr>                        
                 <td><b>Subtotal</b></td>
                 <td>:</td>
-                <td class="text-right"><b>${validator.unescape(settings.symbol)}${moneyFormat(
+                <td class="text-right"><b>${getCurrencySymbol()}${moneyFormat(
             subTotal.toFixed(2),
           )}</b></td>
             </tr>
@@ -1022,7 +1219,7 @@ function initializeApp() {
                 <td>Discount</td>
                 <td>:</td>
                 <td class="text-right">${discount > 0
-            ? validator.unescape(settings.symbol) +
+            ? getCurrencySymbol() +
             moneyFormat(parseFloat(discount).toFixed(2))
             : ""
           }</td>
@@ -1032,7 +1229,7 @@ function initializeApp() {
                 <td><h5>Total</h5></td>
                 <td><h5>:</h5></td>
                 <td class="text-right">
-                    <h5>${validator.unescape(settings.symbol)} ${moneyFormat(
+                    <h5>${getCurrencySymbol()} ${moneyFormat(
             parseFloat(orderTotal).toFixed(2),
           )}</h5>
                 </td>
@@ -1044,7 +1241,7 @@ function initializeApp() {
             <hr>
             <br>
             <p style="text-align: center;">
-             ${validator.unescape(settings.footer)}
+             ${safeUnescape(settings.footer)}
              </p>
             </div>`;
 
@@ -1090,7 +1287,7 @@ function initializeApp() {
           contentType: "application/json; charset=utf-8",
           cache: false,
           processData: false,
-          success: function () {
+          success: function (response) {
             cart = [];
             receipt = DOMPurify.sanitize(receipt, { ALLOW_UNKNOWN_PROTOCOLS: true });
             $("#viewTransaction").html("");
@@ -1105,14 +1302,26 @@ function initializeApp() {
             $(this).getCustomerOrders();
             $(this).renderTable(cart);
           },
-
-          error: function () {
+          error: function (xhr, status, error) {
             $(".loading").hide();
             $("#dueModal").modal("toggle");
+            console.error('Transaction submission failed:', error);
+            
+            let errorMessage = "Something went wrong! Please refresh this page and try again";
+            
+            // Try to extract meaningful error message from response
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+              errorMessage = xhr.responseJSON.message;
+            } else if (xhr.status === 0) {
+              errorMessage = "Network error. Please check your connection and try again.";
+            } else if (xhr.status >= 500) {
+              errorMessage = "Server error. Please try again later.";
+            }
+            
             notiflix.Report.failure(
-              "Something went wrong!",
-              "Please refresh this page and try again",
-              "Ok",
+              "Transaction Failed",
+              errorMessage,
+              "Ok"
             );
           },
         });
@@ -1122,20 +1331,29 @@ function initializeApp() {
         $("#payment,#paymentText").val("");
       };
 
-      $.get(window.api + "on-hold", function (data) {
-        holdOrderList = data;
-        holdOrderlocation.empty();
-        // clearInterval(dotInterval);
-        $(this).renderHoldOrders(holdOrderList, holdOrderlocation, 1);
-      });
+      $.get(window.api + "on-hold")
+        .done(function (data) {
+          holdOrderList = data;
+          holdOrderlocation.empty();
+          // clearInterval(dotInterval);
+          $(this).renderHoldOrders(holdOrderList, holdOrderlocation, 1);
+        })
+        .fail(function (xhr, status, error) {
+          console.error('Failed to load hold orders:', error);
+          // Don't show error for hold orders as it's not critical
+        });
 
       $.fn.getHoldOrders = function () {
-        $.get(window.api + "on-hold", function (data) {
-          holdOrderList = data;
-          clearInterval(dotInterval);
-          holdOrderlocation.empty();
-          $(this).renderHoldOrders(holdOrderList, holdOrderlocation, 1);
-        });
+        $.get(window.api + "on-hold")
+          .done(function (data) {
+            holdOrderList = data;
+            clearInterval(dotInterval);
+            holdOrderlocation.empty();
+            $(this).renderHoldOrders(holdOrderList, holdOrderlocation, 1);
+          })
+          .fail(function (xhr, status, error) {
+            console.error('Failed to refresh hold orders:', error);
+          });
       };
 
       $.fn.renderHoldOrders = function (data, renderLocation, orderType) {
@@ -1301,8 +1519,10 @@ function initializeApp() {
                   "Ok",
                 );
               },
-              error: function () {
+              error: function (xhr, status, error) {
                 $(".loading").hide();
+                const errorMessage = handleAjaxError(xhr, status, error, "Failed to delete order");
+                notiflix.Report.failure("Delete Failed", errorMessage, "Ok");
               },
             });
           },
@@ -1310,12 +1530,16 @@ function initializeApp() {
       };
 
       $.fn.getCustomerOrders = function () {
-        $.get(window.api + "customer-orders", function (data) {
-          //clearInterval(dotInterval);
-          customerOrderList = data;
-          customerOrderLocation.empty();
-          $(this).renderHoldOrders(customerOrderList, customerOrderLocation, 2);
-        });
+        $.get(window.api + "customer-orders")
+          .done(function (data) {
+            //clearInterval(dotInterval);
+            customerOrderList = data;
+            customerOrderLocation.empty();
+            $(this).renderHoldOrders(customerOrderList, customerOrderLocation, 2);
+          })
+          .fail(function (xhr, status, error) {
+            console.error('Failed to load customer orders:', error);
+          });
       };
 
       $("#saveCustomer").on("submit", function (e) {
@@ -1356,11 +1580,12 @@ function initializeApp() {
               .val(`{"id": ${custData._id}, "name": ${custData.name}}`)
               .trigger("chosen:updated");
           },
-          error: function () {
+          error: function (xhr, status, error) {
             $("#newCustomer").modal("hide");
+            const errorMessage = handleAjaxError(xhr, status, error, "Failed to add customer");
             notiflix.Report.failure(
               "Error",
-              "Something went wrong please try again",
+              errorMessage,
               "Ok",
             );
           },
@@ -1390,17 +1615,15 @@ function initializeApp() {
         loadTransactions();
         loadUserList();
 
+        // Show transactions view, hide POS view
         $("#pos_view").hide();
-        $("#pointofsale").show();
         $("#transactions_view").show();
-        $(this).hide();
       });
 
       $("#pointofsale").on("click", function () {
+        // Show POS view, hide transactions view
         $("#pos_view").show();
-        $("#transactions").show();
         $("#transactions_view").hide();
-        $(this).hide();
       });
 
       $("#viewRefOrders").on("click", function () {
@@ -1500,6 +1723,10 @@ function initializeApp() {
               },
             );
           },
+          error: function (xhr, status, error) {
+            const errorMessage = handleAjaxError(xhr, status, error, "Failed to save category");
+            notiflix.Report.failure("Error", errorMessage, "Ok");
+          },
         });
       });
 
@@ -1549,7 +1776,7 @@ function initializeApp() {
 
         $("#user_id").val(allUsers[index]._id);
         $("#fullname").val(allUsers[index].fullname);
-        $("#username").val(validator.unescape(allUsers[index].username));
+        $("#username").val(safeUnescape(allUsers[index].username));
         $("#password").attr("placeholder", "New Password");
 
 
@@ -1593,6 +1820,10 @@ function initializeApp() {
                 loadProducts();
                 notiflix.Report.success("Done!", "Product deleted", "Ok");
               },
+              error: function (xhr, status, error) {
+                const errorMessage = handleAjaxError(xhr, status, error, "Failed to delete product");
+                notiflix.Report.failure("Delete Failed", errorMessage, "Ok");
+              },
             });
           },
         );
@@ -1619,6 +1850,10 @@ function initializeApp() {
                 loadUserList();
                 notiflix.Report.success("Done!", "User deleted", "Ok");
               },
+              error: function (xhr, status, error) {
+                const errorMessage = handleAjaxError(xhr, status, error, "Failed to delete user");
+                notiflix.Report.failure("Delete Failed", errorMessage, "Ok");
+              },
             });
           },
         );
@@ -1644,6 +1879,10 @@ function initializeApp() {
                 loadCategories();
                 notiflix.Report.success("Done!", "Category deleted", "Ok");
               },
+              error: function (xhr, status, error) {
+                const errorMessage = handleAjaxError(xhr, status, error, "Failed to delete category");
+                notiflix.Report.failure("Delete Failed", errorMessage, "Ok");
+              },
             });
           },
         );
@@ -1667,64 +1906,72 @@ function initializeApp() {
         $("#user_list").empty();
         $("#userList").DataTable().destroy();
 
-        $.get(window.api + "users/all", function (users) {
-          allUsers = [...users];
+        $.get(window.api + "users/all")
+          .done(function (users) {
+            allUsers = [...users];
 
-          users.forEach((user, index) => {
-            state = [];
-            let class_name = "";
+            users.forEach((user, index) => {
+              state = [];
+              let class_name = "";
 
-            if (user.status != "") {
-              state = user.status.split("_");
-              login_status = state[0];
-              login_time = state[1];
+              if (user.status != "") {
+                state = user.status.split("_");
+                login_status = state[0];
+                login_time = state[1];
 
-              switch (login) {
-                case "Logged In":
-                  class_name = "btn-default";
+                switch (login) {
+                  case "Logged In":
+                    class_name = "btn-default";
 
-                  break;
-                case "Logged Out":
-                  class_name = "btn-light";
-                  break;
+                    break;
+                  case "Logged Out":
+                    class_name = "btn-light";
+                    break;
+                }
               }
-            }
 
-            counter++;
-            user_list += `<tr>
-            <td>${user.fullname}</td>
-            <td>${user.username}</td>
-            <td class="${class_name}">${state.length > 0 ? login_status : ""
-              } <br><small> ${state.length > 0 ? login_time : ""}</small></td>
-            <td>${user._id == 1
-                ? '<span class="btn-group"><button class="btn btn-dark"><i class="fa fa-edit"></i></button><button class="btn btn-dark"><i class="fa fa-trash"></i></button></span>'
-                : '<span class="btn-group"><button onClick="$(this).editUser(' +
-                index +
-                ')" class="btn btn-warning"><i class="fa fa-edit"></i></button><button onClick="$(this).deleteUser(' +
-                user._id +
-                ')" class="btn btn-danger"><i class="fa fa-trash"></i></button></span>'
-              }</td></tr>`;
+              counter++;
+              user_list += `<tr>
+              <td>${user.fullname}</td>
+              <td>${user.username}</td>
+              <td class="${class_name}">${state.length > 0 ? login_status : ""
+                } <br><small> ${state.length > 0 ? login_time : ""}</small></td>
+              <td>${user._id == 1
+                  ? '<span class="btn-group"><button class="btn btn-dark"><i class="fa fa-edit"></i></button><button class="btn btn-dark"><i class="fa fa-trash"></i></button></span>'
+                  : '<span class="btn-group"><button onClick="$(this).editUser(' +
+                  index +
+                  ')" class="btn btn-warning"><i class="fa fa-edit"></i></button><button onClick="$(this).deleteUser(' +
+                  user._id +
+                  ')" class="btn btn-danger"><i class="fa fa-trash"></i></button></span>'
+                }</td></tr>`;
 
-            if (counter == users.length) {
-              $("#user_list").html(user_list);
+              if (counter == users.length) {
+                $("#user_list").html(user_list);
 
-              $("#userList").DataTable({
-                order: [[1, "desc"]],
-                autoWidth: false,
-                info: true,
-                JQueryUI: true,
-                ordering: true,
-                paging: false,
-              });
-            }
+                $("#userList").DataTable({
+                  order: [[1, "desc"]],
+                  autoWidth: false,
+                  info: true,
+                  JQueryUI: true,
+                  ordering: true,
+                  paging: false,
+                });
+              }
+            });
+          })
+          .fail(function (xhr, status, error) {
+            console.error('Failed to load users list:', error);
+            notiflix.Report.failure('Error', 'Failed to load users list', 'Ok');
           });
-        });
       }
 
       function loadProductList() {
         let products = [...allProducts];
         let product_list = "";
         let counter = 0;
+        let category = [];
+        let product_img = "";
+        let icon = "";
         $("#product_list").empty();
         $("#productList").DataTable().destroy();
 
@@ -1737,6 +1984,7 @@ function initializeApp() {
 
           product.stockAlert = "";
           const expiryDate = moment(product.expirationDate, DATE_FORMAT);
+          let icon = "";
 
           //show stock status indicator
           const stockStatus = getStockStatus(product.quantity, product.minStock);
@@ -1769,6 +2017,7 @@ function initializeApp() {
             product.expiryAlert = `<p class="text-danger"><small><i class="${icon}"></i> ${product.expiryStatus}</small></p>`;
           }
 
+          let product_img = "";
           if (product.img === "") {
             product_img = default_item_img;
           }
@@ -1788,7 +2037,7 @@ function initializeApp() {
             <td><img style="max-height: 50px; max-width: 50px; border: 1px solid #ddd;" src="${product_img}" id="product_img"></td>
             <td>${product.name}
             ${product.expiryAlert}</td>
-            <td>${validator.unescape(settings.symbol)}${product.price}</td>
+            <td>${getCurrencySymbol()}${product.price}</td>
             <td>${product.stock == 1 ? product.quantity : "N/A"}
             ${product.stockAlert}
             </td>
@@ -1873,11 +2122,19 @@ function initializeApp() {
           diagOptions.okButtonText,
           diagOptions.cancelButtonText,
           () => {
-            $.get(window.api + "users/logout/" + user._id, function () {
-              storage.delete("auth");
-              storage.delete("user");
-              ipcRenderer.send("app-reload", "");
-            });
+            $.get(window.api + "users/logout/" + user._id)
+              .done(function () {
+                storage.delete("auth");
+                storage.delete("user");
+                ipcRenderer.send("app-reload", "");
+              })
+              .fail(function (xhr, status, error) {
+                console.error('Logout failed:', error);
+                // Even if logout fails, clear local storage and reload
+                storage.delete("auth");
+                storage.delete("user");
+                ipcRenderer.send("app-reload", "");
+              });
           },
         );
       });
@@ -2000,12 +2257,9 @@ function initializeApp() {
                 notiflix.Report.success("Great!", "User details saved!", "Ok");
               }
             },
-            error: function (jqXHR) {
-              notiflix.Report.failure(
-                jqXHR.responseJSON.error,
-                jqXHR.responseJSON.message,
-                "Ok",
-              );
+            error: function (xhr, status, error) {
+              const errorMessage = handleAjaxError(xhr, status, error, "Failed to save user details");
+              notiflix.Report.failure("Error", errorMessage, "Ok");
             },
           });
         }
@@ -2088,29 +2342,29 @@ function initializeApp() {
           $("#settings_form").show(500);
 
           $("#settings_id").val("1");
-          $("#store").val(validator.unescape(settings.store));
-          $("#address_one").val(validator.unescape(settings.address_one));
-          $("#address_two").val(validator.unescape(settings.address_two));
-          $("#contact").val(validator.unescape(settings.contact));
-          $("#tax").val(validator.unescape(settings.tax));
-          $("#symbol").val(validator.unescape(settings.symbol));
-          $("#percentage").val(validator.unescape(settings.percentage));
-          $("#footer").val(validator.unescape(settings.footer));
-          $("#logo_img").val(validator.unescape(settings.img));
+          $("#store").val(safeUnescape(settings.store));
+          $("#address_one").val(safeUnescape(settings.address_one));
+          $("#address_two").val(safeUnescape(settings.address_two));
+          $("#contact").val(safeUnescape(settings.contact));
+          $("#tax").val(safeUnescape(settings.tax));
+          $("#symbol").val(safeUnescape(settings.symbol));
+          $("#percentage").val(safeUnescape(settings.percentage));
+          $("#footer").val(safeUnescape(settings.footer));
+          $("#logo_img").val(safeUnescape(settings.img));
           if (settings.charge_tax) {
             $("#charge_tax").prop("checked", true);
           }
-          if (validator.unescape(settings.img) != "") {
+          if (safeUnescape(settings.img) != "") {
             $("#logoname").hide();
             $("#current_logo").html(
-              `<img src="${img_path + validator.unescape(settings.img)}" alt="">`,
+              `<img src="${img_path + safeUnescape(settings.img)}" alt="">`,
             );
             $("#rmv_logo").show();
           }
 
           $("#app option")
             .filter(function () {
-              return $(this).text() == validator.unescape(settings.app);
+              return $(this).text() == safeUnescape(settings.app);
             })
             .prop("selected", true);
         }
@@ -2121,6 +2375,46 @@ function initializeApp() {
 
 // Start initialization - will wait for API configuration
 initializeApp();
+
+// Simple API connectivity test
+function testApiConnectivity() {
+  console.log('🔍 DEBUG: Testing API connectivity...');
+  console.log('🔍 DEBUG: Testing URL:', window.api + 'users/check/');
+  
+  if (!window.api) {
+    console.log('❌ DEBUG: window.api not configured yet');
+    return;
+  }
+  
+  $.ajax({
+    url: window.api + 'users/check/',
+    method: 'GET',
+    timeout: 5000,
+    success: function(response) {
+      console.log('✅ DEBUG: API connectivity test successful');
+      console.log('✅ DEBUG: Response:', response);
+    },
+    error: function(xhr, status, error) {
+      console.error('❌ DEBUG: API connectivity test failed');
+      console.error('❌ DEBUG: Status:', status);
+      console.error('❌ DEBUG: Error:', error);
+      console.error('❌ DEBUG: XHR status:', xhr.status);
+      console.error('❌ DEBUG: XHR response:', xhr.responseText);
+      
+      // Show user-friendly error message
+      if (xhr.status === 0) {
+        notiflix.Report.failure(
+          'Server Connection Error', 
+          'Cannot connect to the server. Please check if the server is running.', 
+          'Ok'
+        );
+      }
+    }
+  });
+}
+
+// Test API connectivity after a short delay
+setTimeout(testApiConnectivity, 2000);
 
 $("#rmv_logo").on("click", function () {
   $("#remove_logo").val("1");
@@ -2146,6 +2440,7 @@ function loadTransactions() {
   let tills = [];
   let users = [];
   let transact = 0;
+  let sales = 0;
 
   sold_items = [];
   sold = [];
@@ -2154,55 +2449,56 @@ function loadTransactions() {
   let transaction_list = "";
   let query = `by-date?start=${start_date}&end=${end_date}&user=${by_user}&status=${by_status}&till=${by_till}`;
 
-  $.get(window.api + query, function (transactions) {
-    if (transactions.length > 0) {
-      $("#transaction_list").empty();
-      $("#transactionList").DataTable().destroy();
+  $.get(window.api + query)
+    .done(function (transactions) {
+      if (transactions.length > 0) {
+        $("#transaction_list").empty();
+        $("#transactionList").DataTable().destroy();
 
-      allTransactions = [...transactions];
+        allTransactions = [...transactions];
 
-      transactions.forEach((trans, index) => {
-        sales += parseFloat(trans.total);
-        transact++;
+        transactions.forEach((trans, index) => {
+          sales += parseFloat(trans.total);
+          transact++;
 
-        trans.items.forEach((item) => {
-          sold_items.push(item);
-        });
+          trans.items.forEach((item) => {
+            sold_items.push(item);
+          });
 
-        if (!tills.includes(trans.till)) {
-          tills.push(trans.till);
-        }
+          if (!tills.includes(trans.till)) {
+            tills.push(trans.till);
+          }
 
-        if (!users.includes(trans.user_id)) {
-          users.push(trans.user_id);
-        }
+          if (!users.includes(trans.user_id)) {
+            users.push(trans.user_id);
+          }
 
-        counter++;
-        transaction_list += `<tr>
-                                <td>${trans.order}</td>
-                                <td class="nowrap">${moment(trans.date).format(
-          "DD-MMM-YYYY HH:mm:ss",
-        )}</td>
-                                <td>${validator.unescape(settings.symbol) + moneyFormat(trans.total)
-          }</td>
-                                <td>${trans.paid == ""
+          counter++;
+          transaction_list += `<tr>
+                                  <td>${trans.order}</td>
+                                  <td class="nowrap">${moment(trans.date).format(
+            "DD-MMM-YYYY HH:mm:ss",
+          )}</td>
+                                  <td>${getCurrencySymbol() + moneyFormat(trans.total)
+            }</td>
+                                  <td>${trans.paid == ""
             ? ""
-            : validator.unescape(settings.symbol) + moneyFormat(trans.paid)
+            : getCurrencySymbol() + moneyFormat(trans.paid)
           }</td>
-                                <td>${trans.change
-            ? validator.unescape(settings.symbol) +
+                                  <td>${trans.change
+            ? getCurrencySymbol() +
             moneyFormat(
               Math.abs(trans.change).toFixed(2),
             )
             : ""
           }</td>
-                                <td>${trans.paid == ""
+                                  <td>${trans.paid == ""
             ? ""
             : trans.payment_type
           }</td>
-                                <td>${trans.till}</td>
-                                <td>${trans.user}</td>
-                                <td>${trans.paid == ""
+                                  <td>${trans.till}</td>
+                                  <td>${trans.user}</td>
+                                  <td>${trans.paid == ""
             ? '<button class="btn btn-dark"><i class="fa fa-search-plus"></i></button>'
             : '<button onClick="$(this).viewTransaction(' +
             index +
@@ -2210,66 +2506,70 @@ function loadTransactions() {
           }</tr>
                     `;
 
-        if (counter == transactions.length) {
-          $("#total_sales #counter").text(
-            validator.unescape(settings.symbol) + moneyFormat(parseFloat(sales).toFixed(2)),
-          );
-          $("#total_transactions #counter").text(transact);
+          if (counter == transactions.length) {
+            $("#total_sales #counter").text(
+              getCurrencySymbol() + moneyFormat(parseFloat(sales).toFixed(2)),
+            );
+            $("#total_transactions #counter").text(transact);
 
-          const result = {};
+            const result = {};
 
-          for (const { product_name, price, quantity, id } of sold_items) {
-            if (!result[product_name]) result[product_name] = [];
-            result[product_name].push({ id, price, quantity });
-          }
+            for (const { product_name, price, quantity, id } of sold_items) {
+              if (!result[product_name]) result[product_name] = [];
+              result[product_name].push({ id, price, quantity });
+            }
 
-          for (item in result) {
-            let price = 0;
-            let quantity = 0;
-            let id = 0;
+            for (item in result) {
+              let price = 0;
+              let quantity = 0;
+              let id = 0;
 
-            result[item].forEach((i) => {
-              id = i.id;
-              price = i.price;
-              quantity = quantity + parseInt(i.quantity);
+              result[item].forEach((i) => {
+                id = i.id;
+                price = i.price;
+                quantity = quantity + parseInt(i.quantity);
+              });
+
+              sold.push({
+                id: id,
+                product: item,
+                qty: quantity,
+                price: price,
+              });
+            }
+
+            loadSoldProducts();
+
+            if (by_user == 0 && by_till == 0) {
+              userFilter(users);
+              tillFilter(tills);
+            }
+
+            $("#transaction_list").html(transaction_list);
+            $("#transactionList").DataTable({
+              order: [[1, "desc"]],
+              autoWidth: false,
+              info: true,
+              JQueryUI: true,
+              ordering: true,
+              paging: true,
+              dom: "Bfrtip",
+              buttons: ["csv", "excel", "pdf"],
             });
-
-            sold.push({
-              id: id,
-              product: item,
-              qty: quantity,
-              price: price,
-            });
           }
-
-          loadSoldProducts();
-
-          if (by_user == 0 && by_till == 0) {
-            userFilter(users);
-            tillFilter(tills);
-          }
-
-          $("#transaction_list").html(transaction_list);
-          $("#transactionList").DataTable({
-            order: [[1, "desc"]],
-            autoWidth: false,
-            info: true,
-            JQueryUI: true,
-            ordering: true,
-            paging: true,
-            dom: "Bfrtip",
-            buttons: ["csv", "excel", "pdf"],
-          });
-        }
-      });
-    } else {
-      notiflix.Report.warning(
-        "No data!",
-        "No transactions available within the selected criteria",
-        "Ok",
-      );
-    }
-  });
+        });
+      } else {
+        notiflix.Report.warning(
+          "No data!",
+          "No transactions available within the selected criteria",
+          "Ok",
+        );
+      }
+    })
+    .fail(function (xhr, status, error) {
+      console.error('Failed to load transactions:', error);
+      notiflix.Report.failure('Error', 'Failed to load transactions', 'Ok');
+    });
 }
 
 function sortDesc(a, b) {
@@ -2310,7 +2610,7 @@ function loadSoldProducts() {
           : ""
         : "N/A"
       }</td>
-            <td>${validator.unescape(settings.symbol) +
+            <td>${getCurrencySymbol() +
       moneyFormat((item.qty * parseFloat(item.price)).toFixed(2))
       }</td>
             </tr>`;
@@ -2360,7 +2660,7 @@ $.fn.viewTransaction = function (index) {
 
   products.forEach((item) => {
     items += `<tr><td>${item.product_name}</td><td>${item.quantity
-      } </td><td class="text-right"> ${validator.unescape(settings.symbol)} ${moneyFormat(
+      } </td><td class="text-right"> ${getCurrencySymbol()} ${moneyFormat(
         Math.abs(item.price).toFixed(2),
       )} </td></tr>`;
   });
@@ -2368,18 +2668,19 @@ $.fn.viewTransaction = function (index) {
   paymentMethod = allTransactions[index].payment_type;
 
 
+  let payment = "";
   if (allTransactions[index].paid != "") {
     payment = `<tr>
                     <td>Paid</td>
                     <td>:</td>
-                    <td class="text-right">${validator.unescape(settings.symbol)} ${moneyFormat(
+                    <td class="text-right">${getCurrencySymbol()} ${moneyFormat(
       Math.abs(allTransactions[index].paid).toFixed(2),
     )}</td>
                 </tr>
                 <tr>
                     <td>Change</td>
                     <td>:</td>
-                    <td class="text-right">${validator.unescape(settings.symbol)} ${moneyFormat(
+                    <td class="text-right">${getCurrencySymbol()} ${moneyFormat(
       Math.abs(allTransactions[index].change).toFixed(2),
     )}</td>
                 </tr>
@@ -2392,15 +2693,15 @@ $.fn.viewTransaction = function (index) {
 
   if (settings.charge_tax) {
     tax_row = `<tr>
-                <td>Vat(${validator.unescape(settings.percentage)})% </td>
+                <td>Vat(${safeUnescape(settings.percentage)})% </td>
                 <td>:</td>
-                <td class="text-right">${validator.unescape(settings.symbol)}${parseFloat(
+                <td class="text-right">${getCurrencySymbol()}${parseFloat(
       allTransactions[index].tax,
     ).toFixed(2)}</td>
             </tr>`;
   }
 
-  logo = path.join(img_path, validator.unescape(settings.img));
+  let logo = path.join(img_path, safeUnescape(settings.img));
 
   receipt = `<div style="font-size: 10px">                            
         <p style="text-align: center;">
@@ -2408,12 +2709,12 @@ $.fn.viewTransaction = function (index) {
       ? `<img style='max-width: 50px' src='${logo}' /><br>`
       : ``
     }
-            <span style="font-size: 22px;">${validator.unescape(settings.store)}</span> <br>
-            ${validator.unescape(settings.address_one)} <br>
-            ${validator.unescape(settings.address_two)} <br>
-            ${validator.unescape(settings.contact) != "" ? "Tel: " + validator.unescape(settings.contact) + "<br>" : ""
+            <span style="font-size: 22px;">${safeUnescape(settings.store)}</span> <br>
+            ${safeUnescape(settings.address_one)} <br>
+            ${safeUnescape(settings.address_two)} <br>
+            ${safeUnescape(settings.contact) != "" ? "Tel: " + safeUnescape(settings.contact) + "<br>" : ""
     } 
-            ${validator.unescape(settings.tax) != "" ? "Vat No: " + validator.unescape(settings.tax) + "<br>" : ""} 
+            ${safeUnescape(settings.tax) != "" ? "Vat No: " + safeUnescape(settings.tax) + "<br>" : ""} 
     </p>
     <hr>
     <left>
@@ -2446,7 +2747,7 @@ $.fn.viewTransaction = function (index) {
         <tr>                        
             <td><b>Subtotal</b></td>
             <td>:</td>
-            <td class="text-right"><b>${validator.unescape(settings.symbol)}${moneyFormat(
+            <td class="text-right"><b>${getCurrencySymbol()}${moneyFormat(
       allTransactions[index].subtotal,
     )}</b></td>
         </tr>
@@ -2454,7 +2755,7 @@ $.fn.viewTransaction = function (index) {
             <td>Discount</td>
             <td>:</td>
             <td class="text-right">${discount > 0
-      ? validator.unescape(settings.symbol) +
+      ? getCurrencySymbol() +
       moneyFormat(
         parseFloat(allTransactions[index].discount).toFixed(2),
       )
@@ -2468,7 +2769,7 @@ $.fn.viewTransaction = function (index) {
             <td><h5>Total</h5></td>
             <td><h5>:</h5></td>
             <td class="text-right">
-                <h5>${validator.unescape(settings.symbol)}${moneyFormat(
+                <h5>${getCurrencySymbol()}${moneyFormat(
       allTransactions[index].total,
     )}</h5>
             </td>
@@ -2480,7 +2781,7 @@ $.fn.viewTransaction = function (index) {
         <hr>
         <br>
         <p style="text-align: center;">
-         ${validator.unescape(settings.footer)}
+         ${safeUnescape(settings.footer)}
          </p>
         </div>`;
 
@@ -2548,8 +2849,23 @@ $("body").on("submit", "#account", function (e) {
           notiflix.Report.warning("Oops!", auth_error, "Ok");
         }
       },
-      error: function (data) {
-        console.log(data);
+      error: function (xhr, status, error) {
+        console.error('Login failed:', error);
+        
+        let errorMessage = auth_error;
+        
+        // Try to extract meaningful error message from response
+        if (xhr.responseJSON && xhr.responseJSON.message) {
+          errorMessage = xhr.responseJSON.message;
+        } else if (xhr.status === 0) {
+          errorMessage = "Network error. Please check your connection and try again.";
+        } else if (xhr.status === 401) {
+          errorMessage = "Invalid username or password.";
+        } else if (xhr.status >= 500) {
+          errorMessage = "Server error. Please try again later.";
+        }
+        
+        notiflix.Report.warning("Login Failed", errorMessage, "Ok");
       },
     });
   }
@@ -2619,15 +2935,11 @@ $.fn.exportProductsToCSV = function () {
 
       notiflix.Notify.success('Products exported successfully!');
     },
-    error: function (xhr) {
+    error: function (xhr, status, error) {
       notiflix.Loading.remove();
-      console.error('Export error:', xhr);
+      console.error('Export error:', error);
 
-      let errorMessage = 'Failed to export products';
-      if (xhr.responseJSON && xhr.responseJSON.message) {
-        errorMessage = xhr.responseJSON.message;
-      }
-
+      const errorMessage = handleAjaxError(xhr, status, error, 'Failed to export products');
       notiflix.Report.failure('Export Failed', errorMessage, 'Ok');
     }
   });
@@ -2697,11 +3009,7 @@ $.fn.importProductsFromCSV = function (csvFile, duplicateAction) {
       notiflix.Loading.remove();
       console.error('Import error:', error);
 
-      let errorMessage = 'Failed to import products';
-      if (xhr.responseJSON && xhr.responseJSON.message) {
-        errorMessage = xhr.responseJSON.message;
-      }
-
+      const errorMessage = handleAjaxError(xhr, status, error, 'Failed to import products');
       notiflix.Report.failure('Import Failed', errorMessage, 'Ok');
     }
   });
@@ -2737,11 +3045,12 @@ $.fn.downloadCSVTemplate = function () {
 
       notiflix.Notify.success('Template downloaded successfully!');
     },
-    error: function (xhr) {
+    error: function (xhr, status, error) {
       notiflix.Loading.remove();
-      console.error('Template download error:', xhr);
+      console.error('Template download error:', error);
 
-      notiflix.Report.failure('Download Failed', 'Failed to download template file', 'Ok');
+      const errorMessage = handleAjaxError(xhr, status, error, 'Failed to download template file');
+      notiflix.Report.failure('Download Failed', errorMessage, 'Ok');
     }
   });
 };
@@ -2762,45 +3071,49 @@ function loadSalesReport() {
 
   const queryParams = `start=${startDate}&end=${endDate}&user=${user}&till=${till}&groupBy=${groupBy}`;
 
-  $.get(window.api + `transactions/reports/sales?${queryParams}`, function (data) {
-    // Update summary widgets
-    $('#totalRevenue').text(validator.unescape(settings.symbol) + moneyFormat(data.totalRevenue.toFixed(2)));
-    $('#totalProfit').text(validator.unescape(settings.symbol) + moneyFormat(data.totalProfit.toFixed(2)));
+  $.get(window.api + `transactions/reports/sales?${queryParams}`)
+    .done(function (data) {
+      // Update summary widgets
+      $('#totalRevenue').text(getCurrencySymbol() + moneyFormat(data.totalRevenue.toFixed(2)));
+      $('#totalProfit').text(getCurrencySymbol() + moneyFormat(data.totalProfit.toFixed(2)));
 
-    // Clear and populate table
-    $('#sales_report_data').empty();
+      // Clear and populate table
+      $('#sales_report_data').empty();
 
-    if (data.trends && data.trends.length > 0) {
-      data.trends.forEach(function (trend) {
-        const row = `<tr>
-          <td>${trend.date}</td>
-          <td>${validator.unescape(settings.symbol) + moneyFormat(trend.revenue.toFixed(2))}</td>
-          <td>${validator.unescape(settings.symbol) + moneyFormat(trend.profit.toFixed(2))}</td>
-        </tr>`;
-        $('#sales_report_data').append(row);
-      });
+      if (data.trends && data.trends.length > 0) {
+        data.trends.forEach(function (trend) {
+          const row = `<tr>
+            <td>${trend.date}</td>
+            <td>${getCurrencySymbol() + moneyFormat(trend.revenue.toFixed(2))}</td>
+            <td>${getCurrencySymbol() + moneyFormat(trend.profit.toFixed(2))}</td>
+          </tr>`;
+          $('#sales_report_data').append(row);
+        });
 
-      // Initialize DataTable with export buttons
-      if ($.fn.DataTable.isDataTable('#salesReportTable')) {
-        $('#salesReportTable').DataTable().destroy();
+        // Initialize DataTable with export buttons
+        if ($.fn.DataTable.isDataTable('#salesReportTable')) {
+          $('#salesReportTable').DataTable().destroy();
+        }
+
+        $('#salesReportTable').DataTable({
+          order: [[0, 'desc']],
+          autoWidth: false,
+          info: true,
+          JQueryUI: true,
+          ordering: true,
+          paging: true,
+          dom: 'Bfrtip',
+          buttons: ['csv', 'excel', 'pdf']
+        });
+      } else {
+        $('#sales_report_data').append('<tr><td colspan="3" class="text-center">No data available</td></tr>');
       }
-
-      $('#salesReportTable').DataTable({
-        order: [[0, 'desc']],
-        autoWidth: false,
-        info: true,
-        JQueryUI: true,
-        ordering: true,
-        paging: true,
-        dom: 'Bfrtip',
-        buttons: ['csv', 'excel', 'pdf']
-      });
-    } else {
-      $('#sales_report_data').append('<tr><td colspan="3" class="text-center">No data available</td></tr>');
-    }
-  }).fail(function () {
-    notiflix.Report.failure('Error', 'Failed to load sales report', 'Ok');
-  });
+    })
+    .fail(function (xhr, status, error) {
+      console.error('Failed to load sales report:', error);
+      const errorMessage = handleAjaxError(xhr, status, error, 'Failed to load sales report');
+      notiflix.Report.failure('Error', errorMessage, 'Ok');
+    });
 }
 
 /**
@@ -2812,15 +3125,19 @@ function loadInventoryReport() {
 
   const queryParams = `start=${startDate}&end=${endDate}`;
 
-  $.get(window.api + `transactions/reports/inventory-turnover?${queryParams}`, function (data) {
-    // Update summary widgets
-    $('#turnoverRate').text(data.turnoverRate);
-    $('#daysInStock').text(data.daysInStock);
-    $('#totalCOGS').text(validator.unescape(settings.symbol) + moneyFormat(data.totalCOGS.toFixed(2)));
-    $('#averageInventoryValue').text(validator.unescape(settings.symbol) + moneyFormat(data.averageInventoryValue.toFixed(2)));
-  }).fail(function () {
-    notiflix.Report.failure('Error', 'Failed to load inventory turnover report', 'Ok');
-  });
+  $.get(window.api + `transactions/reports/inventory-turnover?${queryParams}`)
+    .done(function (data) {
+      // Update summary widgets
+      $('#turnoverRate').text(data.turnoverRate);
+      $('#daysInStock').text(data.daysInStock);
+      $('#totalCOGS').text(getCurrencySymbol() + moneyFormat(data.totalCOGS.toFixed(2)));
+      $('#averageInventoryValue').text(getCurrencySymbol() + moneyFormat(data.averageInventoryValue.toFixed(2)));
+    })
+    .fail(function (xhr, status, error) {
+      console.error('Failed to load inventory turnover report:', error);
+      const errorMessage = handleAjaxError(xhr, status, error, 'Failed to load inventory turnover report');
+      notiflix.Report.failure('Error', errorMessage, 'Ok');
+    });
 }
 
 /**
@@ -2832,44 +3149,48 @@ function loadStaffReport() {
 
   const queryParams = `start=${startDate}&end=${endDate}`;
 
-  $.get(window.api + `transactions/reports/staff-activity?${queryParams}`, function (data) {
-    // Clear and populate table
-    $('#staff_activity_data').empty();
+  $.get(window.api + `transactions/reports/staff-activity?${queryParams}`)
+    .done(function (data) {
+      // Clear and populate table
+      $('#staff_activity_data').empty();
 
-    if (data.staff && data.staff.length > 0) {
-      data.staff.forEach(function (staff) {
-        const lastLogin = staff.lastLogin ? moment(staff.lastLogin).format('DD MMM YYYY HH:mm') : 'N/A';
-        const row = `<tr>
-          <td>${staff.name}</td>
-          <td>${staff.loginCount}</td>
-          <td>${lastLogin}</td>
-          <td>${validator.unescape(settings.symbol) + moneyFormat(staff.totalSales.toFixed(2))}</td>
-          <td>${staff.transactionCount}</td>
-        </tr>`;
-        $('#staff_activity_data').append(row);
-      });
+      if (data.staff && data.staff.length > 0) {
+        data.staff.forEach(function (staff) {
+          const lastLogin = staff.lastLogin ? moment(staff.lastLogin).format('DD MMM YYYY HH:mm') : 'N/A';
+          const row = `<tr>
+            <td>${staff.name}</td>
+            <td>${staff.loginCount}</td>
+            <td>${lastLogin}</td>
+            <td>${getCurrencySymbol() + moneyFormat(staff.totalSales.toFixed(2))}</td>
+            <td>${staff.transactionCount}</td>
+          </tr>`;
+          $('#staff_activity_data').append(row);
+        });
 
-      // Initialize DataTable with export buttons
-      if ($.fn.DataTable.isDataTable('#staffActivityTable')) {
-        $('#staffActivityTable').DataTable().destroy();
+        // Initialize DataTable with export buttons
+        if ($.fn.DataTable.isDataTable('#staffActivityTable')) {
+          $('#staffActivityTable').DataTable().destroy();
+        }
+
+        $('#staffActivityTable').DataTable({
+          order: [[3, 'desc']],
+          autoWidth: false,
+          info: true,
+          JQueryUI: true,
+          ordering: true,
+          paging: true,
+          dom: 'Bfrtip',
+          buttons: ['csv', 'excel', 'pdf']
+        });
+      } else {
+        $('#staff_activity_data').append('<tr><td colspan="5" class="text-center">No data available</td></tr>');
       }
-
-      $('#staffActivityTable').DataTable({
-        order: [[3, 'desc']],
-        autoWidth: false,
-        info: true,
-        JQueryUI: true,
-        ordering: true,
-        paging: true,
-        dom: 'Bfrtip',
-        buttons: ['csv', 'excel', 'pdf']
-      });
-    } else {
-      $('#staff_activity_data').append('<tr><td colspan="5" class="text-center">No data available</td></tr>');
-    }
-  }).fail(function () {
-    notiflix.Report.failure('Error', 'Failed to load staff activity report', 'Ok');
-  });
+    })
+    .fail(function (xhr, status, error) {
+      console.error('Failed to load staff activity report:', error);
+      const errorMessage = handleAjaxError(xhr, status, error, 'Failed to load staff activity report');
+      notiflix.Report.failure('Error', errorMessage, 'Ok');
+    });
 }
 
 /**
