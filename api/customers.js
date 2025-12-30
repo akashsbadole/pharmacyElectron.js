@@ -15,15 +15,13 @@ const dbPath = path.join(
     "customers.db",
 );
 
+const { getDatabase } = require('./database_utils');
+
 app.use(bodyParser.json());
 
 module.exports = app;
 
-let customerDB = new Datastore({
-    filename: dbPath,
-    autoload: true,
-});
-
+let customerDB = getDatabase(dbPath);
 customerDB.ensureIndex({ fieldName: "_id", unique: true });
 
 /**

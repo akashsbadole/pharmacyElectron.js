@@ -43,25 +43,14 @@ const upload = multer({
 }).single("imagename");
 
 
+const { getDatabase } = require('./database_utils');
+
 app.use(bodyParser.json());
 
 module.exports = app;
 
-let inventoryDB = new Datastore({
-    filename: dbPath,
-    autoload: true,
-    timestampData: true
-});
-
-// Initialize database with crash recovery
-try {
-    initializeDatabase(inventoryDB, dbPath);
-    inventoryDB.ensureIndex({ fieldName: "_id", unique: true });
-} catch (err) {
-    console.error('Failed to initialize inventory database:', err);
-    // Fallback: continue with basic initialization
-    inventoryDB.ensureIndex({ fieldName: "_id", unique: true });
-}
+let inventoryDB = getDatabase(dbPath);
+inventoryDB.ensureIndex({ fieldName: "_id", unique: true });
 
 /**
  * GET endpoint: Get the welcome message for the Inventory API.
@@ -191,17 +180,36 @@ app.post("/product", function (req, res) {
 
         }
 
+        let batches = [];
+        try {
+            if (req.body.batches) {
+                batches = JSON.parse(req.body.batches);
+            }
+        } catch (e) {
+            console.error("Error parsing batches", e);
+        }
+
+        let quantity = validator.escape(req.body.quantity || "");
+        let expirationDate = validator.escape(req.body.expirationDate || "");
+
+        if (batches.length > 0) {
+            quantity = batches.reduce((sum, b) => sum + (parseInt(b.quantity) || 0), 0);
+            
+            // Find earliest expiry
+            const sortedBatches = batches.filter(b => b.expirationDate).sort((a, b) => new Date(a.expirationDate) - new Date(b.expirationDate));
+            if (sortedBatches.length > 0) {
+                expirationDate = sortedBatches[0].expirationDate;
+            }
+        }
+
         let Product = {
             _id: parseInt(validator.escape(req.body.id || "")),
             barcode: req.body.barcode ? parseInt(validator.escape(req.body.barcode)) : null,
-            expirationDate: validator.escape(req.body.expirationDate || ""),
+            expirationDate: expirationDate,
             price: validator.escape(req.body.price || ""),
             cost: validator.escape(req.body.cost || req.body.price || ""), // Cost price for COGS
             category: validator.escape(req.body.category || ""),
-            quantity:
-                validator.escape(req.body.quantity || "") == ""
-                    ? 0
-                    : validator.escape(req.body.quantity || ""),
+            quantity: quantity == "" ? 0 : quantity,
             name: validator.escape(req.body.name || ""),
             stock: req.body.stock === "on" ? 0 : 1,
             minStock: validator.escape(req.body.minStock || ""),
@@ -211,6 +219,10 @@ app.post("/product", function (req, res) {
             supplierId: validator.escape(req.body.supplierId || "") || null,
             reorderQuantity: validator.escape(req.body.reorderQuantity || "") || 0,
             requires_prescription: req.body.requires_prescription === "on" ? true : false,
+            generic_name: validator.escape(req.body.generic_name || ""), 
+            drug_schedule: validator.escape(req.body.drug_schedule || ""), 
+            hsn_code: validator.escape(req.body.hsn_code || ""),
+            batches: batches
         };
 
         if (validator.escape(req.body.id || "") === "") {
@@ -339,17 +351,36 @@ app.put("/product", function (req, res) {
                 message: "Product ID is required for updates.",
             });
         } else {
+            let batches = [];
+            try {
+                if (req.body.batches) {
+                    batches = JSON.parse(req.body.batches);
+                }
+            } catch (e) {
+                console.error("Error parsing batches", e);
+            }
+
+            let quantity = validator.escape(req.body.quantity || "");
+            let expirationDate = validator.escape(req.body.expirationDate || "");
+    
+            if (batches.length > 0) {
+                quantity = batches.reduce((sum, b) => sum + (parseInt(b.quantity) || 0), 0);
+                
+                // Find earliest expiry
+                const sortedBatches = batches.filter(b => b.expirationDate).sort((a, b) => new Date(a.expirationDate) - new Date(b.expirationDate));
+                if (sortedBatches.length > 0) {
+                    expirationDate = sortedBatches[0].expirationDate;
+                }
+            }
+
             let Product = {
                 _id: parseInt(validator.escape(req.body.id || "")),
                 barcode: req.body.barcode ? parseInt(validator.escape(req.body.barcode)) : null,
-                expirationDate: validator.escape(req.body.expirationDate || ""),
+                expirationDate: expirationDate,
                 price: validator.escape(req.body.price || ""),
                 cost: validator.escape(req.body.cost || req.body.price || ""), // Cost price for COGS
                 category: validator.escape(req.body.category || ""),
-                quantity:
-                    validator.escape(req.body.quantity || "") == ""
-                        ? 0
-                        : validator.escape(req.body.quantity || ""),
+                quantity: quantity == "" ? 0 : quantity,
                 name: validator.escape(req.body.name || ""),
                 stock: req.body.stock === "on" ? 0 : 1,
                 minStock: validator.escape(req.body.minStock || ""),
@@ -359,6 +390,10 @@ app.put("/product", function (req, res) {
                 supplierId: validator.escape(req.body.supplierId || "") || null,
                 reorderQuantity: validator.escape(req.body.reorderQuantity || "") || 0,
                 requires_prescription: req.body.requires_prescription === "on" ? true : false,
+                generic_name: validator.escape(req.body.generic_name || ""),
+                drug_schedule: validator.escape(req.body.drug_schedule || ""),
+                hsn_code: validator.escape(req.body.hsn_code || ""),
+                batches: batches
             };
 
             inventoryDB.update(
@@ -427,6 +462,62 @@ app.get("/alerts", function (req, res) {
         } else {
             const alerts = docs.filter(product => parseInt(product.quantity) <= parseInt(product.minStock));
             res.send(alerts);
+        }
+    });
+});
+
+/**
+ * GET endpoint: Get alerts for products with expiring batches (within 30 days default).
+ *
+ * @param {Object} req request object.
+ * @param {Object} res response object.
+ * @returns {void}
+ */
+app.get("/alerts/expiry", function (req, res) {
+    const daysThreshold = req.query.days ? parseInt(req.query.days) : 30;
+    const today = new Date();
+    const futureDate = new Date();
+    futureDate.setDate(today.getDate() + daysThreshold);
+
+    inventoryDB.find({}, function (err, docs) {
+        if (err) {
+            console.error(err);
+            res.status(500).json({
+                error: "Internal Server Error",
+                message: "An unexpected error occurred.",
+            });
+        } else {
+            let expiringProducts = [];
+            docs.forEach(product => {
+                if (product.batches && product.batches.length > 0) {
+                    const expiringBatches = product.batches.filter(batch => {
+                        if (!batch.expirationDate) return false;
+                        const expDate = new Date(batch.expirationDate);
+                        return expDate <= futureDate; // Expired or expiring soon
+                    });
+
+                    if (expiringBatches.length > 0) {
+                        expiringProducts.push({
+                            _id: product._id,
+                            name: product.name,
+                            sku: product.barcode,
+                            expiring_batches: expiringBatches
+                        });
+                    }
+                } else if (product.expirationDate) {
+                     // Fallback forproducts without batches but with global expiry
+                    const expDate = new Date(product.expirationDate);
+                     if (expDate <= futureDate) {
+                        expiringProducts.push({
+                            _id: product._id,
+                            name: product.name,
+                            sku: product.barcode,
+                            expiring_batches: [{ expirationDate: product.expirationDate, quantity: product.quantity }]
+                        });
+                     }
+                }
+            });
+            res.send(expiringProducts);
         }
     });
 });
@@ -523,13 +614,41 @@ app.decrementInventory = function (products) {
                 if (!product || !product.quantity) {
                     callback();
                 } else {
-                    let updatedQuantity =
-                        parseInt(product.quantity) -
-                        parseInt(transactionProduct.quantity);
-
+                    let quantityToDeduct = parseInt(transactionProduct.quantity);
+                    let updatedQuantity = parseInt(product.quantity) - quantityToDeduct;
                     let updateObj = {
                         quantity: updatedQuantity,
                     };
+
+                    // Handle Batches Logic
+                    if (product.batches && product.batches.length > 0) {
+                        let remainingDeduction = quantityToDeduct;
+                        // Clone and sort batches by expiry
+                        let updatedBatches = [...product.batches].sort((a, b) => new Date(a.expirationDate) - new Date(b.expirationDate));
+
+                        updatedBatches = updatedBatches.map(batch => {
+                            if (remainingDeduction <= 0) return batch;
+                            
+                            let batchQty = parseInt(batch.quantity);
+                            if (batchQty >= remainingDeduction) {
+                                batch.quantity = batchQty - remainingDeduction;
+                                remainingDeduction = 0;
+                            } else {
+                                remainingDeduction -= batchQty;
+                                batch.quantity = 0;
+                            }
+                            return batch;
+                        }).filter(batch => parseInt(batch.quantity) > 0); 
+
+                        updateObj.batches = updatedBatches;
+                        
+                        // Update expirationDate to the new earliest batch
+                        if (updatedBatches.length > 0) {
+                             updateObj.expirationDate = updatedBatches[0].expirationDate;
+                        } else {
+                             updateObj.expirationDate = ""; 
+                        }
+                    }
 
                     if (updatedQuantity <= parseInt(product.minStock)) {
                         let alertEntry = {
@@ -539,13 +658,14 @@ app.decrementInventory = function (products) {
                         updateObj.alertHistory = product.alertHistory || [];
                         updateObj.alertHistory.push(alertEntry);
 
-                        // Emit Socket.io alert
-                        global.io.emit('low-stock-alert', {
-                            productId: product._id,
-                            name: product.name,
-                            quantity: updatedQuantity,
-                            minStock: product.minStock,
-                        });
+                        if(global.io) {
+                            global.io.emit('low-stock-alert', {
+                                productId: product._id,
+                                name: product.name,
+                                quantity: updatedQuantity,
+                                minStock: product.minStock,
+                            });
+                        }
                     }
 
                     inventoryDB.update(
@@ -565,6 +685,41 @@ app.decrementInventory = function (products) {
 };
 
 /**
+ * GET endpoint: Get substitute medicines based on generic name.
+ *
+ * @param {Object} req request object.
+ * @param {Object} res response object.
+ * @returns {void}
+ */
+app.get("/substitutes/:productId", function (req, res) {
+    const productId = parseInt(req.params.productId);
+    
+    inventoryDB.findOne({ _id: productId }, function (err, product) {
+        if (err || !product) {
+            return res.status(404).json({ error: "Product not found" });
+        }
+        
+        const genericName = product.generic_name;
+        if (!genericName) {
+            return res.json([]); // No generic name, no substitutes
+        }
+
+        // Find other products with same generic name, excluding current product
+        inventoryDB.find({ 
+            generic_name: genericName,
+            _id: { $ne: productId }
+        }, function (err, substitutes) {
+            if (err) {
+                console.error(err);
+                res.status(500).json({ error: "Internal Server Error" });
+            } else {
+                res.send(substitutes);
+            }
+        });
+    });
+});
+
+/**
  * Get all inventory items (for reporting functions)
  *
  * @param {Function} callback - Callback function to receive inventory data
@@ -580,6 +735,66 @@ app.getInventory = function (callback) {
         }
     });
 };
+
+/**
+ * GET endpoint: Get stock aging report.
+ * Groups stock by age (based on lastRestocked date).
+ *
+ * @param {Object} req request object.
+ * @param {Object} res response object.
+ * @returns {void}
+ */
+app.get("/reports/aging", function (req, res) {
+    inventoryDB.find({}, function (err, docs) {
+        if (err) {
+            console.error(err);
+            res.status(500).json({
+                error: "Internal Server Error",
+                message: "An unexpected error occurred.",
+            });
+        } else {
+            const today = new Date();
+            const report = {
+                "0-30_days": [],
+                "31-60_days": [],
+                "61-90_days": [],
+                "90+_days": []
+            };
+
+            docs.forEach(product => {
+                let lastRestockDate = product.lastRestocked ? new Date(product.lastRestocked) : new Date(0); // Default to old date if unknown
+                if (product.lastRestocked === null || product.lastRestocked === "") {
+                     // if lastRestocked is missing, we can try to infer from creation or just put it in 90+
+                     // For now, let's treat unknown as old stock (90+)
+                     lastRestockDate = new Date(0); 
+                }
+
+                const diffTime = Math.abs(today - lastRestockDate);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                const item = {
+                    _id: product._id,
+                    name: product.name,
+                    quantity: product.quantity,
+                    value: (parseFloat(product.price) || 0) * (parseInt(product.quantity) || 0),
+                    days_in_stock: diffDays
+                };
+
+                if (diffDays <= 30) {
+                    report["0-30_days"].push(item);
+                } else if (diffDays <= 60) {
+                    report["31-60_days"].push(item);
+                } else if (diffDays <= 90) {
+                    report["61-90_days"].push(item);
+                } else {
+                    report["90+_days"].push(item);
+                }
+            });
+
+            res.send(report);
+        }
+    });
+});
 
 /**
  * GET endpoint: Export all products to CSV

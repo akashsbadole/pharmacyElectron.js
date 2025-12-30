@@ -12,6 +12,35 @@ class InventoryModule {
   
   initialize() {
     console.log('Inventory module initialized');
+    this.setupEventListeners();
+  }
+  
+  setupEventListeners() {
+    // Delegation for dynamic batch rows
+    $(document).on('click', '.remove-batch', () => {
+      this.calculateBatchTotals();
+    });
+    
+    $(document).on('input', '.batch-qty, .batch-expiry', () => {
+      this.calculateBatchTotals();
+    });
+    
+    // Override legacy add_batch_row if in inventory module
+    const self = this;
+    $(document).on('click', '#add_batch_row', function(e) {
+      if (self.app.state.getState().activeModule === 'inventory') {
+        e.stopImmediatePropagation(); // Prevent legacy handler
+        self.addBatchRow();
+      }
+    });
+
+    // Handle form submission via modular controller
+    $(document).on('submit', '#saveProduct', function(e) {
+      if (self.app.state.getState().activeModule === 'inventory') {
+        e.preventDefault();
+        self.handleProductSubmit(this);
+      }
+    });
   }
   
   onActivate() {
@@ -445,23 +474,193 @@ class InventoryModule {
   }
   
   showAddProductModal() {
-    // TODO: Implement add product modal
-    console.log('Add product modal not yet implemented');
+    // Reset form for a new product
+    $("#saveProduct").get(0).reset();
+    $("#product_id").val("");
+    $("#current_img").text("");
+    $("#batch_items").empty();
+    $("#batches_input").val("");
+    $("#expirationDate").val("");
+    $("#quantity").val(0);
+    
+    // Set title and show modal
+    $("#newProduct .modal-title").text("Add New Product");
+    $("#newProduct").modal("show");
   }
   
   viewProduct(productId) {
-    // TODO: Implement product details view
-    console.log('View product not yet implemented');
+    const inventoryState = this.app.state.getModuleState('inventory');
+    const product = inventoryState.products.find(p => p._id.toString() === productId.toString());
+    
+    if (product) {
+      this.populateProductModal(product);
+      // Change title and maybe disable submit for viewing
+      $("#newProduct .modal-title").text("View Product Details");
+      $("#submitProduct").hide();
+      $("#newProduct").modal("show");
+    }
   }
   
   editProduct(productId) {
-    // TODO: Implement edit product modal
-    console.log('Edit product not yet implemented');
+    const inventoryState = this.app.state.getModuleState('inventory');
+    const product = inventoryState.products.find(p => p._id.toString() === productId.toString());
+    
+    if (product) {
+      this.populateProductModal(product);
+      // Change title and ensure submit is visible
+      $("#newProduct .modal-title").text("Edit Product");
+      $("#submitProduct").show();
+      $("#newProduct").modal("show");
+    }
   }
   
   importProducts() {
-    // TODO: Implement product import
-    console.log('Import products not yet implemented');
+    // Show the import CSV modal
+    $("#importCSVPModal").modal("show");
+  }
+
+  // Private helper to populate the product modal
+  populateProductModal(product) {
+    $("#product_id").val(product._id);
+    $("#category").val(product.category);
+    $("#productName").val(product.name);
+    $("#barcode").val(product.barcode || "");
+    $("#product_price").val(product.price);
+    $("#cost_price").val(product.cost || "");
+    $("#minStock").val(product.minStock || 1);
+    $("#stock").prop("checked", product.stock === 0);
+    $("#requires_prescription").prop("checked", product.requires_prescription === true);
+    $("#quantity").val(product.quantity || 0);
+    $("#hsn_code").val(product.hsn_code || "");
+    $("#expirationDate").val(product.expirationDate || "");
+    
+    // Batch items
+    $("#batch_items").empty();
+    if (product.batches && Array.isArray(product.batches)) {
+      product.batches.forEach(batch => {
+        this.addBatchRow(batch);
+      });
+    } else if (product.quantity > 0) {
+      // Legacy support: create a default batch if quantity exists but no batches
+      this.addBatchRow({ 
+        batch_number: 'LEGACY', 
+        quantity: product.quantity, 
+        expirationDate: product.expirationDate 
+      });
+    }
+    
+    this.calculateBatchTotals();
+    
+    // Image preview
+    if (product.img) {
+      $("#current_img").html(`<img src="uploads/${product.img}" style="max-width: 100px" />`);
+    } else {
+      $("#current_img").empty();
+    }
+  }
+
+  addBatchRow(data = {}) {
+    let html = `
+      <div class="row batch-row m-b-5">
+          <div class="col-md-5">
+              <input type="text" class="form-control input-sm batch-number" placeholder="No." value="${data.batch_number || ''}">
+          </div>
+          <div class="col-md-3">
+              <input type="number" class="form-control input-sm batch-qty" placeholder="Qty" value="${data.quantity || ''}" min="0">
+          </div>
+          <div class="col-md-3">
+              <input type="date" class="form-control input-sm batch-expiry" value="${data.expirationDate || ''}">
+          </div>
+          <div class="col-md-1">
+              <button type="button" class="btn btn-xs btn-danger remove-batch" onclick="$(this).closest('.batch-row').remove();"><i class="fa fa-times"></i></button>
+          </div>
+      </div>`;
+    $("#batch_items").append(html);
+  }
+
+  calculateBatchTotals() {
+    let totalQty = 0;
+    let earliestExpiry = null;
+    let batches = [];
+
+    $('.batch-row').each(function() {
+      let qty = parseInt($(this).find('.batch-qty').val()) || 0;
+      let expiry = $(this).find('.batch-expiry').val();
+      let number = $(this).find('.batch-number').val();
+
+      if (qty > 0 || number) {
+        totalQty += qty;
+        batches.push({
+          batch_number: number,
+          quantity: qty,
+          expirationDate: expiry
+        });
+
+        if (expiry) {
+          let expDate = new Date(expiry);
+          if (!earliestExpiry || expDate < earliestExpiry) {
+            earliestExpiry = expDate;
+          }
+        }
+      }
+    });
+
+    $('#quantity').val(totalQty);
+    $('#batches_input').val(JSON.stringify(batches));
+    
+    if (earliestExpiry) {
+      const d = earliestExpiry;
+      let month = '' + (d.getMonth() + 1);
+      let day = '' + d.getDate();
+      let year = d.getFullYear();
+
+      if (month.length < 2) month = '0' + month;
+      if (day.length < 2) day = '0' + day;
+
+      $('#expirationDate').val([year, month, day].join('-'));
+    } else {
+      $('#expirationDate').val('');
+    }
+  }
+
+  async handleProductSubmit(form) {
+    const formData = new FormData(form);
+    const productId = $("#product_id").val();
+    const isUpdate = !!productId;
+    
+    try {
+      if (window.notiflix) window.notiflix.Block.standard('#newProduct .modal-content', 'Saving Product...');
+      
+      const response = await fetch(`${window.api}inventory/product`, {
+        method: isUpdate ? 'PUT' : 'POST',
+        body: formData // Fetch handles FormData automatically with correct boundary
+      });
+      
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.message || 'Failed to save product');
+      }
+      
+      await response.json();
+      
+      if (window.notiflix) window.notiflix.Block.remove('#newProduct .modal-content');
+      
+      $("#newProduct").modal("hide");
+      
+      if (window.notiflix) {
+        window.notiflix.Notify.success('Product saved successfully!');
+      }
+      
+      // Refresh list
+      this.loadProducts();
+      
+    } catch (error) {
+      console.error('Error saving product:', error);
+      if (window.notiflix) {
+        window.notiflix.Block.remove('#newProduct .modal-content');
+        window.notiflix.Report.failure('Error', error.message, 'Ok');
+      }
+    }
   }
 }
 

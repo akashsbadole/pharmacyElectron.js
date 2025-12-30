@@ -39,15 +39,13 @@ const upload = multer({
 }).single("imagename");
 
 
+const { getDatabase } = require('./database_utils');
+
 app.use(bodyParser.json());
 
 module.exports = app;
 
-let settingsDB = new Datastore({
-    filename: dbPath,
-    autoload: true,
-});
-
+let settingsDB = getDatabase(dbPath);
 settingsDB.ensureIndex({ fieldName: "_id", unique: true });
 /**
  * GET endpoint: Get the welcome message for the Settings API.
@@ -151,6 +149,14 @@ app.post("/post", function (req, res) {
             charge_tax: req.body.charge_tax === 'on',
             footer: validator.escape(req.body.footer),
             img: image,
+            gstin: validator.escape(req.body.gstin || ""),
+            cgst: validator.escape(req.body.cgst || "0"),
+            sgst: validator.escape(req.body.sgst || "0"),
+            igst: validator.escape(req.body.igst || "0"),
+            payment_modes: req.body.payment_modes || ["Cash", "Card", "UPI", "Net Banking"],
+            backup_frequency: validator.escape(req.body.backup_frequency || "off"),
+            backup_time: validator.escape(req.body.backup_time || "00:00"),
+            enable_encryption: req.body.enable_encryption === 'on' || req.body.enable_encryption === true
         },
     };
 

@@ -3,7 +3,7 @@ const server = require("http").Server(app);
 const bodyParser = require("body-parser");
 const Datastore = require("@seald-io/nedb");
 const path = require("path");
-const { initializeDatabase } = require('./database_utils');
+const { getDatabase } = require('./database_utils');
 
 const dbPath = path.join(
     process.env.APPDATA,
@@ -17,21 +17,8 @@ app.use(bodyParser.json());
 
 module.exports = app;
 
-let sessionLogsDB = new Datastore({
-    filename: dbPath,
-    autoload: true,
-    timestampData: true
-});
-
-// Initialize database with crash recovery
-try {
-    initializeDatabase(sessionLogsDB, dbPath);
-    sessionLogsDB.ensureIndex({ fieldName: "_id", unique: true });
-} catch (err) {
-    console.error('Failed to initialize session logs database:', err);
-    // Fallback: continue with basic initialization
-    sessionLogsDB.ensureIndex({ fieldName: "_id", unique: true });
-}
+let sessionLogsDB = getDatabase(dbPath);
+sessionLogsDB.ensureIndex({ fieldName: "_id", unique: true });
 
 /**
  * GET endpoint: Get the welcome message for the Session Logs API.

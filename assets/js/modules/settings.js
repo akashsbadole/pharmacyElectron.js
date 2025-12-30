@@ -106,22 +106,53 @@ class SettingsModule {
                 </div>
                 
                 <div class="form-group">
-                  <label class="form-label">Tax Percentage</label>
+                  <label class="form-label">GST Percentage (Legacy)</label>
                   <input type="number" name="percentage" class="form-input" 
                          value="${settings.percentage || '0'}" min="0" max="100">
                 </div>
                 
                 <div class="form-group">
-                  <label class="form-label">VAT Number</label>
-                  <input type="text" name="tax" class="form-input" 
-                         value="${settings.tax || ''}">
+                  <label class="form-label">GSTIN</label>
+                  <input type="text" name="gstin" class="form-input" 
+                         value="${settings.gstin || ''}" placeholder="27AAAAA0000A1Z5">
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">CGST (%)</label>
+                  <input type="number" name="cgst" class="form-input" 
+                         value="${settings.cgst || '0'}" step="0.01">
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">SGST (%)</label>
+                  <input type="number" name="sgst" class="form-input" 
+                         value="${settings.sgst || '0'}" step="0.01">
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">IGST (%)</label>
+                  <input type="number" name="igst" class="form-input" 
+                         value="${settings.igst || '0'}" step="0.01">
+                </div>
+              </div>
+
+              <div class="form-group mt-4">
+                <label class="form-label">Enabled Payment Modes</label>
+                <div class="flex gap-4">
+                  ${['Cash', 'Card', 'UPI', 'Net Banking'].map(mode => `
+                    <label class="flex items-center gap-2">
+                        <input type="checkbox" name="payment_modes[]" value="${mode}" 
+                               ${(settings.payment_modes || ['Cash', 'Card', 'UPI', 'Net Banking']).includes(mode) ? 'checked' : ''}>
+                        <span class="text-sm">${mode}</span>
+                    </label>
+                  `).join('')}
                 </div>
               </div>
               
               <div class="form-group mt-4">
                 <label class="flex items-center gap-2">
                   <input type="checkbox" name="charge_tax" ${settings.charge_tax ? 'checked' : ''}>
-                  <span class="text-sm">Charge VAT</span>
+                  <span class="text-sm">Enable GST Calculation</span>
                 </label>
               </div>
               
@@ -189,10 +220,18 @@ class SettingsModule {
   async saveGeneralSettings(event) {
     event.preventDefault();
     const formData = new FormData(event.target);
-    const settingsData = Object.fromEntries(formData.entries());
+    const settingsData = {};
+    formData.forEach((value, key) => {
+        if (key === 'payment_modes[]') {
+            if (!settingsData.payment_modes) settingsData.payment_modes = [];
+            settingsData.payment_modes.push(value);
+        } else {
+            settingsData[key] = value;
+        }
+    });
     
     // Convert checkboxes
-    settingsData.charge_tax = formData.get('charge_tax') ? 1 : 0;
+    settingsData.charge_tax = formData.get('charge_tax') ? 'on' : 'off';
     
     try {
       const response = await fetch(`${window.api}settings/post`, {

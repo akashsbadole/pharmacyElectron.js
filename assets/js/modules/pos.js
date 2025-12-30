@@ -7,10 +7,39 @@ class POSModule {
     this.app = app;
     this.container = null;
     this.showPayment = false;
+    this.saleType = 'intra'; // intra or inter
   }
   
   initialize() {
     console.log('POS module initialized');
+    
+    // Bridge legacy submitDueOrder to modular state
+    const originalSubmitDueOrder = $.fn.submitDueOrder;
+    const self = this;
+    
+    $.fn.submitDueOrder = function(status) {
+      if (self.app.state.getState().activeModule === 'pos') {
+        if (status === 0) { // Hold Sale
+          const refNumber = $("#refNumber").val();
+          self.submitHoldSale(refNumber);
+        } else {
+          // If status is not 0 (e.g. legacy complete), let it be
+          originalSubmitDueOrder.call(this, status);
+        }
+      } else {
+        originalSubmitDueOrder.call(this, status);
+      }
+    };
+
+    // Attach sharing events to shared modal buttons
+    $(document).on('click', '#shareWhatsApp', () => {
+        const transId = $("#viewTransaction").attr('data-id');
+        if (transId) this.shareWhatsApp(transId);
+    });
+    $(document).on('click', '#shareEmail', () => {
+        const transId = $("#viewTransaction").attr('data-id');
+        if (transId) this.shareEmail(transId);
+    });
   }
   
   onActivate() {
@@ -93,8 +122,10 @@ class POSModule {
     }
   }
   
-  selectCustomer(customer) {
-    this.app.state.updateModule('pos', { currentCustomer: customer });
+  selectCustomer(customerId) {
+    const customers = this.app.state.getModuleState('pos').customers;
+    const customer = customers.find(c => c._id == customerId);
+    this.app.state.updateModule('pos', { currentCustomer: customer || null });
   }
   
   cancelSale() {
@@ -106,8 +137,89 @@ class POSModule {
   }
   
   holdSale() {
-    // TODO: Implement hold sale functionality
-    console.log('Hold sale functionality not yet implemented');
+    const posState = this.app.state.getModuleState('pos');
+    if (posState.cart.length === 0) {
+      if (window.notiflix) {
+        window.notiflix.Notify.warning('There is nothing to hold!');
+      }
+      return;
+    }
+    
+    // Clear previous ref number
+    $("#refNumber").val("");
+    
+    // Show the hold order modal
+    $("#dueModal").modal("show");
+  }
+
+  async submitHoldSale(refNumber) {
+    const posState = this.app.state.getModuleState('pos');
+    const totals = this.calculateCartTotal();
+    
+    if (!posState.currentCustomer && !refNumber) {
+      if (window.notiflix) {
+        window.notiflix.Report.warning(
+          "Reference Required!",
+          "You either need to select a customer <br> or enter a reference!",
+          "Ok"
+        );
+      }
+      return;
+    }
+
+    const paymentData = {
+      order: Date.now(),
+      ref_number: refNumber || '',
+      discount: 0,
+      customer: posState.currentCustomer || { id: 0, name: 'Walk in customer' },
+      status: 0, // 0 for Hold
+      subtotal: parseFloat(totals.subtotal),
+      tax: parseFloat(totals.tax),
+      order_type: 1,
+      items: posState.cart,
+      date: new Date(),
+      total: parseFloat(totals.total),
+      paid: 0,
+      change: 0,
+      user: window.user?.fullname || 'Modular User',
+      user_id: window.user?._id || 0
+    };
+    
+    try {
+      if (window.notiflix) window.notiflix.Block.standard('#dueModal .modal-content', 'Holding Sale...');
+      
+      const response = await fetch(`${window.api}new`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(paymentData)
+      });
+      
+      if (!response.ok) throw new Error('Hold sale failed');
+      
+      const result = await response.json();
+      
+      if (window.notiflix) window.notiflix.Block.remove('#dueModal .modal-content');
+      
+      // Clear cart and reset state
+      this.cancelSale();
+      
+      $("#dueModal").modal("hide");
+      
+      if (window.notiflix) {
+        window.notiflix.Report.success('Sale Held', 'Transaction held successfully!', 'Ok');
+      }
+      
+      return result;
+      
+    } catch (error) {
+      console.error('Error holding sale:', error);
+      if (window.notiflix) {
+        window.notiflix.Block.remove('#dueModal .modal-content');
+        window.notiflix.Report.failure('Hold Failed', 'Failed to hold transaction', 'Ok');
+      }
+    }
   }
   
   async completeSale(paymentData) {
@@ -158,18 +270,38 @@ class POSModule {
   
   calculateCartTotal() {
     const posState = this.app.state.getModuleState('pos');
+    const appState = this.app.state.getModuleState('app');
+    const settings = appState.settings || {};
     const cart = posState.cart;
     
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const discount = 0; // TODO: Get from form
-    const taxRate = window.settings?.charge_tax ? parseFloat(window.settings.percentage) / 100 : 0;
-    const tax = (subtotal - discount) * taxRate;
-    const total = subtotal - discount + tax;
+    
+    let cgst = 0, sgst = 0, igst = 0, totalTax = 0;
+    
+    if (settings.charge_tax) {
+        const taxableAmount = subtotal - discount;
+        if (this.saleType === 'intra') {
+            const cgstRate = parseFloat(settings.cgst || 0) / 100;
+            const sgstRate = parseFloat(settings.sgst || 0) / 100;
+            cgst = taxableAmount * cgstRate;
+            sgst = taxableAmount * sgstRate;
+        } else {
+            const igstRate = parseFloat(settings.igst || 0) / 100;
+            igst = taxableAmount * igstRate;
+        }
+        totalTax = cgst + sgst + igst;
+    }
+    
+    const total = subtotal - discount + totalTax;
     
     return {
       subtotal: subtotal.toFixed(2),
       discount: discount.toFixed(2),
-      tax: tax.toFixed(2),
+      tax: totalTax.toFixed(2),
+      cgst: cgst.toFixed(2),
+      sgst: sgst.toFixed(2),
+      igst: igst.toFixed(2),
       total: total.toFixed(2),
       items: cart.length
     };
@@ -327,6 +459,16 @@ class POSModule {
               }
             </div>
             
+            <div class="cart-tax-toggle mt-3 flex justify-between items-center p-2 bg-blue-50 rounded">
+                <span class="text-sm font-medium">Sale Type:</span>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn ${this.saleType === 'intra' ? 'btn-primary' : 'btn-default'}" 
+                            onclick="window.pharmaApp.getModule('pos').setSaleType('intra')">Intra-state</button>
+                    <button class="btn ${this.saleType === 'inter' ? 'btn-primary' : 'btn-default'}" 
+                            onclick="window.pharmaApp.getModule('pos').setSaleType('inter')">Inter-state</button>
+                </div>
+            </div>
+            
             ${cart.length > 0 ? this.renderCartTotals(totals) : ''}
           </div>
         </div>
@@ -345,12 +487,24 @@ class POSModule {
           <span>Subtotal:</span>
           <span>$${totals.subtotal}</span>
         </div>
-        <div class="flex justify-between mb-2">
-          <span>Discount:</span>
-          <span>$${totals.discount}</span>
-        </div>
-        <div class="flex justify-between mb-2">
-          <span>Tax:</span>
+        ${totals.cgst > 0 ? `
+            <div class="flex justify-between mb-1 text-sm text-gray-600">
+                <span>CGST:</span>
+                <span>$${totals.cgst}</span>
+            </div>
+            <div class="flex justify-between mb-1 text-sm text-gray-600">
+                <span>SGST:</span>
+                <span>$${totals.sgst}</span>
+            </div>
+        ` : ''}
+        ${totals.igst > 0 ? `
+            <div class="flex justify-between mb-1 text-sm text-gray-600">
+                <span>IGST:</span>
+                <span>$${totals.igst}</span>
+            </div>
+        ` : ''}
+        <div class="flex justify-between mb-2 font-medium">
+          <span>Total Tax:</span>
           <span>$${totals.tax}</span>
         </div>
         <div class="flex justify-between font-bold text-lg border-t pt-2">
@@ -380,6 +534,11 @@ class POSModule {
       </div>
     `;
   }
+
+  setSaleType(type) {
+    this.saleType = type;
+    this.render();
+  }
   
   renderPaymentInterface(totals) {
     return `
@@ -393,10 +552,16 @@ class POSModule {
           </div>
           
           <div class="payment-methods mb-4">
-            <div class="grid grid-cols-2 gap-2">
-              <button class="btn btn-primary payment-method" data-method="cash">Cash</button>
-              <button class="btn btn-secondary payment-method" data-method="card">Card</button>
+            <label class="form-label">Payment Mode</label>
+            <div class="grid grid-cols-2 gap-2" id="paymentModeContainer">
+              ${(this.app.state.getModuleState('app').settings?.payment_modes || ['Cash', 'Card', 'UPI', 'Net Banking']).map(mode => `
+                <button class="btn btn-outline-secondary payment-method-btn ${mode === 'Cash' ? 'btn-primary active' : ''}" 
+                        onclick="window.pharmaApp.getModule('pos').setPaymentMethod('${mode}', this)">
+                    ${mode}
+                </button>
+              `).join('')}
             </div>
+            <input type="hidden" id="selectedPaymentMethod" value="Cash">
           </div>
           
           <div class="payment-amount mb-4">
@@ -520,10 +685,16 @@ class POSModule {
       status: 1,
       subtotal: parseFloat(totals.subtotal),
       tax: parseFloat(totals.tax),
+      tax_details: {
+          cgst: parseFloat(totals.cgst),
+          sgst: parseFloat(totals.sgst),
+          igst: parseFloat(totals.igst),
+          total_tax: parseFloat(totals.tax)
+      },
       order_type: 1,
       items: posState.cart,
       date: new Date(),
-      payment_type: 'Cash', // TODO: Get from selected method
+      payment_type: $("#selectedPaymentMethod").val() || 'Cash',
       total: total,
       paid: paid,
       change: paid - total
@@ -536,16 +707,148 @@ class POSModule {
       console.error('Payment processing failed:', error);
     }
   }
+
+  setPaymentMethod(method, btn) {
+      $("#selectedPaymentMethod").val(method);
+      $(".payment-method-btn").removeClass("btn-primary active").addClass("btn-outline-secondary");
+      $(btn).removeClass("btn-outline-secondary").addClass("btn-primary active");
+  }
   
   // Customer management
   viewCustomerDetails() {
-    // TODO: Implement customer details view
-    console.log('View customer details not yet implemented');
+    const posState = this.app.state.getModuleState('pos');
+    const customer = posState.currentCustomer;
+    
+    if (!customer) {
+      if (window.notiflix) {
+        window.notiflix.Report.warning('No Customer Selected', 'Please select a customer first to view details.', 'Ok');
+      }
+      return;
+    }
+    
+    // Populate simple info
+    $("#customerName").text(customer.name || 'N/A');
+    $("#customerPhone").text(customer.phone || 'N/A');
+    $("#customerEmail").text(customer.email || 'N/A');
+    $("#customerAddress").text(customer.address || 'N/A');
+    
+    // Set customer ID for uploads/listings
+    $("#uploadCustomerId").val(customer._id);
+    
+    // Reset tabs to Info
+    $('#customerDetailsModal a[href="#customerInfoTab"]').tab('show');
+    
+    // Show modal
+    $("#customerDetailsModal").modal("show");
+    
+    // Setup tab listener for history (lazy load)
+    const self = this;
+    // Unbind previous listeners to avoid multiple calls
+    $('#customerDetailsModal a[data-toggle="tab"]').off('shown.bs.tab').on('shown.bs.tab', function (e) {
+      var target = $(e.target).attr("href");
+      if (target === "#purchaseHistoryTab") {
+        self.loadCustomerPurchaseHistory(customer._id);
+      }
+    });
+  }
+
+  async loadCustomerPurchaseHistory(customerId) {
+    const historyList = $("#customerPurchaseHistoryList");
+    historyList.html('<tr><td colspan="5" class="text-center">Loading...</td></tr>');
+    
+    try {
+      const response = await fetch(`${window.api}history/customer/${customerId}`);
+      const history = await response.json();
+      
+      if (!history || history.length === 0) {
+        historyList.html('<tr><td colspan="5" class="text-center">No purchase history found</td></tr>');
+        return;
+      }
+      
+      // Sort by date descending
+      history.sort((a, b) => new Date(b.date) - new Date(a.date));
+      
+      const rows = history.map(tx => {
+        const date = tx.date ? new Date(tx.date).toLocaleDateString() : 'N/A';
+        const orderNum = tx.order || 'N/A';
+        const total = parseFloat(tx.total || 0).toFixed(2);
+        const status = tx.status === 1 ? '<span class="label label-success">Completed</span>' : '<span class="label label-warning">Pending</span>';
+        
+        // Format items summary
+        const items = tx.items ? tx.items.map(item => `${item.product_name} (x${item.quantity})`).join(', ') : 'No items';
+        const itemsTruncated = items.length > 50 ? items.substring(0, 47) + '...' : items;
+        
+        return `
+          <tr>
+            <td>${date}</td>
+            <td>${orderNum}</td>
+            <td title="${items}">${itemsTruncated}</td>
+            <td>$${total}</td>
+            <td>${status}</td>
+          </tr>
+        `;
+      }).join('');
+      
+      historyList.html(rows);
+      
+    } catch (error) {
+      console.error('Error loading purchase history:', error);
+      historyList.html('<tr><td colspan="5" class="text-center text-danger">Error loading history</td></tr>');
+    }
   }
   
   addNewCustomer() {
-    // TODO: Implement add new customer modal
-    console.log('Add new customer not yet implemented');
+    // Show the new customer modal
+    $("#newCustomer").modal("show");
+  }
+
+  async shareWhatsApp(transactionId) {
+    try {
+        const response = await fetch(`${window.api}${transactionId}`);
+        const tx = await response.json();
+        const settings = this.app.state.getModuleState('app').settings || {};
+        
+        let message = `*Invoice from ${settings.store || 'Pharmacy'}*\n`;
+        message += `Inv #: ${tx.order}\n`;
+        message += `Date: ${new Date(tx.date).toLocaleDateString()}\n`;
+        message += `--------------------------\n`;
+        tx.items.forEach(item => {
+            message += `${item.product_name} x ${item.quantity}: $${(item.price * item.quantity).toFixed(2)}\n`;
+        });
+        message += `--------------------------\n`;
+        message += `*Total: $${parseFloat(tx.total).toFixed(2)}*\n`;
+        message += `Payment: ${tx.payment_type || 'Paid'}\n`;
+        message += `\nThank you for your business!`;
+
+        const encodedMsg = encodeURIComponent(message);
+        const phone = tx.customer?.phone || "";
+        window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodedMsg}`, '_blank');
+    } catch (e) {
+        console.error("WhatsApp share failed", e);
+    }
+  }
+
+  async shareEmail(transactionId) {
+    try {
+        const response = await fetch(`${window.api}${transactionId}`);
+        const tx = await response.json();
+        const settings = this.app.state.getModuleState('app').settings || {};
+        
+        const subject = `Invoice ${tx.order} from ${settings.store || 'Pharmacy'}`;
+        let body = `Hello ${tx.customer?.name || 'Customer'},\n\n`;
+        body += `Please find the details of your invoice ${tx.order}:\n\n`;
+        tx.items.forEach(item => {
+            body += `${item.product_name} x ${item.quantity}: $${(item.price * item.quantity).toFixed(2)}\n`;
+        });
+        body += `\nTotal Amount: $${parseFloat(tx.total).toFixed(2)}\n`;
+        body += `Payment Mode: ${tx.payment_type || 'Paid'}\n\n`;
+        body += `Thank you,\n${settings.store || 'Pharmacy'}`;
+
+        const mailto = `mailto:${tx.customer?.email || ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        window.location.href = mailto;
+    } catch (e) {
+        console.error("Email share failed", e);
+    }
   }
 }
 

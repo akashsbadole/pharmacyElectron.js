@@ -3,6 +3,7 @@ let server = require("http").Server(app);
 let bodyParser = require("body-parser");
 let Datastore = require("@seald-io/nedb");
 let Inventory = require("./inventory");
+const AuditLogs = require("./audit_logs");
 const path = require("path");
 const appName = process.env.APPNAME;
 const appData = process.env.APPDATA;
@@ -14,15 +15,13 @@ const dbPath = path.join(
   "transactions.db",
 );
 
+const { getDatabase } = require('./database_utils');
+
 app.use(bodyParser.json());
 
 module.exports = app;
 
-let transactionsDB = new Datastore({
-  filename: dbPath,
-  autoload: true,
-});
-
+let transactionsDB = getDatabase(dbPath);
 transactionsDB.ensureIndex({ fieldName: "_id", unique: true });
 
 /**
@@ -162,6 +161,17 @@ app.get("/by-date", function (req, res) {
  */
 app.post("/new", function (req, res) {
   let newTransaction = req.body;
+  
+  // Ensure tax details structure exist (Default to 0 if not provided)
+  newTransaction.tax_details = newTransaction.tax_details || {
+      cgst: 0,
+      sgst: 0,
+      igst: 0,
+      total_tax: 0
+  };
+
+  // Ensure payment mode exists (Default to Cash)
+  newTransaction.payment_mode = newTransaction.payment_mode || "Cash";
 
   transactionsDB.insert(newTransaction, function (err, transaction) {
     if (err) {
@@ -175,6 +185,28 @@ app.post("/new", function (req, res) {
 
       if (newTransaction.paid >= newTransaction.total) {
         Inventory.decrementInventory(newTransaction.items);
+
+        // Audit Logging for Restricted Drugs
+        Inventory.getInventory(function(inventory) {
+          const restrictedItems = newTransaction.items.filter(txItem => {
+            const product = inventory.find(p => p._id.toString() === txItem.id.toString());
+            return product && product.requires_prescription;
+          });
+
+          if (restrictedItems.length > 0) {
+            AuditLogs.logTransaction({
+              type: "RESTRICTED_DRUG_SALE",
+              transactionId: transaction._id,
+              customer: transaction.customer,
+              items: restrictedItems.map(item => ({
+                id: item.id,
+                name: item.product_name,
+                quantity: item.quantity
+              })),
+              message: `Sale of restricted drug(s): ${restrictedItems.map(i => i.product_name).join(", ")}`
+            });
+          }
+        });
       }
     }
   });
@@ -475,4 +507,81 @@ app.get("/reports/staff-activity", function (req, res) {
       res.json({ staff: staffArray });
     });
   });
+});
+
+/**
+ * GET endpoint: Get purchase history for a specific customer.
+ */
+app.get("/history/customer/:customerId", function (req, res) {
+    const customerId = req.params.customerId; // Assuming customerId in transaction matches this
+    // Note: In transactions.js, customer field stores ID or "0".
+    
+    transactionsDB.find({ customer: customerId }, function(err, docs) {
+         if(err) {
+             console.error(err);
+             res.status(500).json({ error: "Internal Server Error" });
+         } else {
+             res.send(docs);
+         }
+    });
+});
+
+/**
+ * GET endpoint: Regulatory Report for Restricted Drugs.
+ * Lists transactions containing items with specific drug schedules.
+ */
+app.get("/reports/regulatory/restricted", function (req, res) {
+    const schedules = req.query.schedules ? req.query.schedules.split(',') : ["H1", "X", "Narcotic"];
+    
+    // We need to cross-reference transactions items with inventory to get the schedule
+    // Or we rely on inventory having the schedule.
+    // 1. Get all products with restricted schedules
+    Inventory.getInventory(function(products) {
+        const restrictedProductIds = products
+            .filter(p => p.drug_schedule && schedules.includes(p.drug_schedule))
+            .map(p => p._id.toString());
+            
+        if (restrictedProductIds.length === 0) {
+            return res.send([]);
+        }
+
+        // 2. Find transactions containing these products
+        transactionsDB.find({ 
+            "items.id": { $in: restrictedProductIds } // Assuming items have 'id' which matches product _id
+        }, function(err, transactions) {
+             if(err) {
+                 console.error(err);
+                 res.status(500).json({ error: "Internal Server Error" });
+             } else {
+                 // Filter items within transactions to only show restricted ones?
+                 // Or return full transaction? Usually report needs transaction details + patient details.
+                 
+                 const report = transactions.map(tx => {
+                     const restrictedItems = tx.items.filter(item => restrictedProductIds.includes(item.id.toString()));
+                     if (restrictedItems.length > 0) {
+                         return {
+                             transaction_date: tx.date,
+                             ref_number: tx.ref_number,
+                             customer_id: tx.customer,
+                             doctor_name: tx.doctor_name || "", // Assuming doctor name might be added to tx
+                             restricted_items: restrictedItems
+                         };
+                     }
+                     return null;
+                 }).filter(item => item !== null);
+                 
+                 res.send(report);
+             }
+        });
+    });
+});
+
+/**
+ * POST endpoint: Share invoice (E-Invoicing stub).
+ */
+app.post("/share", function (req, res) {
+    const { transactionId, method, recipient } = req.body;
+    console.log(`Sharing invoice ${transactionId} via ${method} to ${recipient}`);
+    // Future integration with Email/WhatsApp API goes here.
+    res.json({ success: true, message: `Invoice shared via ${method}` });
 });

@@ -14,15 +14,13 @@ const dbPath = path.join(
     "categories.db",
 );
 
+const { getDatabase } = require('./database_utils');
+
 app.use(bodyParser.json());
 
 module.exports = app;
 
-let categoryDB = new Datastore({
-    filename: dbPath,
-    autoload: true,
-});
-
+let categoryDB = getDatabase(dbPath);
 categoryDB.ensureIndex({ fieldName: "_id", unique: true });
 
 /**

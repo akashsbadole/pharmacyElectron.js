@@ -7,6 +7,8 @@ const appName = process.env.APPNAME;
 const appData = process.env.APPDATA;
 const path = require("path");
 
+const { getDatabase } = require('./database_utils');
+
 const dbPath = path.join(
     appData,
     appName,
@@ -19,11 +21,7 @@ app.use(bodyParser.json());
 
 module.exports = app;
 
-let suppliersDB = new Datastore({
-    filename: dbPath,
-    autoload: true,
-});
-
+let suppliersDB = getDatabase(dbPath);
 suppliersDB.ensureIndex({ fieldName: "_id", unique: true });
 
 /**

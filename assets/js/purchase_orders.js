@@ -214,6 +214,110 @@ $(document).ready(function() {
             }
         });
     });
+
+    // ==========================================
+    //  AUTO-GENERATE PURCHASE ORDER
+    // ==========================================
+    
+    $("#autoGeneratePO").on("click", function() {
+        loadAutoPOPreview();
+    });
+
+    function loadAutoPOPreview() {
+        $.get(api + "purchase_orders/generate-auto-po")
+            .done(function(data) {
+                if (data.length === 0) {
+                    notiflix.Report.info("Everything in Stock", "No products are below minimum stock levels.", "Ok");
+                    return;
+                }
+                
+                let html = "";
+                data.forEach((po, index) => {
+                    html += `
+                        <div class="card m-b-10 border">
+                            <div class="card-header bg-light">
+                                <h5 class="card-title m-0">Suggested PO for: <strong>${po.supplier_name}</strong></h5>
+                                <small>Estimated Total: ${settings && settings.symbol ? (typeof safeUnescape !== 'undefined' ? safeUnescape(settings.symbol) : '$') : '$'}${po.total_estimated_cost.toFixed(2)}</small>
+                            </div>
+                            <div class="card-body p-10">
+                                <table class="table table-sm m-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Product</th>
+                                            <th>Current Qty</th>
+                                            <th>Reorder Qty</th>
+                                            <th>Unit Cost</th>
+                                            <th>Subtotal</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${po.items.map(item => `
+                                            <tr>
+                                                <td>${item.product_name}</td>
+                                                <td>${item.current_quantity}</td>
+                                                <td>${item.suggested_quantity}</td>
+                                                <td>${item.unit_cost.toFixed(2)}</td>
+                                                <td>${item.total_line_cost.toFixed(2)}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                $("#auto_po_preview_content").html(html);
+                $("#autoPOPreviewModal").data("po-data", data);
+                $("#autoPOPreviewModal").modal("show");
+            })
+            .fail(function(xhr, status, error) {
+                console.error('Failed to generate auto-po:', error);
+                notiflix.Report.failure('Error', 'Failed to calculate auto-po suggestions.', 'Ok');
+            });
+    }
+
+    $("#confirmAutoPOBtn").on("click", function() {
+        let poData = $("#autoPOPreviewModal").data("po-data");
+        if (!poData || poData.length === 0) return;
+        
+        let confirmedCount = 0;
+        let btn = $(this);
+        btn.prop('disabled', true).text('Creating Orders...');
+
+        async.eachSeries(poData, function(po, callback) {
+            let formData = {
+                supplier_id: po.supplier_id,
+                items: po.items.map(item => ({
+                    product_id: item.product_id,
+                    quantity: item.suggested_quantity,
+                    unit_cost: item.unit_cost
+                })),
+                expected_delivery: moment().add(7, 'days').format("YYYY-MM-DD"),
+                notes: "Auto-generated based on low stock levels."
+            };
+
+            $.ajax({
+                url: api + "purchase_orders/new",
+                type: "POST",
+                data: JSON.stringify(formData),
+                contentType: "application/json; charset=utf-8",
+                success: function() {
+                    confirmedCount++;
+                    callback();
+                },
+                error: function(err) {
+                    console.error("Failed to create PO for " + po.supplier_name, err);
+                    callback();
+                }
+            });
+        }, function(err) {
+            btn.prop('disabled', false).text('Approve & Create All');
+            $("#autoPOPreviewModal").modal("hide");
+            loadPurchaseOrders();
+            notiflix.Report.success("Complete", confirmedCount + " purchase orders created successfully.", "Ok");
+        });
+    });
 });
 
 let allPurchaseOrders = [];

@@ -89,12 +89,14 @@ window.addEventListener('api-configured', () => {
 
 // Load application modules
 require('./assets/js/pos.js');
+require('./assets/js/contact.js');
 require('./assets/js/product-filter.js');
 require('./assets/js/checkout.js');
 require('print-js');
 require('./assets/js/suppliers.js');
 require('./assets/js/purchase_orders.js');
 require('./assets/js/backup.js');
+require('./assets/js/inventory.js');
 
 // Load new modular application
 require('./assets/js/app');

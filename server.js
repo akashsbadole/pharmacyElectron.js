@@ -6,9 +6,38 @@ const bodyParser = require("body-parser");
 const rateLimit = require("express-rate-limit");
 const pkg = require("./package.json");
 const {app} = require('electron');
-const { periodicCleanup } = require("./api/database_utils");
+const { periodicCleanup, getDatabase, createBackup, getEncryptionKey, setGlobalEncryptionKey } = require("./api/database_utils");
 process.env.APPDATA = app.getPath('appData');
 process.env.APPNAME = pkg.name;
+const path = require('path');
+const fs = require('fs');
+
+let lastBackupDate = null;
+
+// Ensure database directories exist
+const dbDir = path.join(process.env.APPDATA, pkg.name, "server", "databases");
+const uploadDir = path.join(process.env.APPDATA, pkg.name, "uploads");
+
+if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+}
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Initialize Encryption based on settings
+const settingsPath = path.join(dbDir, "settings.db");
+const settingsDB = getDatabase(settingsPath);
+settingsDB.findOne({ _id: 1 }, (err, doc) => {
+    if (doc && doc.settings && doc.settings.enable_encryption) {
+        const key = getEncryptionKey();
+        if (key) {
+            console.log("Encryption enabled. Setting global encryption key.");
+            setGlobalEncryptionKey(key);
+        }
+    }
+});
+
 const PORT = process.env.PORT || 0;
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
@@ -54,6 +83,7 @@ express.use("/api/inventory", require("./api/inventory"));
 express.use("/api/customers", require("./api/customers"));
 express.use("/api/categories", require("./api/categories"));
 express.use("/api/settings", require("./api/settings"));
+express.use("/api/contact", require("./api/contact"));
 express.use("/api/users", require("./api/users"));
 express.use("/api/prescriptions", require("./api/prescriptions"));
 express.use("/api/suppliers", require("./api/suppliers"));
@@ -61,6 +91,9 @@ express.use("/api/purchase_orders", require("./api/purchase_orders"));
 express.use("/api/session-logs", require("./api/session_logs"));
 express.use("/api/backup", require("./api/backup"));
 express.use("/api", require("./api/transactions"));
+express.use("/api/integration", require("./api/integration"));
+express.use("/api/notifications", require("./api/notifications"));
+express.use("/api/audit-logs", require("./api/audit_logs"));
 
 global.io = io;
 
@@ -88,21 +121,77 @@ server.listen(PORT, () => {
         require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "users.db"),
         require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "transactions.db"),
         require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "suppliers.db"),
-        require('path').join(process.env.APPDATA, process.env.APPDATA, "server", "databases", "customers.db"),
+        require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "customers.db"),
         require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "categories.db"),
         require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "settings.db"),
         require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "prescriptions.db"),
-        require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "purchase_orders.db")
+        require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "purchase_orders.db"),
+        require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "contact.db"),
+        require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "audit_logs.db")
     ];
     
-    // Run cleanup every 5 minutes
+    // Run cleanup every 10 minutes (increased from 5)
     setInterval(() => {
         periodicCleanup(dbPaths);
-    }, 5 * 60 * 1000);
+    }, 10 * 60 * 1000);
     
-    // Run initial cleanup on startup
-    periodicCleanup(dbPaths);
+    // Defer initial cleanup by 10 seconds to avoid race conditions with database loading/recovery
+    setTimeout(() => {
+        console.log("Running initial database cleanup...");
+        periodicCleanup(dbPaths);
+    }, 10000);
+
+    // Initialize Automated Backup Scheduler
+    initBackupScheduler();
 });
+
+/**
+ * Initializes the automated backup scheduler.
+ */
+function initBackupScheduler() {
+    console.log("Initializing Automated Backup Scheduler...");
+    
+    const settingsPath = path.join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "settings.db");
+    const settingsDB = getDatabase(settingsPath);
+    const backupDir = path.join(process.env.APPDATA, process.env.APPNAME, 'server', 'backups');
+
+    setInterval(() => {
+        settingsDB.findOne({ _id: 1 }, (err, doc) => {
+            if (err || !doc || !doc.settings) return;
+
+            const settings = doc.settings;
+            const freq = settings.backup_frequency;
+            const time = settings.backup_time; // HH:mm
+
+            if (!freq || freq === 'off' || !time) return;
+
+            const now = new Date();
+            const currentDay = now.toDateString();
+            const currentTime = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
+
+            if (currentTime === time && lastBackupDate !== currentDay) {
+                // Check frequency logic
+                let shouldBackup = false;
+                if (freq === 'daily') shouldBackup = true;
+                else if (freq === 'weekly' && now.getDay() === 0) shouldBackup = true; // Sunday
+                else if (freq === 'monthly' && now.getDate() === 1) shouldBackup = true; // 1st of month
+
+                if (shouldBackup) {
+                    console.log(`Triggering automated ${freq} backup at ${currentTime}...`);
+                    createBackup(backupDir, (progress, status) => {
+                        console.log(`Auto-backup progress: ${progress}% - ${status}`);
+                    }).then(info => {
+                        console.log(`Auto-backup completed: ${info.filename}`);
+                        lastBackupDate = currentDay;
+                        // Log to notifications/audit logs if needed
+                    }).catch(err => {
+                        console.error("Auto-backup failed:", err);
+                    });
+                }
+            }
+        });
+    }, 60 * 1000); // Check every minute
+}
 
 /**
  * Restarts the server process.

@@ -28,6 +28,12 @@ class BackupManager {
         // Confirm restore button
         $('#confirmRestoreBtn').on('click', () => this.confirmRestore());
 
+        // Automated Backup Save
+        $('#saveAutoBackupBtn').on('click', () => this.saveAutoBackup());
+
+        // Security Settings Save
+        $('#saveSecurityBtn').on('click', () => this.saveSecurity());
+
         // Settings modal tab change - reload backup data when tab becomes active
         $('a[href="#backupRestoreTab"]').on('shown.bs.tab', (e) => {
             this.loadBackupStatistics();
@@ -39,6 +45,7 @@ class BackupManager {
         // Settings modal shown event
         $('#settingsModal').on('shown.bs.modal', () => {
             this.loadBackupStatistics();
+            this.loadSecuritySettings();
         });
     }
 
@@ -63,6 +70,106 @@ class BackupManager {
         } catch (error) {
             console.error('Error loading backup statistics:', error);
             this.showNotification('Error loading backup statistics', 'error');
+        }
+    }
+
+    /**
+     * Load and display security and automated backup settings
+     */
+    async loadSecuritySettings() {
+        try {
+            const response = await fetch(window.api + 'settings/get');
+            const data = await response.json();
+            const set = data.settings || {};
+
+            $('#backupFrequency').val(set.backup_frequency || 'off');
+            $('#backupTime').val(set.backup_time || '00:00');
+            $('#enableEncryption').prop('checked', !!set.enable_encryption);
+
+            if (set.enable_encryption) {
+                $('#encryptionStatus').show();
+            } else {
+                $('#encryptionStatus').hide();
+            }
+        } catch (error) {
+            console.error('Error loading security settings:', error);
+        }
+    }
+
+    /**
+     * Save automated backup schedule
+     */
+    async saveAutoBackup() {
+        const frequency = $('#backupFrequency').val();
+        const time = $('#backupTime').val();
+
+        if (window.notiflix) {
+            window.notiflix.Notify.info('Saving schedule...');
+        }
+
+        try {
+            const response = await fetch(window.api + 'settings/get');
+            const data = await response.json();
+            const settings = data.settings || {};
+
+            settings.backup_frequency = frequency;
+            settings.backup_time = time;
+
+            const saveResp = await fetch(window.api + 'settings/post', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(settings)
+            });
+
+            if (saveResp.ok) {
+                this.showNotification('Backup schedule saved successfully', 'success');
+            } else {
+                throw new Error('Failed to save schedule');
+            }
+        } catch (error) {
+            this.showNotification('Error saving schedule: ' + error.message, 'error');
+        }
+    }
+
+    /**
+     * Save security settings
+     */
+    async saveSecurity() {
+        const enableEncryption = $('#enableEncryption').is(':checked');
+
+        if (window.notiflix) {
+            window.notiflix.Notify.info('Saving security settings...');
+        }
+
+        try {
+            const response = await fetch(window.api + 'settings/get');
+            const data = await response.json();
+            const settings = data.settings || {};
+
+            const oldEncryption = !!settings.enable_encryption;
+            settings.enable_encryption = enableEncryption;
+
+            const saveResp = await fetch(window.api + 'settings/post', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(settings)
+            });
+
+            if (saveResp.ok) {
+                if (oldEncryption !== enableEncryption) {
+                    this.showNotification('Security settings saved. Application will restart to apply changes.', 'success');
+                    setTimeout(() => {
+                        ipcRenderer.send("app-reload", "");
+                    }, 3000);
+                } else {
+                    this.showNotification('Security settings saved', 'success');
+                    this.loadSecuritySettings();
+                }
+            } else {
+                throw new Error('Failed to save security settings');
+            }
+        } catch (error) {
+            this.showNotification('Error saving security settings: ' + error.message, 'error');
         }
     }
 

@@ -19,11 +19,9 @@ app.use(bodyParser.json());
 
 module.exports = app;
 
-let usersDB = new Datastore({
-    filename: dbPath,
-    autoload: true,
-});
+const { getDatabase } = require('./database_utils');
 
+let usersDB = getDatabase(dbPath);
 usersDB.ensureIndex({ fieldName: "username", unique: true });
 
 let sessionLogsPath = path.join(
@@ -34,11 +32,7 @@ let sessionLogsPath = path.join(
     "session_logs.db",
 );
 
-let sessionLogsDB = new Datastore({
-    filename: sessionLogsPath,
-    autoload: true,
-});
-
+let sessionLogsDB = getDatabase(sessionLogsPath);
 sessionLogsDB.ensureIndex({ fieldName: "_id", unique: true });
 
 /**
@@ -352,4 +346,14 @@ app.getUsers = function (callback) {
             callback(docs);
         }
     });
+};
+
+/**
+ * Utility: Mask sensitive data (Stub)
+ * Call this before sending user/patient data if user lacks 'perm_sensitive_view'
+ */
+app.maskSensitiveData = function(data) {
+    // Stub: In real imp, check user permissions and mask phone/email
+    // console.log("Masking sensitive data...");
+    return data;
 };

@@ -2,6 +2,10 @@ const fs = require("fs");
 const path = require("path");
 const archiver = require("archiver");
 const crypto = require("crypto");
+const Datastore = require("@seald-io/nedb");
+
+const dbCache = {};
+let currentEncryptionKey = null;
 
 /**
  * Database utility functions for NeDB crash recovery and temporary file management
@@ -15,45 +19,39 @@ function cleanupTempFiles(dbPath) {
     try {
         const dir = path.dirname(dbPath);
         const dbName = path.basename(dbPath);
-        const tempPattern = dbName + "~";
+        
+        if (!fs.existsSync(dir)) return;
 
-        if (fs.existsSync(dir)) {
-            const files = fs.readdirSync(dir);
-            let cleanedCount = 0;
+        const files = fs.readdirSync(dir);
+        let cleanedCount = 0;
 
-            files.forEach(file => {
-                if (file === tempPattern || (file.startsWith(dbName) && file.includes("~"))) {
-                    const tempFilePath = path.join(dir, file);
-                    try {
-                        // Check if file exists before attempting to delete
-                        if (fs.existsSync(tempFilePath)) {
-                            // Check if file is locked or in use
-                            const stats = fs.statSync(tempFilePath);
-                            const now = Date.now();
-                            const fileAge = now - stats.mtime.getTime();
+        files.forEach(file => {
+            // Only target files related to this specific database that have a tilde
+            if (file.startsWith(dbName) && file.includes("~")) {
+                const tempFilePath = path.join(dir, file);
+                try {
+                    const stats = fs.statSync(tempFilePath);
+                    const now = Date.now();
+                    const fileAge = now - stats.mtime.getTime();
 
-                            // Only delete files older than 5 minutes to avoid conflicts
-                            if (fileAge > 5 * 60 * 1000) {
-                                fs.unlinkSync(tempFilePath);
-                                cleanedCount++;
-                                console.log(`Cleaned up orphaned temp file: ${tempFilePath}`);
-                            }
-                        }
-                    } catch (err) {
-                        // Silently ignore ENOENT errors as the file may have been cleaned up by another process
-                        if (err.code !== 'ENOENT' && err.code !== 'EBUSY') {
-                            console.warn(`Failed to clean temp file ${tempFilePath}:`, err.message);
-                        }
+                    // Increase age threshold to 30 minutes to be safe during startup
+                    if (fileAge > 30 * 60 * 1000) {
+                        fs.unlinkSync(tempFilePath);
+                        cleanedCount++;
+                        console.log(`Cleaned up orphaned temp file: ${tempFilePath}`);
+                    }
+                } catch (err) {
+                    if (err.code !== 'ENOENT' && err.code !== 'EBUSY') {
+                        console.warn(`Failed to clean temp file ${tempFilePath}:`, err.message);
                     }
                 }
-            });
-
-            if (cleanedCount > 0) {
-                console.log(`Cleaned up ${cleanedCount} temporary file(s) for ${dbName}`);
             }
+        });
+
+        if (cleanedCount > 0) {
+            console.log(`Cleaned up ${cleanedCount} temporary file(s) for ${dbName}`);
         }
     } catch (err) {
-        // Don't throw errors for cleanup operations
         console.warn(`Warning during temp file cleanup for ${dbPath}:`, err.message);
     }
 }
@@ -87,15 +85,10 @@ function isDatabaseValid(dbPath) {
         }
 
         const stats = fs.statSync(dbPath);
-        if (stats.size === 0) {
-            return false;
-        }
-
-        // Try to read the file to ensure it's accessible
-        const content = fs.readFileSync(dbPath, 'utf8');
-        return content.trim().length > 0;
+        // NeDB files are valid even if they are empty (they will be properly initialized on load)
+        // We only return false if the file completely doesn't exist.
+        return true;
     } catch (err) {
-        console.warn(`Database file ${dbPath} validation failed:`, err.message);
         return false;
     }
 }
@@ -113,11 +106,9 @@ function initializeDatabase(db, dbPath) {
         // Clean up any orphaned temporary files (with improved error handling)
         cleanupTempFiles(dbPath);
 
-        // Check if database file is valid
+        // Check if database file exists
         if (!isDatabaseValid(dbPath)) {
-            console.log(`Database file ${dbPath} is empty or invalid, initializing new database`);
-            // Create empty but valid database
-            db.loadDatabase();
+            console.log(`Database file ${dbPath} does not exist, NeDB will create it.`);
         }
 
         // Add error handlers for database operations
@@ -463,6 +454,70 @@ function deleteBackup(backupPath) {
     });
 }
 
+/**
+ * Gets or generates the encryption key for the database
+ * @returns {string|null} - Encryption key
+ */
+function getEncryptionKey() {
+    const keyPath = path.join(process.env.APPDATA, process.env.APPNAME, "server", "encryption.key");
+
+    try {
+        if (fs.existsSync(keyPath)) {
+            return fs.readFileSync(keyPath, 'utf8').trim();
+        }
+        
+        // Generate new key if it doesn't exist
+        const newKey = crypto.randomBytes(32).toString('hex');
+        ensureDatabaseDirectory(keyPath);
+        fs.writeFileSync(keyPath, newKey, 'utf8');
+        console.log("Generated new encryption key.");
+        return newKey;
+    } catch (err) {
+        console.error("Error managing encryption key:", err);
+        return null;
+    }
+}
+
+/**
+ * Sets the global encryption key to be used for all new database initializations
+ * @param {string|null} key - The encryption key
+ */
+function setGlobalEncryptionKey(key) {
+    currentEncryptionKey = key;
+}
+
+/**
+ * Gets a cached NeDB database instance for the given path
+ * @param {string} dbPath - Path to the database file
+ * @param {string} [encryptionKey] - Optional encryption key (overrides global)
+ * @returns {Object} - NeDB database instance
+ */
+function getDatabase(dbPath, encryptionKey) {
+    // Normalize path to ensure consistent cache keys across different modules
+    const normalizedPath = path.resolve(dbPath);
+
+    if (dbCache[normalizedPath]) {
+        return dbCache[normalizedPath];
+    }
+
+    const options = {
+        filename: normalizedPath,
+        autoload: true
+    };
+
+    const key = encryptionKey || currentEncryptionKey;
+    if (key) {
+        options.encryptionKey = key;
+    }
+
+    console.log(`Creating new database instance for: ${normalizedPath}`);
+    const db = new Datastore(options);
+
+    initializeDatabase(db, normalizedPath);
+    dbCache[normalizedPath] = db;
+    return db;
+}
+
 module.exports = {
     cleanupTempFiles,
     ensureDatabaseDirectory,
@@ -474,5 +529,8 @@ module.exports = {
     validateBackup,
     restoreBackup,
     getBackupFiles,
-    deleteBackup
+    deleteBackup,
+    getDatabase,
+    getEncryptionKey,
+    setGlobalEncryptionKey
 };

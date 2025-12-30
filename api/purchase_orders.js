@@ -32,24 +32,15 @@ const suppliersDbPath = path.join(
     "suppliers.db",
 );
 
+const { getDatabase } = require('./database_utils');
+
 app.use(bodyParser.json());
 
 module.exports = app;
 
-let purchaseOrdersDB = new Datastore({
-    filename: ordersDbPath,
-    autoload: true,
-});
-
-let inventoryDB = new Datastore({
-    filename: inventoryDbPath,
-    autoload: true,
-});
-
-let suppliersDB = new Datastore({
-    filename: suppliersDbPath,
-    autoload: true,
-});
+let purchaseOrdersDB = getDatabase(ordersDbPath);
+let inventoryDB = getDatabase(inventoryDbPath);
+let suppliersDB = getDatabase(suppliersDbPath);
 
 purchaseOrdersDB.ensureIndex({ fieldName: "_id", unique: true });
 
@@ -290,6 +281,7 @@ app.put("/update-status/:orderId", function (req, res) {
  * @param {Array} items - List of items in the purchase order.
  * @returns {void}
  */
+// ... existing incrementInventory function ...
 function incrementInventory(items) {
     async.eachSeries(items, function (item, callback) {
         inventoryDB.findOne(
@@ -321,3 +313,80 @@ function incrementInventory(items) {
         );
     });
 }
+
+/**
+ * GET endpoint: Generate an automatic purchase order based on low stock.
+ *
+ * @param {Object} req request object.
+ * @param {Object} res response object.
+ * @returns {void}
+ */
+app.get("/generate-auto-po", function (req, res) {
+    inventoryDB.find({}, function (err, products) {
+        if (err) {
+             console.error(err);
+             res.status(500).json({ error: "Internal Server Error" });
+             return;
+        }
+
+        const lowStockProducts = products.filter(p => {
+             const qty = parseInt(p.quantity) || 0;
+             const min = parseInt(p.minStock) || 0;
+             return qty <= min;
+        });
+
+        // Group by supplier
+        const poBySupplier = {};
+
+        lowStockProducts.forEach(product => {
+             const supplierId = product.supplierId || "Unknown";
+             if (!poBySupplier[supplierId]) {
+                 poBySupplier[supplierId] = {
+                     supplier_id: supplierId,
+                     items: [],
+                     total_estimated_cost: 0
+                 };
+             }
+
+             const reorderQty = parseInt(product.reorderQuantity) > 0 ? parseInt(product.reorderQuantity) : 10; // Default reorder qty
+             const cost = parseFloat(product.cost) || parseFloat(product.price) || 0;
+             
+             poBySupplier[supplierId].items.push({
+                 product_id: product._id,
+                 product_name: product.name,
+                 current_quantity: product.quantity,
+                 suggested_quantity: reorderQty,
+                 unit_cost: cost,
+                 total_line_cost: reorderQty * cost
+             });
+
+             poBySupplier[supplierId].total_estimated_cost += (reorderQty * cost);
+        });
+
+        // Add supplier details if known
+        const supplierIds = Object.keys(poBySupplier).filter(id => id !== "Unknown").map(id => parseInt(id));
+        
+        suppliersDB.find({ _id: { $in: supplierIds } }, function(err, suppliers) {
+             if(err) {
+                 // Return without extra supplier info if error
+                 res.send(Object.values(poBySupplier));
+             } else {
+                 const supplierMap = {};
+                 suppliers.forEach(s => supplierMap[s._id] = s);
+
+                 const result = Object.values(poBySupplier).map(po => {
+                     if (po.supplier_id !== "Unknown" && supplierMap[po.supplier_id]) {
+                         po.supplier_name = supplierMap[po.supplier_id].name;
+                         po.supplier_email = supplierMap[po.supplier_id].email;
+                         po.supplier_phone = supplierMap[po.supplier_id].phone;
+                     } else {
+                         po.supplier_name = "Unknown Supplier";
+                     }
+                     return po;
+                 });
+                 
+                 res.send(result);
+             }
+        });
+    });
+});

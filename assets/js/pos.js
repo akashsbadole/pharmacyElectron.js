@@ -611,22 +611,23 @@ function initializeApp() {
                 item_img = checkFileExists(item_img) ? item_img : default_item_img;
               }
 
-              let item_info = `<div class="col-lg-2 box ${item.category}"
-                                onclick="$(this).addToCart(${item._id}, ${item.quantity}, ${item.stock})">
-                            <div class="widget-panel widget-style-2 " title="${item.name}">                    
-                            <div id="image"><img src="${item_img}" id="product_img" alt=""></div>                    
-                                        <div class="text-muted m-t-5 text-center">
-                                        <div class="name" id="product_name"><span class="${item_isExpired ? "text-danger" : ""}">${item.name}</span></div> 
-                                        <span class="sku">${item.barcode || item._id}</span>
-                                        <span class="${item_stockStatus < 1 ? 'text-danger' : ''}"><span class="stock">STOCK </span><span class="count">${item.stock == 1
-                  ? item.quantity
-                  : "N/A"
-                }</span></span></div>
-                                        <span class="text-success text-center"><b data-plugin="counterup">${getCurrencySymbol() +
-                moneyFormat(item.price)
-                }</b> </span>
-                            </div>
-                        </div>`;
+              let item_info = `<div class="col-lg-2 box ${item.category}">
+                             <div class="widget-panel widget-style-2 " title="${item.name}">                    
+                            <div id="image" onclick="$(this).addToCart(${item._id}, ${item.quantity}, ${item.stock})"><img src="${item_img}" id="product_img" alt=""></div>                    
+                                         <div class="text-muted m-t-5 text-center">
+                                         <div class="name" id="product_name"><span class="${item_isExpired ? "text-danger" : ""}">${item.name}</span></div> 
+                                         <span class="sku">${item.barcode || item._id}</span>
+                                         <span class="${item_stockStatus < 1 ? 'text-danger' : ''}"><span class="stock">STOCK </span><span class="count">${item.stock == 1
+                   ? item.quantity
+                  : "N/A"}</span></span>
+                                        <br>
+                                        <button class="btn btn-xs btn-info" onclick="$(this).viewSubstitutes(${item._id}, '${item.name}')"><i class="fa fa-exchange"></i> Subs</button>
+                                        </div>
+                                         <span class="text-success text-center"><b data-plugin="counterup">${getCurrencySymbol() +
+                 moneyFormat(item.price)
+                 }</b> </span>
+                             </div>
+                         </div>`;
                         
               console.log('🔍 DEBUG: Appending product to DOM:', item.name);
               $("#parent").append(item_info);
@@ -738,9 +739,23 @@ function initializeApp() {
           });
       }
 
-      $.fn.addToCart = function (id, count, stock) {
+      $.fn.addToCart = function (id, count, stock, bypassPrescription = false) {
         $.get(window.api + "inventory/product/" + id)
           .done(function (product) {
+            
+            // Prescription Check
+            if (product.requires_prescription && !bypassPrescription) {
+                 $('#presc_confirmed').prop('checked', false);
+                 $('#confirmPrescriptionBtn').prop('disabled', true);
+                 $('#presc_ref').val('');
+                 
+                 // Store pending add details
+                 window.pendingPrescriptionItem = { id: id, count: count, stock: stock };
+                 
+                 $('#prescriptionCheckModal').modal('show');
+                 return; 
+            }
+
             if (isExpired(product.expirationDate)) {
               notiflix.Report.failure(
                 "Expired",
@@ -972,6 +987,11 @@ function initializeApp() {
               }),
               $("<div>", { class: "col-md-1" }).append(
                 $("<button>", {
+                  class: "btn btn-info btn-xs m-r-5",
+                  title: "View Alternatives",
+                  onclick: "$(this).viewSubstitutes(" + data.id + ", '" + data.product_name + "')",
+                }).append($("<i>", { class: "fa fa-exchange" })),
+                $("<button>", {
                   class: "btn btn-light btn-xs",
                   onclick: "$(this).deleteFromCart(" + index + ")",
                 }).append($("<i>", { class: "fa fa-times" })),
@@ -979,6 +999,41 @@ function initializeApp() {
             ),
           );
         });
+      };
+
+      $.fn.viewSubstitutes = function (productId, productName) {
+        $("#orig_product_name").text(productName);
+        $("#substitutes_list").html('<tr><td colspan="5" class="text-center"><i class="fa fa-spinner fa-spin"></i> Loading substitutes...</td></tr>');
+        $("#substitutesModal").modal("show");
+
+        $.get(window.api + "inventory/substitutes/" + productId)
+          .done(function (data) {
+            $("#substitutes_list").empty();
+            if (data.length === 0) {
+              $("#substitutes_list").html('<tr><td colspan="5" class="text-center text-muted">No substitutes found for this item.</td></tr>');
+              return;
+            }
+
+            data.forEach(item => {
+              let item_isExpired = isExpired(item.expirationDate);
+              let stockStatus = getStockStatus(item.quantity, item.minStock);
+              let row = `<tr>
+                <td>${item.name}</td>
+                <td>${item.generic_name || 'N/A'}</td>
+                <td>${getCurrencySymbol()}${moneyFormat(parseFloat(item.price).toFixed(2))}</td>
+                <td class="${stockStatus < 1 ? 'text-danger' : ''}">${item.stock == 1 ? item.quantity : 'N/A'}</td>
+                <td>
+                  <button class="btn btn-primary btn-sm" ${item_isExpired ? 'disabled' : ''} onclick="$(this).addToCart(${item._id}, ${item.quantity}, ${item.stock}); $('#substitutesModal').modal('hide');">
+                    <i class="fa fa-cart-plus"></i> Add to Cart
+                  </button>
+                </td>
+              </tr>`;
+              $("#substitutes_list").append(row);
+            });
+          })
+          .fail(function () {
+            $("#substitutes_list").html('<tr><td colspan="5" class="text-center text-danger">Failed to load substitutes.</td></tr>');
+          });
       };
 
       $.fn.deleteFromCart = function (index) {
@@ -1140,11 +1195,11 @@ function initializeApp() {
 
         if (settings.charge_tax) {
           tax_row = `<tr>
-                        <td>VAT(${safeUnescape(settings.percentage)})% </td>
+                    </tr>
+                    <tr>
+                        <td>Tax Details</td>
                         <td>:</td>
-                        <td class="text-right">${getCurrencySymbol()} ${moneyFormat(
-            parseFloat(totalVat).toFixed(2),
-          )}</td>
+                        <td class="text-right">${getCurrencySymbol()} ${moneyFormat(parseFloat(totalVat).toFixed(2))} (${safeUnescape(settings.percentage)}%)</td>
                     </tr>`;
         }
 
@@ -1278,6 +1333,12 @@ function initializeApp() {
           mac: platform.mac,
           user: user.fullname,
           user_id: user._id,
+          tax_details: {
+            total: totalVat,
+            rate: safeUnescape(settings.percentage),
+            type: 'VAT' 
+          },
+          payment_mode: type
         };
 
         $.ajax({
@@ -1641,6 +1702,22 @@ function initializeApp() {
       $("#newProductModal").on("click", function () {
         $("#saveProduct").get(0).reset();
         $("#current_img").text("");
+      });
+
+      // Prescription Modal Logic
+      $('#presc_confirmed').change(function() {
+           $('#confirmPrescriptionBtn').prop('disabled', !this.checked);
+      });
+
+      $('#confirmPrescriptionBtn').click(function() {
+           if (window.pendingPrescriptionItem) {
+               let item = window.pendingPrescriptionItem;
+               // We need to call addToCart again. 
+               // Since addToCart is a jquery plugin, we can call it on body or any element
+               $('body').addToCart(item.id, item.count, item.stock, true);
+               $('#prescriptionCheckModal').modal('hide');
+               window.pendingPrescriptionItem = null;
+           }
       });
 
       $("#saveProduct").on("submit", function (e) {
@@ -2436,6 +2513,17 @@ $.fn.print = function () {
   printJS({ printable: receipt, type: "raw-html" });
 };
 
+
+function loadSupplierCount() {
+  $.get(window.api + "suppliers/all")
+    .done(function (data) {
+      $("#total_suppliers #counter").text(data.length);
+    })
+    .fail(function (xhr, status, error) {
+      console.error('Failed to load supplier count:', error);
+    });
+}
+
 function loadTransactions() {
   let tills = [];
   let users = [];
@@ -2456,6 +2544,29 @@ function loadTransactions() {
         $("#transactionList").DataTable().destroy();
 
         allTransactions = [...transactions];
+
+        $.fn.shareInvoice = function (id) {
+            notiflix.Confirm.show(
+                'Share Invoice',
+                'Share this invoice via email/SMS?',
+                'Yes, Share',
+                'Cancel',
+                function() {
+                    $.ajax({
+                        url: window.api + 'transactions/share',
+                        type: 'POST',
+                        data: JSON.stringify({ transactionId: id }),
+                        contentType: 'application/json',
+                        success: function() {
+                            notiflix.Report.success('Sent!', 'Invoice shared successfully.', 'Ok');
+                        },
+                        error: function(xhr) {
+                             notiflix.Report.failure('Error', 'Failed to share invoice.', 'Ok');
+                        }
+                    });
+                }
+            );
+        };
 
         transactions.forEach((trans, index) => {
           sales += parseFloat(trans.total);
@@ -2502,7 +2613,8 @@ function loadTransactions() {
             ? '<button class="btn btn-dark"><i class="fa fa-search-plus"></i></button>'
             : '<button onClick="$(this).viewTransaction(' +
             index +
-            ')" class="btn btn-info"><i class="fa fa-search-plus"></i></button></td>'
+            ')" class="btn btn-info"><i class="fa fa-search-plus"></i></button>' +
+            '<button onClick="$(this).shareInvoice(' + (trans._id || trans.order) + ')" class="btn btn-warning"><i class="fa fa-share-alt"></i></button></td>'
           }</tr>
                     `;
 
@@ -2510,6 +2622,40 @@ function loadTransactions() {
             $("#total_sales #counter").text(
               getCurrencySymbol() + moneyFormat(parseFloat(sales).toFixed(2)),
             );
+
+            // Calculate Sales Change (Today vs Yesterday)
+            // Only calculate if the selected range is "Today"
+            const today = moment().startOf('day');
+            const selectedStart = moment(start_date);
+            
+            if (selectedStart.isSame(today, 'day')) {
+                const yesterdayStart = moment().subtract(1, 'days').startOf('day').toISOString();
+                const yesterdayEnd = moment().subtract(1, 'days').endOf('day').toISOString();
+                
+                 $.get(window.api + `by-date?start=${yesterdayStart}&end=${yesterdayEnd}&user=${by_user}&status=${by_status}&till=${by_till}`)
+                    .done(function(yData) {
+                        let ySales = 0;
+                        yData.forEach(t => ySales += parseFloat(t.total));
+                        
+                        let change = 0;
+                        if (ySales > 0) {
+                            change = ((sales - ySales) / ySales) * 100;
+                        } else if (sales > 0) {
+                            change = 100; // If yesterday was 0 and today is > 0, it's 100% increase (or technically infinite)
+                        }
+                        
+                        const icon = change >= 0 ? '<i class="fa fa-arrow-up"></i>' : '<i class="fa fa-arrow-down"></i>';
+                        const color = change >= 0 ? '#fff' : '#ffabad'; // White for up, light red for down (on green bg)
+                        
+                        $("#sales_change").html(`${icon} ${Math.abs(change).toFixed(1)}%`);
+                        $("#sales_change").css('color', color);
+                    });
+            } else {
+                $("#sales_change").empty();
+            }
+
+            loadSupplierCount();
+
             $("#total_transactions #counter").text(transact);
 
             const result = {};
