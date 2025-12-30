@@ -6,7 +6,6 @@ const bcrypt = require("bcrypt");
 const saltRounds = 10;
 const validator = require("validator");
 const path = require("path");
-const request = require("request");
 const dbPath = path.join(
     process.env.APPDATA,
     process.env.APPNAME,
