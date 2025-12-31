@@ -52,19 +52,17 @@ class DashboardModule {
       const inventoryResponse = await fetch(`${window.api}inventory/alerts`);
       const lowStockItems = await inventoryResponse.json();
       
-      // Fetch pending prescriptions
-      const prescriptionsResponse = await fetch(`${window.api}prescriptions/pending`);
-      const pendingPrescriptions = await prescriptionsResponse.json();
+      // Removed pending prescriptions for restaurant conversion
       
       return {
         todaySales,
         transactions,
         lowStock: lowStockItems.length,
-        pendingPrescriptions: pendingPrescriptions.length,
+        // Removed pendingPrescriptions for restaurant conversion
         salesChange: 0, // TODO: Calculate change from previous day
         transactionChange: 0,
         stockChange: 0,
-        prescriptionChange: 0,
+        // Removed prescriptionChange for restaurant conversion
         salesData: salesData.slice(0, 10) // Last 10 transactions
       };
       
@@ -74,11 +72,11 @@ class DashboardModule {
         todaySales: 0,
         transactions: 0,
         lowStock: 0,
-        pendingPrescriptions: 0,
+        // Removed pendingPrescriptions for restaurant conversion
         salesChange: 0,
         transactionChange: 0,
         stockChange: 0,
-        prescriptionChange: 0,
+        // Removed prescriptionChange for restaurant conversion
         salesData: []
       };
     }
@@ -107,7 +105,7 @@ class DashboardModule {
         },
         {
           type: 'stock_updated',
-          message: 'Stock updated - Ibuprofen 200mg',
+          message: 'Stock updated - Menu Item',
           timestamp: new Date(Date.now() - 15 * 60 * 1000), // 15 minutes ago
           icon: '📦'
         },
@@ -116,13 +114,8 @@ class DashboardModule {
           message: 'New customer registered',
           timestamp: new Date(Date.now() - 60 * 60 * 1000), // 1 hour ago
           icon: '👥'
-        },
-        {
-          type: 'prescription_verified',
-          message: 'Prescription verified - John Doe',
-          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-          icon: '📋'
         }
+        // Removed prescription verification activity for restaurant conversion
       ];
     } catch (error) {
       console.error('Error loading recent activity:', error);
@@ -135,10 +128,8 @@ class DashboardModule {
       case 'new_sale':
         this.app.switchToModule('pos');
         break;
-      case 'verify_prescription':
-        this.app.switchToModule('prescriptions');
-        break;
-      case 'add_product':
+      // Removed verify_prescription action for restaurant conversion
+      case 'add_menu_item':
         this.app.switchToModule('inventory');
         break;
       case 'add_customer':
@@ -198,13 +189,10 @@ class DashboardModule {
             <span class="btn-icon">💰</span>
             New Sale
           </button>
-          <button class="btn btn-warning" onclick="window.pharmaApp.getModule('dashboard').executeQuickAction('verify_prescription')">
-            <span class="btn-icon">📋</span>
-            Verify Rx
-          </button>
-          <button class="btn btn-success" onclick="window.pharmaApp.getModule('dashboard').executeQuickAction('add_product')">
+          <!-- Removed verify prescription button for restaurant conversion -->
+          <button class="btn btn-success" onclick="window.pharmaApp.getModule('dashboard').executeQuickAction('add_menu_item')">
             <span class="btn-icon">📦</span>
-            Add Product
+            Add Menu Item
           </button>
           <button class="btn btn-info" onclick="window.pharmaApp.getModule('dashboard').executeQuickAction('add_customer')">
             <span class="btn-icon">👥</span>
@@ -247,14 +235,7 @@ class DashboardModule {
             </div>
           </div>
           
-          <div class="card">
-            <div class="card-body text-center">
-              <div class="text-3xl font-bold text-info mb-2">
-                ${metrics.pendingPrescriptions || 0}
-              </div>
-              <div class="text-sm text-gray-600">Pending Prescriptions</div>
-            </div>
-          </div>
+          <!-- Removed pending prescriptions metric for restaurant conversion -->
         </div>
       </div>
     `;

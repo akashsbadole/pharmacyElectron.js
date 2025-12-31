@@ -1,6 +1,7 @@
 const jsPDF = require("jspdf");
 const html2canvas = require("html2canvas");
 const JsBarcode = require("jsbarcode");
+const QRCode = require("qrcode");
 const macaddress = require("macaddress");
 const notiflix = require("notiflix");
 window.notiflix = notiflix;
@@ -744,18 +745,7 @@ function initializeApp() {
         $.get(window.api + "inventory/product/" + id)
           .done(function (product) {
             
-            // Prescription Check
-            if (product.requires_prescription && !bypassPrescription) {
-                 $('#presc_confirmed').prop('checked', false);
-                 $('#confirmPrescriptionBtn').prop('disabled', true);
-                 $('#presc_ref').val('');
-                 
-                 // Store pending add details
-                 window.pendingPrescriptionItem = { id: id, count: count, stock: stock };
-                 
-                 $('#prescriptionCheckModal').modal('show');
-                 return; 
-            }
+            // Removed prescription check for restaurant conversion
 
             if (isExpired(product.expirationDate)) {
               notiflix.Report.failure(
@@ -1705,21 +1695,7 @@ function initializeApp() {
         $("#current_img").text("");
       });
 
-      // Prescription Modal Logic
-      $('#presc_confirmed').change(function() {
-           $('#confirmPrescriptionBtn').prop('disabled', !this.checked);
-      });
-
-      $('#confirmPrescriptionBtn').click(function() {
-           if (window.pendingPrescriptionItem) {
-               let item = window.pendingPrescriptionItem;
-               // We need to call addToCart again. 
-               // Since addToCart is a jquery plugin, we can call it on body or any element
-               $('body').addToCart(item.id, item.count, item.stock, true);
-               $('#prescriptionCheckModal').modal('hide');
-               window.pendingPrescriptionItem = null;
-           }
-      });
+      // Removed prescription modal logic for restaurant conversion
 
       $("#saveProduct").on("submit", function (e) {
         e.preventDefault();

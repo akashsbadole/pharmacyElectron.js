@@ -1,4 +1,5 @@
 const utils = require("./utils");
+const QRCode = require("qrcode");
 
 /** CheckOut Functions **/
 $(document).ready(function () {

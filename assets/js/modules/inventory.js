@@ -276,8 +276,8 @@ class InventoryModule {
     return `
       <div class="module-container inventory-module" data-module="inventory">
         <div class="module-header">
-          <h1 class="module-title">Inventory Management</h1>
-          <p class="module-subtitle">Manage products, stock levels, and categories</p>
+          <h1 class="module-title">Menu Management</h1>
+          <p class="module-subtitle">Manage menu items, stock levels, and food categories</p>
         </div>
         
         ${this.renderFilters()}
@@ -297,7 +297,7 @@ class InventoryModule {
           <div class="card-body">
             <div class="grid grid-cols-4 gap-4">
               <div class="form-group">
-                <label class="form-label">Search Products</label>
+                <label class="form-label">Search Menu Items</label>
                 <input type="text" class="form-input" placeholder="Search by name, barcode..." 
                        onkeyup="window.pharmaApp.getModule('inventory').filterProducts({search: this.value})">
               </div>
@@ -341,7 +341,7 @@ class InventoryModule {
         <div class="flex justify-between items-center">
           <div class="flex gap-3">
             <button class="btn btn-success" onclick="window.pharmaApp.getModule('inventory').showAddProductModal()">
-              <i class="fa fa-plus"></i> Add Product
+              <i class="fa fa-plus"></i> Add Menu Item
             </button>
             <button class="btn btn-info" onclick="window.pharmaApp.getModule('inventory').importProducts()">
               <i class="fa fa-upload"></i> Import
@@ -352,7 +352,7 @@ class InventoryModule {
           </div>
           
           <div class="text-sm text-gray-500">
-            ${inventoryState.products?.length || 0} products total
+            ${inventoryState.products?.length || 0} menu items total
           </div>
         </div>
       </div>
@@ -442,7 +442,7 @@ class InventoryModule {
             <button class="btn btn-sm btn-info" onclick="window.pharmaApp.getModule('inventory').viewProduct('${product._id}')">
               <i class="fa fa-eye"></i>
             </button>
-            <button class="btn btn-sm btn-primary" onclick="window.pharmaApp.getModule('inventory').editProduct('${product._id}')">
+            <button class="btn btn-sm btn-primary" onclick="window.pharmaApp.getModule('inventory').editMenuItem('${product._id}')">
               <i class="fa fa-edit"></i>
             </button>
             <button class="btn btn-sm btn-danger" onclick="window.pharmaApp.getModule('inventory').deleteProduct('${product._id}')">
@@ -484,7 +484,7 @@ class InventoryModule {
     $("#quantity").val(0);
     
     // Set title and show modal
-    $("#newProduct .modal-title").text("Add New Product");
+    $("#newProduct .modal-title").text("Add New Menu Item");
     $("#newProduct").modal("show");
   }
   
@@ -495,20 +495,20 @@ class InventoryModule {
     if (product) {
       this.populateProductModal(product);
       // Change title and maybe disable submit for viewing
-      $("#newProduct .modal-title").text("View Product Details");
+      $("#newProduct .modal-title").text("View Menu Item Details");
       $("#submitProduct").hide();
       $("#newProduct").modal("show");
     }
   }
   
-  editProduct(productId) {
+  editMenuItem(productId) {
     const inventoryState = this.app.state.getModuleState('inventory');
     const product = inventoryState.products.find(p => p._id.toString() === productId.toString());
     
     if (product) {
       this.populateProductModal(product);
       // Change title and ensure submit is visible
-      $("#newProduct .modal-title").text("Edit Product");
+      $("#newProduct .modal-title").text("Edit Menu Item");
       $("#submitProduct").show();
       $("#newProduct").modal("show");
     }
@@ -529,9 +529,9 @@ class InventoryModule {
     $("#cost_price").val(product.cost || "");
     $("#minStock").val(product.minStock || 1);
     $("#stock").prop("checked", product.stock === 0);
-    $("#requires_prescription").prop("checked", product.requires_prescription === true);
+    // Removed prescription requirement check for restaurant conversion
     $("#quantity").val(product.quantity || 0);
-    $("#hsn_code").val(product.hsn_code || "");
+    // Removed HSN code for restaurant conversion
     $("#expirationDate").val(product.expirationDate || "");
     
     // Batch items

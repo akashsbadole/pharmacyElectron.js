@@ -115,13 +115,72 @@ class AppState extends EventEmitter {
           salesChange: 0,
           transactionChange: 0,
           stockChange: 0,
-          prescriptionChange: 0,
+          // Removed prescriptionChange for restaurant conversion
           salesData: []
         },
         alerts: [],
         recentActivity: [],
         loading: false
       },
+
+      recipes: {
+        recipes: [],
+        categories: [],
+        menuItems: [],
+        selectedRecipe: null,
+        selectedRecipes: [],
+        filters: {},
+        loading: false
+      },
+
+      kitchen: {
+        orders: [],
+        filteredOrders: [],
+        stations: {},
+        metrics: {},
+        currentStation: 'all',
+        loading: false,
+        lastUpdated: null,
+        soundEnabled: true
+      },
+
+      tables: {
+        tables: [],
+        tableOrders: [],
+        metrics: {},
+        currentView: 'layout',
+        layoutMode: false,
+        selectedTable: null,
+        selectedTableData: null,
+        loading: false,
+        lastUpdated: null,
+        soundEnabled: true
+      },
+
+      combos: {
+        combos: [],
+        categories: [],
+        menuItems: [],
+        currentCombo: null,
+        selectedCombos: [],
+        filteredCombos: [],
+        filters: {},
+        analytics: {},
+        loading: false
+      },
+
+      analytics: {
+        currentView: 'dashboard',
+        dateRange: {
+          start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+          end: new Date()
+        },
+        data: {},
+        loading: false,
+        refreshInterval: null
+      },
+
+      // Removed prescriptions module for restaurant conversion
 
       pos: {
         currentSale: {},
@@ -142,14 +201,7 @@ class AppState extends EventEmitter {
         alertCount: 0
       },
 
-      prescriptions: {
-        pending: [],
-        verified: [],
-        customers: {},
-        controlledSubstances: [],
-        activeTab: 'pending',
-        loading: false
-      },
+      // Removed prescriptions module for restaurant conversion
 
       customers: {
         list: [],
@@ -304,8 +356,8 @@ class ViewManager {
   constructor() {
     console.log('=== INITIALIZING VIEWMANAGER ===');
 
-    // Check for module containers in DOM
-    const moduleIds = ['dashboard', 'pos', 'inventory', 'prescriptions', 'customers', 'suppliers', 'reports', 'settings'];
+    // Check for module containers in DOM (prescriptions removed for restaurant conversion)
+    const moduleIds = ['dashboard', 'pos', 'inventory', 'recipes', 'kitchen', 'tables', 'combos', 'analytics', 'customers', 'suppliers', 'reports', 'settings'];
 
     this.modules = new Map();
     moduleIds.forEach(id => {
@@ -322,7 +374,12 @@ class ViewManager {
       'dashboard': 'Dashboard',
       'pos': 'Point of Sale',
       'inventory': 'Inventory Management',
-      'prescriptions': 'Prescription Management',
+      'recipes': 'Recipe Management',
+      'kitchen': 'Kitchen Display System',
+      'tables': 'Table Management',
+      'combos': 'Combo Meal Builder',
+      'analytics': 'Restaurant Analytics',
+      // 'prescriptions': 'Prescription Management', // Removed for restaurant conversion
       'customers': 'Customer Management',
       'suppliers': 'Supplier Management',
       'reports': 'Reports & Analytics',
@@ -716,6 +773,53 @@ const posActions = {
   }
 };
 
+// Kitchen actions
+const kitchenActions = {
+  loadOrders: () => async (dispatch) => {
+    dispatch({ type: 'KITCHEN_SET_LOADING', payload: { loading: true } });
+
+    try {
+      const response = await fetch(window.api + 'kitchen/orders');
+      const orders = await response.json();
+
+      dispatch({
+        type: 'KITCHEN_SET_ORDERS',
+        payload: { orders }
+      });
+
+    } catch (error) {
+      dispatch({
+        type: 'APP_SET_ERROR',
+        payload: { error: error.message }
+      });
+    } finally {
+      dispatch({ type: 'KITCHEN_SET_LOADING', payload: { loading: false } });
+    }
+  },
+
+  updateOrderStatus: (orderId, status, itemId = null) => async (dispatch) => {
+    try {
+      const response = await fetch(`${window.api}kitchen/orders/${orderId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status, item_id: itemId })
+      });
+
+      if (response.ok) {
+        dispatch(kitchenActions.loadOrders()); // Refresh orders
+      }
+
+    } catch (error) {
+      dispatch({
+        type: 'APP_SET_ERROR',
+        payload: { error: error.message }
+      });
+    }
+  }
+};
+
 // Inventory actions
 const inventoryActions = {
   loadProducts: () => async (dispatch) => {
@@ -868,19 +972,17 @@ async function fetchDashboardMetrics() {
     const inventoryResponse = await fetch(`${window.api}inventory/alerts`);
     const lowStockItems = await inventoryResponse.json();
 
-    // Fetch pending prescriptions
-    const prescriptionsResponse = await fetch(`${window.api}prescriptions/pending`);
-    const pendingPrescriptions = await prescriptionsResponse.json();
+    // Removed pending prescriptions fetch for restaurant conversion
 
     return {
       todaySales,
       transactions,
       lowStock: lowStockItems.length,
-      pendingPrescriptions: pendingPrescriptions.length,
+      // Removed pendingPrescriptions for restaurant conversion
       salesChange: 0, // TODO: Calculate change from previous day
       transactionChange: 0,
       stockChange: 0,
-      prescriptionChange: 0,
+      // Removed prescriptionChange for restaurant conversion
       salesData: salesData.slice(0, 10) // Last 10 transactions
     };
 
@@ -890,11 +992,11 @@ async function fetchDashboardMetrics() {
       todaySales: 0,
       transactions: 0,
       lowStock: 0,
-      pendingPrescriptions: 0,
+      // Removed pendingPrescriptions for restaurant conversion
       salesChange: 0,
       transactionChange: 0,
       stockChange: 0,
-      prescriptionChange: 0,
+      // Removed prescriptionChange for restaurant conversion
       salesData: []
     };
   }
@@ -933,12 +1035,7 @@ async function loadRecentActivity() {
         timestamp: new Date(Date.now() - 60 * 60 * 1000), // 1 hour ago
         icon: '👥'
       },
-      {
-        type: 'prescription_verified',
-        message: 'Prescription verified - John Doe',
-        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-        icon: '📋'
-      }
+      // Removed prescription verification activity for restaurant conversion
     ];
   } catch (error) {
     console.error('Error loading recent activity:', error);
@@ -1149,7 +1246,10 @@ class PharmaMineApp {
       DashboardModule: !!window.DashboardModule,
       POSModule: !!window.POSModule,
       InventoryModule: !!window.InventoryModule,
-      PrescriptionsModule: !!window.PrescriptionsModule,
+      RecipesModule: !!window.RecipesModule,
+      KitchenModule: !!window.KitchenModule,
+      TablesModule: !!window.TablesModule,
+      CombosModule: !!window.CombosModule,
       CustomersModule: !!window.CustomersModule,
       SuppliersModule: !!window.SuppliersModule,
       ReportsModule: !!window.ReportsModule,
@@ -1161,7 +1261,12 @@ class PharmaMineApp {
       ['dashboard', window.DashboardModule],
       ['pos', window.POSModule],
       ['inventory', window.InventoryModule],
-      ['prescriptions', window.PrescriptionsModule],
+      ['recipes', window.RecipesModule],
+      ['kitchen', window.KitchenModule],
+      ['tables', window.TablesModule],
+      ['combos', window.CombosModule],
+      ['analytics', window.AnalyticsModule],
+      // ['prescriptions', window.PrescriptionsModule], // Removed for restaurant conversion
       ['customers', window.CustomersModule],
       ['suppliers', window.SuppliersModule],
       ['reports', window.ReportsModule],
@@ -1324,6 +1429,19 @@ class PharmaMineApp {
         }
         break;
 
+      case 'KITCHEN_SET_LOADING':
+        this.state.updateModule('kitchen', {
+          loading: action.payload.loading
+        });
+        break;
+
+      case 'KITCHEN_SET_ORDERS':
+        this.state.updateModule('kitchen', {
+          orders: action.payload.orders,
+          filteredOrders: action.payload.orders
+        });
+        break;
+
       default:
         console.warn('Unknown action type:', action.type);
     }
@@ -1336,7 +1454,31 @@ window.appActions = {
   app: appActions,
   dashboard: dashboardActions,
   pos: posActions,
-  inventory: inventoryActions
+  inventory: inventoryActions,
+  kitchen: kitchenActions,
+  combos: {
+    loadCombos: () => async (dispatch) => {
+      dispatch({ type: 'COMBOS_SET_LOADING', payload: { loading: true } });
+      try {
+        const response = await fetch(window.api + 'combos/combos');
+        const combos = await response.json();
+        dispatch({ type: 'COMBOS_SET_COMBOS', payload: { combos } });
+      } catch (error) {
+        dispatch({ type: 'APP_SET_ERROR', payload: { error: error.message } });
+      } finally {
+        dispatch({ type: 'COMBOS_SET_LOADING', payload: { loading: false } });
+      }
+    },
+    loadMenuItems: () => async (dispatch) => {
+      try {
+        const response = await fetch(window.api + 'inventory/products');
+        const menuItems = await response.json();
+        dispatch({ type: 'COMBOS_SET_MENU_ITEMS', payload: { menuItems } });
+      } catch (error) {
+        console.error('Error loading menu items:', error);
+      }
+    }
+  }
 };
 
 // Initialize app when DOM is ready
@@ -1355,6 +1497,7 @@ if (typeof module !== 'undefined' && module.exports) {
     appActions,
     dashboardActions,
     posActions,
-    inventoryActions
+    inventoryActions,
+    kitchenActions
   };
 }

@@ -47,10 +47,11 @@ class POSModule {
   }
   
   async loadInitialData() {
-    // Load products and customers
+    // Load products, customers, and combos
     await Promise.all([
       this.loadProducts(),
-      this.loadCustomers()
+      this.loadCustomers(),
+      this.loadCombos()
     ]);
   }
   
@@ -79,6 +80,17 @@ class POSModule {
       this.app.state.updateModule('pos', { customers });
     } catch (error) {
       console.error('Error loading customers:', error);
+    }
+  }
+  
+  async loadCombos() {
+    try {
+      const response = await fetch(`${window.api}combos/combos`);
+      const combos = await response.json();
+      
+      this.app.state.updateModule('pos', { combos });
+    } catch (error) {
+      console.error('Error loading combos:', error);
     }
   }
   
@@ -341,6 +353,7 @@ class POSModule {
             ${this.renderCustomerSelector(posState.currentCustomer)}
             ${this.renderProductSearch()}
             ${this.renderBarcodeScanner()}
+            ${this.renderComboSelector()}
           </div>
           
           <div class="pos-right-panel">
@@ -414,6 +427,28 @@ class POSModule {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  
+  renderComboSelector() {
+    const posState = this.app.state.getModuleState('pos');
+    const combos = posState.combos || [];
+    const availableCombos = combos.filter(combo => combo.is_active && combo.is_currently_available);
+    
+    return `
+      <div class="combo-selector mb-6">
+        <div class="card">
+          <div class="card-body">
+            <label class="form-label">Combo Meals</label>
+            <button class="btn btn-success w-full" 
+                    onclick="window.pharmaApp.getModule('pos').showComboSelector()"
+                    ${availableCombos.length === 0 ? 'disabled' : ''}>
+              <i class="fa fa-utensils"></i> 
+              Select Combo (${availableCombos.length} available)
+            </button>
           </div>
         </div>
       </div>
@@ -640,6 +675,185 @@ class POSModule {
     const product = products.find(p => p._id === productId);
     if (product) {
       this.addToCart(product);
+    }
+  }
+  
+  addComboToCart(combo) {
+    const posState = this.app.state.getModuleState('pos');
+    const cart = [...posState.cart];
+    
+    // Check if combo already exists in cart
+    const existingIndex = cart.findIndex(item => item.combo_id === combo._id);
+    
+    if (existingIndex >= 0) {
+      // Increase quantity
+      cart[existingIndex].quantity += 1;
+    } else {
+      // Add new combo item
+      cart.push({
+        combo_id: combo._id,
+        product_name: combo.combo_name,
+        sku: combo.combo_code,
+        price: parseFloat(combo.combo_price),
+        quantity: 1,
+        is_combo: true,
+        combo_components: combo.components
+      });
+    }
+    
+    this.app.state.updateModule('pos', { cart });
+  }
+  
+  async checkComboAvailability(comboId, quantity = 1) {
+    try {
+      const response = await fetch(`${window.api}combos/combos/${comboId}/check-availability`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity })
+      });
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error checking combo availability:', error);
+      return { is_available: false, error: error.message };
+    }
+  }
+  
+  showComboSelector() {
+    const posState = this.app.state.getModuleState('pos');
+    const combos = posState.combos || [];
+    const availableCombos = combos.filter(combo => combo.is_active && combo.is_currently_available);
+    
+    let html = `
+      <div class="combo-selector-modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold">Select Combo Meal</h3>
+            <button onclick="window.pharmaApp.getModule('pos').hideComboSelector()" class="text-gray-500">
+              <i class="fa fa-times"></i>
+            </button>
+          </div>
+          
+          <div class="combo-categories mb-4">
+            <div class="btn-group btn-group-sm">
+              <button class="btn btn-primary active" onclick="window.pharmaApp.getModule('pos').filterCombosByCategory('all')">All</button>
+              ${[...new Set(availableCombos.map(c => c.category))].map(category => `
+                <button class="btn btn-outline-secondary" onclick="window.pharmaApp.getModule('pos').filterCombosByCategory('${category}')">${category}</button>
+              `).join('')}
+            </div>
+          </div>
+          
+          <div class="combo-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="comboGrid">
+            ${availableCombos.map(combo => this.renderComboCard(combo)).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', html);
+  }
+  
+  hideComboSelector() {
+    const modal = document.querySelector('.combo-selector-modal');
+    if (modal) {
+      modal.remove();
+    }
+  }
+  
+  renderComboCard(combo) {
+    return `
+      <div class="combo-card border rounded-lg p-4 cursor-pointer hover:shadow-lg transition-shadow" 
+           onclick="window.pharmaApp.getModule('pos').selectCombo('${combo._id}')">
+        <div class="combo-image mb-3">
+          ${combo.image_url ? 
+            `<img src="${combo.image_url}" alt="${combo.combo_name}" style="width: 100%; height: 120px; object-fit: cover; border-radius: 4px;">` :
+            '<div class="bg-gray-200 h-30 rounded flex items-center justify-center"><i class="fa fa-utensils text-gray-400"></i></div>'
+          }
+        </div>
+        
+        <div class="combo-info">
+          <h4 class="font-semibold text-lg mb-1">${combo.combo_name}</h4>
+          <p class="text-sm text-gray-600 mb-2">${combo.description || 'No description'}</p>
+          
+          <div class="combo-components mb-3">
+            <div class="text-xs text-gray-500">
+              <i class="fa fa-layer-group"></i> ${combo.components?.length || 0} components
+            </div>
+            <div class="flex flex-wrap gap-1 mt-1">
+              ${(combo.components || []).slice(0, 3).map(comp => 
+                `<span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">${comp.component_type}</span>`
+              ).join('')}
+              ${(combo.components?.length || 0) > 3 ? `<span class="text-xs text-gray-500">+${combo.components.length - 3} more</span>` : ''}
+            </div>
+          </div>
+          
+          <div class="combo-pricing flex justify-between items-center">
+            <div class="price-info">
+              <span class="text-lg font-bold text-green-600">${parseFloat(combo.combo_price).toFixed(2)}</span>
+              ${combo.discount_amount > 0 ? 
+                `<span class="text-sm text-gray-500 line-through ml-2">${parseFloat(combo.base_price).toFixed(2)}</span>` : 
+                ''
+              }
+            </div>
+            ${combo.discount_percentage > 0 ? 
+              `<span class="bg-red-100 text-red-800 px-2 py-1 text-xs rounded">${combo.discount_percentage.toFixed(0)}% OFF</span>` : 
+              ''
+            }
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  
+  async selectCombo(comboId) {
+    const posState = this.app.state.getModuleState('pos');
+    const combo = posState.combos.find(c => c._id === comboId);
+    
+    if (!combo) {
+      if (window.notiflix) {
+        window.notiflix.Report.warning('Combo Not Found', 'The selected combo could not be found', 'Ok');
+      }
+      return;
+    }
+    
+    // Check availability
+    const availability = await this.checkComboAvailability(comboId, 1);
+    
+    if (!availability.is_available) {
+      if (window.notiflix) {
+        window.notiflix.Report.warning('Combo Unavailable', 'This combo is currently not available', 'Ok');
+      }
+      return;
+    }
+    
+    this.addComboToCart(combo);
+    this.hideComboSelector();
+    
+    if (window.notiflix) {
+      window.notiflix.Notify.success('Combo Added', `${combo.combo_name} added to cart`);
+    }
+  }
+  
+  filterCombosByCategory(category) {
+    const posState = this.app.state.getModuleState('pos');
+    const combos = posState.combos || [];
+    
+    // Update active button
+    document.querySelectorAll('.combo-categories .btn').forEach(btn => {
+      btn.classList.remove('btn-primary', 'active');
+      btn.classList.add('btn-outline-secondary');
+    });
+    event.target.classList.remove('btn-outline-secondary');
+    event.target.classList.add('btn-primary', 'active');
+    
+    // Filter and render combos
+    const filteredCombos = category === 'all' ? 
+      combos.filter(combo => combo.is_active && combo.is_currently_available) :
+      combos.filter(combo => combo.is_active && combo.is_currently_available && combo.category === category);
+    
+    const comboGrid = document.getElementById('comboGrid');
+    if (comboGrid) {
+      comboGrid.innerHTML = filteredCombos.map(combo => this.renderComboCard(combo)).join('');
     }
   }
   

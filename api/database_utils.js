@@ -157,13 +157,14 @@ function getDatabaseFiles(appData, appName) {
         'inventory.db',
         'transactions.db',
         'users.db',
-        'prescriptions.db',
+        // 'prescriptions.db', // Removed for restaurant conversion
         'suppliers.db',
         'customers.db',
         'categories.db',
         'settings.db',
         'purchase_orders.db',
-        'session_logs.db'
+        'session_logs.db',
+        'recipes.db' // Added for recipe management
     ];
 
     return dbFiles.map(dbName => {

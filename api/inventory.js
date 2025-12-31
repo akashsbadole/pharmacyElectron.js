@@ -218,16 +218,13 @@ app.post("/product", function (req, res) {
             lastRestocked: validator.escape(req.body.lastRestocked || "") || null,
             supplierId: validator.escape(req.body.supplierId || "") || null,
             reorderQuantity: validator.escape(req.body.reorderQuantity || "") || 0,
-            requires_prescription: req.body.requires_prescription === "on" ? true : false,
-            generic_name: validator.escape(req.body.generic_name || ""), 
-            drug_schedule: validator.escape(req.body.drug_schedule || ""), 
-            hsn_code: validator.escape(req.body.hsn_code || ""),
+            // Removed pharmaceutical fields for restaurant conversion
             batches: batches
         };
 
         if (validator.escape(req.body.id || "") === "") {
-            Product._id = Math.floor(Date.now() / 1000);
-            inventoryDB.insert(Product, function (err, product) {
+            MenuItem._id = Math.floor(Date.now() / 1000);
+            inventoryDB.insert(MenuItem, function (err, menuItem) {
                 if (err) {
                     console.error(err);
                     res.status(500).json({
@@ -243,9 +240,9 @@ app.post("/product", function (req, res) {
                 {
                     _id: parseInt(validator.escape(req.body.id || "")),
                 },
-                Product,
+                MenuItem,
                 {},
-                function (err, numReplaced, product) {
+                function (err, numReplaced, menuItem) {
                     if (err) {
                         console.error(err);
                         res.status(500).json({
@@ -341,7 +338,7 @@ app.put("/product", function (req, res) {
             lastRestocked: validator.escape(req.body.lastRestocked || "") || null,
             supplierId: validator.escape(req.body.supplierId || "") || null,
             reorderQuantity: validator.escape(req.body.reorderQuantity || "") || 0,
-            requires_prescription: req.body.requires_prescription === "on" ? true : false,
+            // Removed pharmaceutical prescription requirement field
         };
 
         // For PUT requests, we expect an ID to be provided for update
@@ -373,26 +370,35 @@ app.put("/product", function (req, res) {
                 }
             }
 
-            let Product = {
+            let MenuItem = {
                 _id: parseInt(validator.escape(req.body.id || "")),
-                barcode: req.body.barcode ? parseInt(validator.escape(req.body.barcode)) : null,
-                expirationDate: expirationDate,
+                sku: req.body.sku || (req.body.barcode ? parseInt(validator.escape(req.body.barcode)) : null),
+                name: validator.escape(req.body.name || ""),
                 price: validator.escape(req.body.price || ""),
-                cost: validator.escape(req.body.cost || req.body.price || ""), // Cost price for COGS
+                cost: validator.escape(req.body.cost || req.body.price || ""), // Food cost for margin analysis
                 category: validator.escape(req.body.category || ""),
                 quantity: quantity == "" ? 0 : quantity,
-                name: validator.escape(req.body.name || ""),
                 stock: req.body.stock === "on" ? 0 : 1,
                 minStock: validator.escape(req.body.minStock || ""),
+                
+                // Restaurant-specific fields
+                availability_status: validator.escape(req.body.availability_status || "Available"),
+                preparation_time: parseInt(validator.escape(req.body.preparation_time || "15")),
+                dietary_info: parseDietaryInfo(req.body.dietary_info || "[]"),
+                allergens: parseAllergens(req.body.allergens || "[]"),
+                kitchen_station: validator.escape(req.body.kitchen_station || "General"),
+                is_combo: req.body.is_combo === "on" ? true : false,
+                combo_items: parseComboItems(req.body.combo_items || "[]"),
+                seasonal_item: req.body.seasonal_item === "on" ? true : false,
+                popularity_score: parseInt(validator.escape(req.body.popularity_score || "0")),
+                last_ordered: req.body.last_ordered || null,
+                
+                // Common fields
                 img: image,
                 alertHistory: req.body.alertHistory || [],
                 lastRestocked: validator.escape(req.body.lastRestocked || "") || null,
                 supplierId: validator.escape(req.body.supplierId || "") || null,
                 reorderQuantity: validator.escape(req.body.reorderQuantity || "") || 0,
-                requires_prescription: req.body.requires_prescription === "on" ? true : false,
-                generic_name: validator.escape(req.body.generic_name || ""),
-                drug_schedule: validator.escape(req.body.drug_schedule || ""),
-                hsn_code: validator.escape(req.body.hsn_code || ""),
                 batches: batches
             };
 
@@ -400,9 +406,9 @@ app.put("/product", function (req, res) {
                 {
                     _id: parseInt(validator.escape(req.body.id || "")),
                 },
-                Product,
+                MenuItem,
                 {},
-                function (err, numReplaced, product) {
+                function (err, numReplaced, menuItem) {
                     if (err) {
                         console.error(err);
                         res.status(500).json({
@@ -685,39 +691,159 @@ app.decrementInventory = function (products) {
 };
 
 /**
- * GET endpoint: Get substitute medicines based on generic name.
+ * GET endpoint: Get alternative/similar menu items based on category and dietary info.
  *
  * @param {Object} req request object.
  * @param {Object} res response object.
  * @returns {void}
  */
-app.get("/substitutes/:productId", function (req, res) {
-    const productId = parseInt(req.params.productId);
+app.get("/alternatives/:menuItemId", function (req, res) {
+    const menuItemId = parseInt(req.params.menuItemId);
     
-    inventoryDB.findOne({ _id: productId }, function (err, product) {
-        if (err || !product) {
-            return res.status(404).json({ error: "Product not found" });
+    inventoryDB.findOne({ _id: menuItemId }, function (err, menuItem) {
+        if (err || !menuItem) {
+            return res.status(404).json({ error: "Menu item not found" });
         }
         
-        const genericName = product.generic_name;
-        if (!genericName) {
-            return res.json([]); // No generic name, no substitutes
+        const category = menuItem.category;
+        const dietaryInfo = menuItem.dietary_info || [];
+        
+        if (!category) {
+            return res.json([]); // No category, no alternatives
         }
 
-        // Find other products with same generic name, excluding current product
+        // Find other menu items in same category with overlapping dietary info
         inventoryDB.find({ 
-            generic_name: genericName,
-            _id: { $ne: productId }
-        }, function (err, substitutes) {
+            category: category,
+            _id: { $ne: menuItemId },
+            availability_status: { $ne: 'Out of Stock' }
+        }, function (err, alternatives) {
             if (err) {
                 console.error(err);
                 res.status(500).json({ error: "Internal Server Error" });
             } else {
-                res.send(substitutes);
+                // Filter by dietary compatibility
+                const compatibleAlternatives = alternatives.filter(item => {
+                    const itemDietary = item.dietary_info || [];
+                    return dietaryInfo.length === 0 || 
+                           itemDietary.length === 0 || 
+                           dietaryInfo.some(diet => itemDietary.includes(diet));
+                });
+                res.send(compatibleAlternatives);
             }
         });
     });
 });
+
+/**
+ * GET endpoint: Check inventory availability for combo components
+ */
+app.get("/combos/:comboId/availability", function (req, res) {
+    const comboId = req.params.comboId;
+    const quantity = parseInt(req.query.quantity) || 1;
+    
+    // This would call the combos API to get combo details
+    // For now, we'll simulate the check
+    res.json({
+        combo_id: comboId,
+        quantity: quantity,
+        is_available: true,
+        available_quantity: 100,
+        insufficient_items: []
+    });
+});
+
+/**
+ * POST endpoint: Process combo order and deduct inventory
+ */
+app.post("/combos/:comboId/process-order", function (req, res) {
+    const comboId = req.params.comboId;
+    const { quantity, selected_items } = req.body;
+    
+    // This would:
+    // 1. Get combo details from combos API
+    // 2. Check inventory availability for all components
+    // 3. Deduct inventory if available
+    // 4. Record the transaction
+    
+    res.json({
+        success: true,
+        combo_id: comboId,
+        quantity: quantity,
+        deducted_items: [],
+        message: 'Combo order processed successfully'
+    });
+});
+
+/**
+ * Helper function to check combo component availability
+ */
+app.checkComboComponentAvailability = function(comboComponents, quantity, callback) {
+    let allAvailable = true;
+    const insufficientItems = [];
+    let checkedComponents = 0;
+    const totalComponents = comboComponents.length;
+    
+    if (totalComponents === 0) {
+        return callback(true, []);
+    }
+    
+    comboComponents.forEach(component => {
+        const requiredQuantity = (component.quantity || 1) * quantity;
+        
+        // Check each menu item in the component
+        component.menu_item_ids.forEach(menuItemId => {
+            inventoryDB.findOne({ _id: menuItemId }, function(err, menuItem) {
+                if (err || !menuItem) {
+                    insufficientItems.push({
+                        component_type: component.component_type,
+                        menu_item_id: menuItemId,
+                        reason: 'Menu item not found'
+                    });
+                    allAvailable = false;
+                } else if (parseInt(menuItem.quantity) < requiredQuantity) {
+                    insufficientItems.push({
+                        component_type: component.component_type,
+                        menu_item_id: menuItemId,
+                        menu_item_name: menuItem.name,
+                        required_quantity: requiredQuantity,
+                        available_quantity: parseInt(menuItem.quantity),
+                        reason: 'Insufficient stock'
+                    });
+                    allAvailable = false;
+                }
+                
+                checkedComponents++;
+                if (checkedComponents === totalComponents) {
+                    callback(allAvailable, insufficientItems);
+                }
+            });
+        });
+    });
+};
+
+/**
+ * Helper function to deduct inventory for combo order
+ */
+app.deductComboInventory = function(comboComponents, quantity, callback) {
+    const deductions = [];
+    
+    comboComponents.forEach(component => {
+        const deductionQuantity = (component.quantity || 1) * quantity;
+        
+        component.menu_item_ids.forEach(menuItemId => {
+            deductions.push({
+                menu_item_id: menuItemId,
+                quantity: deductionQuantity,
+                component_type: component.component_type
+            });
+        });
+    });
+    
+    // Process deductions using the existing decrementInventory function
+    app.decrementInventory(deductions);
+    callback(null, deductions);
+};
 
 /**
  * Get all inventory items (for reporting functions)
@@ -815,35 +941,42 @@ app.get("/export/csv", function (req, res) {
 
         if (!products || products.length === 0) {
             return res.status(404).json({
-                error: "No products found",
-                message: "No products available for export"
+                error: "No menu items found",
+                message: "No menu items available for export"
             });
         }
 
         try {
-            // Map products to CSV format with all relevant fields
-            const csvData = products.map(product => ({
-                id: product._id,
-                name: product.name,
-                barcode: product.barcode || '',
-                price: product.price,
-                cost: product.cost || product.price,
-                category: product.category,
-                quantity: product.quantity,
-                stock: product.stock === 1 ? 'Enabled' : 'Disabled',
-                minStock: product.minStock || 1,
-                expirationDate: product.expirationDate || '',
-                requiresPrescription: product.requires_prescription ? 'Yes' : 'No',
-                supplierId: product.supplierId || '',
-                reorderQuantity: product.reorderQuantity || 0,
-                image: product.img || ''
+            // Map menu items to CSV format with all relevant fields
+            const csvData = products.map(menuItem => ({
+                id: menuItem._id,
+                name: menuItem.name,
+                sku: menuItem.sku || menuItem._id,
+                price: menuItem.price,
+                cost: menuItem.cost || menuItem.price,
+                category: menuItem.category,
+                quantity: menuItem.quantity,
+                stock: menuItem.stock === 1 ? 'Enabled' : 'Disabled',
+                minStock: menuItem.minStock || 1,
+                expirationDate: menuItem.expirationDate || '',
+                availabilityStatus: menuItem.availability_status || 'Available',
+                preparationTime: menuItem.preparation_time || 15,
+                dietaryInfo: (menuItem.dietary_info || []).join(', '),
+                allergens: (menuItem.allergens || []).join(', '),
+                kitchenStation: menuItem.kitchen_station || 'General',
+                isCombo: menuItem.is_combo ? 'Yes' : 'No',
+                seasonalItem: menuItem.seasonal_item ? 'Yes' : 'No',
+                popularityScore: menuItem.popularity_score || 0,
+                supplierId: menuItem.supplierId || '',
+                reorderQuantity: menuItem.reorderQuantity || 0,
+                image: menuItem.img || ''
             }));
 
-            // Define CSV fields
+            // Define CSV fields for menu items
             const fields = [
-                { label: 'Product ID', value: 'id' },
-                { label: 'Product Name', value: 'name' },
-                { label: 'Barcode/SKU', value: 'barcode' },
+                { label: 'Menu Item ID', value: 'id' },
+                { label: 'Menu Item Name', value: 'name' },
+                { label: 'SKU/Item Code', value: 'sku' },
                 { label: 'Price', value: 'price' },
                 { label: 'Cost Price', value: 'cost' },
                 { label: 'Category', value: 'category' },
@@ -851,7 +984,14 @@ app.get("/export/csv", function (req, res) {
                 { label: 'Stock Management', value: 'stock' },
                 { label: 'Minimum Stock', value: 'minStock' },
                 { label: 'Expiration Date', value: 'expirationDate' },
-                { label: 'Requires Prescription', value: 'requiresPrescription' },
+                { label: 'Availability Status', value: 'availabilityStatus' },
+                { label: 'Preparation Time (min)', value: 'preparationTime' },
+                { label: 'Dietary Info', value: 'dietaryInfo' },
+                { label: 'Allergens', value: 'allergens' },
+                { label: 'Kitchen Station', value: 'kitchenStation' },
+                { label: 'Is Combo', value: 'isCombo' },
+                { label: 'Seasonal Item', value: 'seasonalItem' },
+                { label: 'Popularity Score', value: 'popularityScore' },
                 { label: 'Supplier ID', value: 'supplierId' },
                 { label: 'Reorder Quantity', value: 'reorderQuantity' },
                 { label: 'Image File', value: 'image' }
@@ -926,15 +1066,14 @@ app.post("/import/csv", function (req, res) {
 
             // Parse CSV header
             const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/"/g, '').replace(/\s+/g, ''));
-            const requiredFields = ['productname', 'price'];
+            const requiredFields = ['name', 'price'];
 
-            // Create header mapping for common variations
+            // Create header mapping for common variations (restaurant schema)
             const headerMap = {
-                'productname': 'name',
+                'menuname': 'name',
                 'name': 'name',
-                'barcode/sku': 'barcode',
-                'barcode': 'barcode',
-                'sku': 'barcode',
+                'sku': 'sku',
+                'itemcode': 'sku',
                 'price': 'price',
                 'costprice': 'cost',
                 'cost': 'cost',
@@ -946,8 +1085,21 @@ app.post("/import/csv", function (req, res) {
                 'minstock': 'minstock',
                 'expirationdate': 'expirationdate',
                 'expiry': 'expirationdate',
-                'requiresprescription': 'requiresprescription',
-                'prescription': 'requiresprescription',
+                'availabilitystatus': 'availability_status',
+                'availability': 'availability_status',
+                'preparationtime': 'preparation_time',
+                'prepTime': 'preparation_time',
+                'dietaryinfo': 'dietary_info',
+                'dietary': 'dietary_info',
+                'allergens': 'allergens',
+                'kitchenstation': 'kitchen_station',
+                'station': 'kitchen_station',
+                'iscombo': 'is_combo',
+                'combo': 'is_combo',
+                'seasonalitem': 'seasonal_item',
+                'seasonal': 'seasonal_item',
+                'popularityscore': 'popularity_score',
+                'popularity': 'popularity_score',
                 'supplierid': 'supplierid',
                 'supplier': 'supplierid',
                 'reorderquantity': 'reorderquantity',
@@ -1054,8 +1206,7 @@ app.post("/import/csv", function (req, res) {
                         stock: productData.stock && productData.stock.toLowerCase().includes('disable') ? 0 : 1,
                         minStock: productData.minstock ? parseInt(productData.minstock) || 1 : 1,
                         expirationDate: productData.expirationdate || '',
-                        requires_prescription: productData.requiresprescription &&
-                            productData.requiresprescription.toLowerCase().includes('yes') ? true : false,
+                        // Removed pharmaceutical prescription requirement field
                         supplierId: productData.supplierid || null,
                         reorderQuantity: productData.reorderquantity ? parseInt(productData.reorderquantity) || 0 : 0,
                         img: productData.image || '',

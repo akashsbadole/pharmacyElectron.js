@@ -154,6 +154,8 @@ app.post("/post", function (req, res) {
             sgst: validator.escape(req.body.sgst || "0"),
             igst: validator.escape(req.body.igst || "0"),
             payment_modes: req.body.payment_modes || ["Cash", "Card", "UPI", "Net Banking"],
+            upi_merchant_id: validator.escape(req.body.upi_merchant_id || ""),
+            upi_merchant_name: validator.escape(req.body.upi_merchant_name || ""),
             backup_frequency: validator.escape(req.body.backup_frequency || "off"),
             backup_time: validator.escape(req.body.backup_time || "00:00"),
             enable_encryption: req.body.enable_encryption === 'on' || req.body.enable_encryption === true
