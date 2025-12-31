@@ -24,7 +24,7 @@
 
 ### **3. Order & Procurement**
 - **ERP-to-ERP Ordering:** Enables direct order placement from the chemist’s ERP system to the distributor’s ERP, streamlining procurement. (Ignore for now)
-- **Online Ordering:** Allows pharmacy owners to place orders to distributors, compare prices, and manage deals online. (Ignore for now)
+- **Online Ordering:** Allows FoodMine owners to place orders to distributors, compare prices, and manage deals online. (Ignore for now)
 - **Automated Purchase Entry:** Reduces manual data entry by automating purchase order creation and updates.
 - **Smart Order Management:** Auto-generates purchase orders based on stock levels and sales trends. 
 - **Supplier Management:** Maintains supplier details, order history, and performance metrics for better procurement decisions. 
@@ -67,7 +67,7 @@
 - **Digital Salesman:** Suggests substitute medicines to customers, helping increase sales and customer trust.
 - **Automated Alerts & Notifications:** Sends alerts for low stock, expiry dates, and important business events via SMS/email.
 - **Customer Loyalty Programs:** Manages loyalty points, discounts, and promotional offers to retain customers. (Ignore for now)
-- **Multi-Location Management:** Supports management of multiple pharmacy outlets from a single dashboard. (Ignore for now)
+- **Multi-Location Management:** Supports management of multiple FoodMine outlets from a single dashboard. (Ignore for now)
 
 ---
 

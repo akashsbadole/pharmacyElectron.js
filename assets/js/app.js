@@ -1,5 +1,5 @@
 /**
- * PharmaMine Main Application Controller
+ * foodMine Main Application Controller
  * Modern tab-based interface with centralized state management
  */
 
@@ -482,7 +482,7 @@ class ViewManager {
   updateContentTitle(moduleId) {
     const contentTitle = document.getElementById('content-title');
     if (contentTitle) {
-      contentTitle.textContent = this.moduleTitles[moduleId] || 'PharmaMine';
+      contentTitle.textContent = this.moduleTitles[moduleId] || 'foodMine';
     }
   }
 
@@ -1044,9 +1044,9 @@ async function loadRecentActivity() {
 }
 
 // Main App Controller
-class PharmaMineApp {
+class foodMineApp {
   constructor() {
-    console.log('=== INITIALIZING PHARMAMINE APP ===');
+    console.log('=== INITIALIZING foodMine APP ===');
     this.state = new AppState();
     this.modules = new Map();
     this.eventHandlers = new Map();
@@ -1060,7 +1060,7 @@ class PharmaMineApp {
     console.log('Initializing modules...');
     this.initializeModuleInstances();
 
-    console.log('=== PHARMAMINE APP CONSTRUCTION COMPLETE ===');
+    console.log('=== foodMine APP CONSTRUCTION COMPLETE ===');
   }
 
   // Initialize the application
@@ -1078,10 +1078,10 @@ class PharmaMineApp {
       // Set up global event handlers
       this.setupGlobalEventHandlers();
 
-      console.log('PharmaMine app initialized successfully');
+      console.log('foodMine app initialized successfully');
 
     } catch (error) {
-      console.error('Failed to initialize PharmaMine app:', error);
+      console.error('Failed to initialize foodMine app:', error);
       this.state.setState({ error: error.message }, 'app');
     }
   }
@@ -1483,14 +1483,14 @@ window.appActions = {
 
 // Initialize app when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('Initializing PharmaMine app...');
-  window.pharmaApp = new PharmaMineApp();
+  console.log('Initializing foodMine app...');
+  window.pharmaApp = new foodMineApp();
 });
 
 // Export for use in other modules and Node.js
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
-    PharmaMineApp,
+    foodMineApp,
     AppState,
     ViewManager,
     navigationActions,

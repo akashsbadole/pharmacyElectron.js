@@ -68,7 +68,7 @@
         "✅ Product name correctly set to \"Pharmingo\"",
         "✅ File exists: ./index.html",
         "✅ UI Element found: Pharmingo",
-        "✅ UI Element found: Pharmaceutical Management System",
+        "✅ UI Element found: Food Management System",
         "✅ File exists: ./renderer.js",
         "✅ Function found: backup.js"
       ]

@@ -1022,7 +1022,7 @@ class POSModule {
         const tx = await response.json();
         const settings = this.app.state.getModuleState('app').settings || {};
         
-        let message = `*Invoice from ${settings.store || 'Pharmacy'}*\n`;
+        let message = `*Invoice from ${settings.store || 'FoodMine'}*\n`;
         message += `Inv #: ${tx.order}\n`;
         message += `Date: ${new Date(tx.date).toLocaleDateString()}\n`;
         message += `--------------------------\n`;
@@ -1048,7 +1048,7 @@ class POSModule {
         const tx = await response.json();
         const settings = this.app.state.getModuleState('app').settings || {};
         
-        const subject = `Invoice ${tx.order} from ${settings.store || 'Pharmacy'}`;
+        const subject = `Invoice ${tx.order} from ${settings.store || 'FoodMine'}`;
         let body = `Hello ${tx.customer?.name || 'Customer'},\n\n`;
         body += `Please find the details of your invoice ${tx.order}:\n\n`;
         tx.items.forEach(item => {
@@ -1056,7 +1056,7 @@ class POSModule {
         });
         body += `\nTotal Amount: $${parseFloat(tx.total).toFixed(2)}\n`;
         body += `Payment Mode: ${tx.payment_type || 'Paid'}\n\n`;
-        body += `Thank you,\n${settings.store || 'Pharmacy'}`;
+        body += `Thank you,\n${settings.store || 'FoodMine'}`;
 
         const mailto = `mailto:${tx.customer?.email || ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
         window.location.href = mailto;

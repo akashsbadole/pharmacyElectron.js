@@ -186,7 +186,7 @@ class StaticAnalyzer {
         
         if (htmlContent) {
             this.checkUIElement(htmlContent, 'Pharmingo', 'branding');
-            this.checkUIElement(htmlContent, 'Pharmaceutical Management System', 'branding');
+            this.checkUIElement(htmlContent, 'Food Management System', 'branding');
         }
 
         // Check renderer integration

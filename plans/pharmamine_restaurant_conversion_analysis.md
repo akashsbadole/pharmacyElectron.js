@@ -1,8 +1,8 @@
-# PharmaMine to Restaurant POS System - Conversion Analysis & Recommendations
+# foodMine to Restaurant POS System - Conversion Analysis & Recommendations
 
 ## Executive Summary
 
-PharmaMine is a well-architected pharmaceutical POS system built on modern web technologies. The analysis reveals that approximately **70% of the core functionality** can be directly adapted for restaurant use, while **30% requires significant modification or replacement** to accommodate food service-specific requirements.
+foodMine is a well-architected pharmaceutical POS system built on modern web technologies. The analysis reveals that approximately **70% of the core functionality** can be directly adapted for restaurant use, while **30% requires significant modification or replacement** to accommodate food service-specific requirements.
 
 ## 1. Current System Architecture & Technology Stack
 
@@ -203,7 +203,7 @@ PharmaMine is a well-architected pharmaceutical POS system built on modern web t
 - **Use Case:** Fresh produce, dairy, meat expiry management
 
 🔄 **Low Stock Alerts**
-- **From:** Pharmacy inventory levels
+- **From:** FoodMine inventory levels
 - **To:** Restaurant ingredient depletion
 - **Use Case:** Kitchen prep staff notifications
 
@@ -379,10 +379,10 @@ db.inventory.update(
 - **ROI Timeline:** 18 months
 
 ### Alternative Consideration:
-**Build from Scratch vs. Adapt PharmaMine:**
-- **Adapt PharmaMine:** Faster time to market, proven architecture
+**Build from Scratch vs. Adapt foodMine:**
+- **Adapt foodMine:** Faster time to market, proven architecture
 - **Build from Scratch:** More tailored solution, higher initial investment
-- **Recommendation:** Adapt PharmaMine for faster ROI
+- **Recommendation:** Adapt foodMine for faster ROI
 
 ## 12. Technical Architecture Recommendations
 
@@ -414,7 +414,7 @@ db.inventory.update(
 
 ## Conclusion
 
-PharmaMine provides an excellent foundation for restaurant POS conversion due to its solid architecture, comprehensive feature set, and modern technology stack. The estimated **70% code reuse** significantly reduces development time and costs compared to building from scratch.
+foodMine provides an excellent foundation for restaurant POS conversion due to its solid architecture, comprehensive feature set, and modern technology stack. The estimated **70% code reuse** significantly reduces development time and costs compared to building from scratch.
 
 The **recommended 14-week development timeline** with phased rollout ensures minimal business disruption while delivering a robust, feature-rich restaurant management system. The projected **18-month ROI** makes this conversion a financially sound investment for restaurant operators.
 
@@ -426,4 +426,4 @@ The **recommended 14-week development timeline** with phased rollout ensures min
 
 ---
 
-*This analysis provides a comprehensive roadmap for converting PharmaMine from a pharmaceutical POS to a restaurant POS system, leveraging existing strengths while addressing food service-specific requirements.*
+*This analysis provides a comprehensive roadmap for converting foodMine from a pharmaceutical POS to a restaurant POS system, leveraging existing strengths while addressing food service-specific requirements.*

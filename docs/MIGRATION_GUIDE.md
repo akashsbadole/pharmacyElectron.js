@@ -1,6 +1,6 @@
 # Restaurant POS System - Migration Guide
 
-This guide provides comprehensive instructions for migrating from PharmaMine (pharmacy POS) to Restaurant POS, including data migration, system reconfiguration, and staff training.
+This guide provides comprehensive instructions for migrating from foodMine (FoodMine POS) to Restaurant POS, including data migration, system reconfiguration, and staff training.
 
 ## Table of Contents
 
@@ -20,12 +20,12 @@ This guide provides comprehensive instructions for migrating from PharmaMine (ph
 
 ### What Changes During Migration
 
-The migration transforms PharmaMine from a pharmaceutical POS system to a comprehensive restaurant management system, including:
+The migration transforms foodMine from a pharmaceutical POS system to a comprehensive restaurant management system, including:
 
 - **UI Terminology**: Products → Menu Items, Categories → Food Categories
 - **Database Schema**: Removal of pharmaceutical fields, addition of restaurant-specific tables
 - **New Modules**: Recipes, Kitchen Display, Table Management, Combo Meals, Analytics
-- **Workflow Changes**: Pharmacy dispensing → Restaurant service operations
+- **Workflow Changes**: FoodMine dispensing → Restaurant service operations
 
 ### Migration Process Summary
 

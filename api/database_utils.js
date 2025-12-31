@@ -190,7 +190,7 @@ function createBackup(backupDir, progressCallback) {
     return new Promise((resolve, reject) => {
         try {
             const timestamp = new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').split('.')[0];
-            const backupFileName = `pharmamine_backup_${timestamp}.zip`;
+            const backupFileName = `foodMine_backup_${timestamp}.zip`;
             const backupPath = path.join(backupDir, backupFileName);
 
             // Ensure backup directory exists
@@ -236,7 +236,7 @@ function createBackup(backupDir, progressCallback) {
             // Add backup metadata
             const metadata = {
                 backupVersion: '1.0',
-                application: 'PharmaMine',
+                application: 'foodMine',
                 timestamp: new Date().toISOString(),
                 databases: dbFiles.map(db => ({
                     name: db.name,
@@ -412,11 +412,11 @@ function getBackupFiles(backupDir) {
 
         const files = fs.readdirSync(backupDir);
         return files
-            .filter(file => file.startsWith('pharmamine_backup_') && file.endsWith('.zip'))
+            .filter(file => file.startsWith('foodMine_backup_') && file.endsWith('.zip'))
             .map(file => {
                 const filePath = path.join(backupDir, file);
                 const stats = fs.statSync(filePath);
-                const timestamp = file.replace('pharmamine_backup_', '').replace('.zip', '').replace(/_/g, ' ');
+                const timestamp = file.replace('foodMine_backup_', '').replace('.zip', '').replace(/_/g, ' ');
 
                 return {
                     filename: file,

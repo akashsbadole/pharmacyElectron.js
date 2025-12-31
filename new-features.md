@@ -8,7 +8,7 @@
 ---
 
 ### **Missing Features (Not Yet Implemented in Pharmingo)**
-These are features that are standard in pharmacy management systems but are **not present** in the current Pharmingo repository:
+These are features that are standard in FoodMine management systems but are **not present** in the current Pharmingo repository:
 
 1. **Inventory Tracking & Alerts**
    - Real-time stock updates, low stock alerts, and automated reordering.
@@ -50,7 +50,7 @@ These are features that are standard in pharmacy management systems but are **no
 
 ### **How to Prioritize for MVP**
 For a **minimum viable product (MVP)**, focus on:
-- **Inventory Tracking** (critical for pharmacy operations)
+- **Inventory Tracking** (critical for FoodMine operations)
 - **Prescription Management** (for compliance and patient safety)
 - **Basic Reporting** (for business insights)
 - **Supplier Management** (to streamline procurement)

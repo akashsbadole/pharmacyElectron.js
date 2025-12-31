@@ -1,5 +1,5 @@
 /**
- * Backup and Restore functionality for PharmaMine
+ * Backup and Restore functionality for foodMine
  * Handles database backup creation, restoration, and file management
  */
 
