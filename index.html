@@ -1526,20 +1526,63 @@
                                                         </div>
                                                         <small class="text-muted">Optional packaging charge for takeaway orders</small>
                                                     </div>
-                                                    <div class="form-group">
-                                                        <label><input type="checkbox" name="enable_packaging_charge" id="enable_packaging_charge">
-                                                            Enable Packaging Charge for Takeaway Orders</label>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="form-group">
-                                                <input id="save_settings" type="submit"
-                                                    class="btn btn-success btn-block waves-effect waves-light"
-                                                    value="Save Settings">
-                                            </div>
-                                        </div>
-                                    </form>
+                            <div class="form-group">
+                                <label><input type="checkbox" name="enable_packaging_charge" id="enable_packaging_charge">
+                                    Enable Packaging Charge for Takeaway Orders</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- License Management Section -->
+                    <div class="row" id="licenseSection" style="border-top: 1px solid #eee; padding-top: 20px; margin-top: 20px;">
+                        <div class="col-md-12">
+                            <h4>License Management</h4>
+                            <div id="licenseStatus" class="alert" style="display: none;">
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <strong>Status:</strong> <span id="licenseStatusText">Checking...</span><br>
+                                        <strong>Email:</strong> <span id="licenseEmailText">-</span><br>
+                                        <strong>License Key:</strong> <span id="licenseKeyText">-</span><br>
+                                        <strong>Expiry Date:</strong> <span id="licenseExpiryText">-</span>
+                                    </div>
+                                    <div class="col-md-4 text-right">
+                                        <button id="activateLicenseBtn" class="btn btn-primary" style="display: none;">Activate License</button>
+                                        <button id="renewLicenseBtn" class="btn btn-success" style="display: none;">Renew License</button>
+                                        <button id="deactivateLicenseBtn" class="btn btn-danger" style="display: none;">Deactivate License</button>
+                                    </div>
                                 </div>
+                            </div>
+                            <div id="licenseActions" class="row" style="margin-top: 15px;">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="licenseKeyInput">License Key</label>
+                                        <input type="text" id="licenseKeyInput" class="form-control" placeholder="Enter license key">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="licenseEmailInput">Email Address</label>
+                                        <input type="email" id="licenseEmailInput" class="form-control" placeholder="Enter email address">
+                                    </div>
+                                </div>
+                                <div class="col-md-12">
+                                    <button id="manualActivateBtn" class="btn btn-success">Activate License</button>
+                                    <button id="checkLicenseBtn" class="btn btn-info">Check License Status</button>
+                                    <button id="clearLicenseBtn" class="btn btn-warning">Clear License</button>
+                                    <small class="text-muted" style="margin-left: 15px;">Note: License activation requires internet connection</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <input id="save_settings" type="submit"
+                            class="btn btn-success btn-block waves-effect waves-light"
+                            value="Save Settings">
+                    </div>
+                </div>
+            </form>
+        </div>
 
                                 <!-- Happy Hour Tab -->
                                 <div role="tabpanel" class="tab-pane" id="happyHourTab">

@@ -1498,9 +1498,191 @@ window.appActions = {
 
 // Initialize app when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('Initializing foodMine app...');
-  window.pharmaApp = new foodMineApp();
+    console.log('Initializing foodMine app...');
+    window.pharmaApp = new foodMineApp();
+    
+    // Initialize license management UI
+    initializeLicenseManagement();
 });
+
+/**
+ * Initialize license management UI functionality
+ */
+function initializeLicenseManagement() {
+    // License status display elements
+    const licenseStatus = document.getElementById('licenseStatus');
+    const licenseStatusText = document.getElementById('licenseStatusText');
+    const licenseEmailText = document.getElementById('licenseEmailText');
+    const licenseKeyText = document.getElementById('licenseKeyText');
+    const licenseExpiryText = document.getElementById('licenseExpiryText');
+    
+    // License action buttons
+    const activateLicenseBtn = document.getElementById('activateLicenseBtn');
+    const renewLicenseBtn = document.getElementById('renewLicenseBtn');
+    const deactivateLicenseBtn = document.getElementById('deactivateLicenseBtn');
+    
+    // License input fields and buttons
+    const licenseKeyInput = document.getElementById('licenseKeyInput');
+    const licenseEmailInput = document.getElementById('licenseEmailInput');
+    const manualActivateBtn = document.getElementById('manualActivateBtn');
+    const checkLicenseBtn = document.getElementById('checkLicenseBtn');
+    const clearLicenseBtn = document.getElementById('clearLicenseBtn');
+    
+    // Initialize license status display
+    updateLicenseStatusDisplay();
+    
+    // Event listeners for license buttons
+    if (manualActivateBtn) {
+        manualActivateBtn.addEventListener('click', async () => {
+            const licenseKey = licenseKeyInput.value.trim();
+            const email = licenseEmailInput.value.trim();
+            
+            if (!licenseKey || !email) {
+                alert('Please enter both license key and email address.');
+                return;
+            }
+            
+            manualActivateBtn.disabled = true;
+            manualActivateBtn.textContent = 'Activating...';
+            
+            try {
+                const result = await activateLicense(licenseKey, email);
+                
+                if (result.success) {
+                    alert('License activated successfully!');
+                    updateLicenseStatusDisplay();
+                    licenseKeyInput.value = '';
+                    licenseEmailInput.value = '';
+                } else {
+                    alert('License activation failed: ' + result.error);
+                }
+            } catch (error) {
+                alert('Network error. Please try again.');
+                console.error('License activation error:', error);
+            } finally {
+                manualActivateBtn.disabled = false;
+                manualActivateBtn.textContent = 'Activate License';
+            }
+        });
+    }
+    
+    if (checkLicenseBtn) {
+        checkLicenseBtn.addEventListener('click', () => {
+            updateLicenseStatusDisplay();
+        });
+    }
+    
+    if (clearLicenseBtn) {
+        clearLicenseBtn.addEventListener('click', () => {
+            if (confirm('Are you sure you want to clear the license? This will require reactivation.')) {
+                clearLicense();
+                updateLicenseStatusDisplay();
+            }
+        });
+    }
+    
+    // Listen for license status changes
+    if (window.addEventListener) {
+        window.addEventListener('license-status-changed', (event) => {
+            updateLicenseStatusDisplay();
+        });
+    }
+}
+
+/**
+ * Update license status display
+ */
+async function updateLicenseStatusDisplay() {
+    const licenseStatus = document.getElementById('licenseStatus');
+    const licenseStatusText = document.getElementById('licenseStatusText');
+    const licenseEmailText = document.getElementById('licenseEmailText');
+    const licenseKeyText = document.getElementById('licenseKeyText');
+    const licenseExpiryText = document.getElementById('licenseExpiryText');
+    
+    const activateLicenseBtn = document.getElementById('activateLicenseBtn');
+    const renewLicenseBtn = document.getElementById('renewLicenseBtn');
+    const deactivateLicenseBtn = document.getElementById('deactivateLicenseBtn');
+    
+    try {
+        // Try to get license status from main process
+        if (window.electron && window.electron.ipcRenderer) {
+            const licenseStatusData = await window.electron.ipcRenderer.invoke('get-license-status');
+            
+            if (licenseStatusData && licenseStatusData.isValid) {
+                licenseStatus.className = 'alert alert-success';
+                licenseStatus.style.display = 'block';
+                licenseStatusText.textContent = licenseStatusData.isGracePeriod ? 'Active (Grace Period)' : 'Active';
+                licenseEmailText.textContent = licenseStatusData.license ? licenseStatusData.license.email : '-';
+                licenseKeyText.textContent = licenseStatusData.license ? 
+                    licenseStatusData.license.license_key.substring(0, 10) + '...' : '-';
+                licenseExpiryText.textContent = licenseStatusData.license && licenseStatusData.license.expiry_date ? 
+                    new Date(licenseStatusData.license.expiry_date).toLocaleDateString() : '-';
+                
+                // Show appropriate buttons
+                if (activateLicenseBtn) activateLicenseBtn.style.display = 'none';
+                if (renewLicenseBtn) renewLicenseBtn.style.display = 'inline-block';
+                if (deactivateLicenseBtn) deactivateLicenseBtn.style.display = 'inline-block';
+            } else {
+                licenseStatus.className = 'alert alert-warning';
+                licenseStatus.style.display = 'block';
+                licenseStatusText.textContent = 'No Valid License';
+                licenseEmailText.textContent = '-';
+                licenseKeyText.textContent = '-';
+                licenseExpiryText.textContent = '-';
+                
+                // Show activate button
+                if (activateLicenseBtn) activateLicenseBtn.style.display = 'inline-block';
+                if (renewLicenseBtn) renewLicenseBtn.style.display = 'none';
+                if (deactivateLicenseBtn) deactivateLicenseBtn.style.display = 'none';
+            }
+        } else {
+            // Fallback for web environment
+            licenseStatus.className = 'alert alert-info';
+            licenseStatus.style.display = 'block';
+            licenseStatusText.textContent = 'License checking not available in web environment';
+            licenseEmailText.textContent = '-';
+            licenseKeyText.textContent = '-';
+            licenseExpiryText.textContent = '-';
+        }
+    } catch (error) {
+        console.error('Error updating license status:', error);
+        licenseStatus.className = 'alert alert-danger';
+        licenseStatus.style.display = 'block';
+        licenseStatusText.textContent = 'Error checking license status';
+        licenseEmailText.textContent = '-';
+        licenseKeyText.textContent = '-';
+        licenseExpiryText.textContent = '-';
+    }
+}
+
+/**
+ * Activate a license
+ */
+async function activateLicense(licenseKey, email) {
+    try {
+        if (window.electron && window.electron.ipcRenderer) {
+            return await window.electron.ipcRenderer.invoke('activate-license', licenseKey, email);
+        } else {
+            // Fallback for web environment
+            return { success: false, error: 'License activation not available in web environment' };
+        }
+    } catch (error) {
+        return { success: false, error: 'Network error. Please try again.' };
+    }
+}
+
+/**
+ * Clear license
+ */
+function clearLicense() {
+    try {
+        if (window.electron && window.electron.ipcRenderer) {
+            window.electron.ipcRenderer.send('clear-license');
+        }
+    } catch (error) {
+        console.error('Error clearing license:', error);
+    }
+}
 
 // Export for use in other modules and Node.js
 if (typeof module !== 'undefined' && module.exports) {

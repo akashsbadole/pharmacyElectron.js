@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FoodMine License Portal</title>
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --bg-color: #f8f9fa;
+            --text-color: #333;
+            --card-bg: #fff;
+            --border-color: #dee2e6;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: var(--secondary-color);
+            font-size: 1.1rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+
+        .btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn:hover {
+            background-color: #0056b3;
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary-color);
+        }
+
+        .btn-secondary:hover {
+            background-color: #545b62;
+        }
+
+        .btn-success {
+            background-color: var(--success-color);
+        }
+
+        .btn-success:hover {
+            background-color: #1e7e34;
+        }
+
+        .btn-danger {
+            background-color: var(--danger-color);
+        }
+
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border: 1px solid transparent;
+        }
+
+        .alert-success {
+            color: #155724;
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+
+        .alert-danger {
+            color: #721c24;
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+
+        .alert-info {
+            color: #0c5460;
+            background-color: #d1ecf1;
+            border-color: #bee5eb;
+        }
+
+        .license-result {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 20px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .license-key {
+            font-family: 'Courier New', monospace;
+            font-size: 1.2rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+            color: var(--primary-color);
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            color: var(--secondary-color);
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>FoodMine License Portal</h1>
+            <p class="subtitle">Generate and manage licenses for your FoodMine POS system</p>
+        </header>
+
+        <!-- License Generation Form -->
+        <div class="card">
+            <h2>Generate New License</h2>
+            <form id="licenseForm">
+                <div class="grid">
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" name="email" required placeholder="Enter customer email">
+                    </div>
+                    <div class="form-group">
+                        <label for="subscriptionType">Subscription Type</label>
+                        <select id="subscriptionType" name="subscriptionType">
+                            <option value="basic">Basic (1 Month)</option>
+                            <option value="pro">Pro (1 Month)</option>
+                            <option value="enterprise">Enterprise (1 Month)</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="sendEmail" name="sendEmail" checked>
+                        Send license key to email
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <button type="submit" class="btn" id="generateBtn">
+                        <span id="generateText">Generate License</span>
+                        <span id="loadingSpinner" class="spinner" style="display: none;"></span>
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="resetForm">Reset Form</button>
+                </div>
+            </form>
+
+            <div id="message" class="alert hidden"></div>
+
+            <div id="licenseResult" class="license-result">
+                <h3>License Generated Successfully!</h3>
+                <p><strong>Email:</strong> <span id="resultEmail"></span></p>
+                <p><strong>License Key:</strong></p>
+                <div class="license-key" id="resultLicenseKey"></div>
+                <p><strong>Subscription Type:</strong> <span id="resultType"></span></p>
+                <p><strong>Expiry Date:</strong> <span id="resultExpiry"></span></p>
+                
+                <div style="margin-top: 20px;">
+                    <button class="btn btn-success" onclick="copyToClipboard()">Copy License Key</button>
+                    <button class="btn btn-secondary" onclick="printLicense()">Print License</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- License Status Check -->
+        <div class="card">
+            <h2>Check License Status</h2>
+            <form id="statusForm">
+                <div class="grid">
+                    <div class="form-group">
+                        <label for="checkEmail">Email Address</label>
+                        <input type="email" id="checkEmail" name="checkEmail" placeholder="Enter email to check">
+                    </div>
+                    <div class="form-group">
+                        <label for="checkLicenseKey">Or License Key</label>
+                        <input type="text" id="checkLicenseKey" name="checkLicenseKey" placeholder="Enter license key">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <button type="submit" class="btn btn-secondary">Check Status</button>
+                    <button type="button" class="btn btn-danger" id="clearStatus">Clear</button>
+                </div>
+            </form>
+
+            <div id="statusResult" class="license-result" style="display: block; margin-top: 20px;">
+                <h3>License Status</h3>
+                <div id="statusContent">
+                    <p>Please enter an email address or license key to check status.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Panel -->
+        <div class="card">
+            <h2>Admin Panel</h2>
+            <div class="alert alert-info">
+                <strong>Note:</strong> This is a simple interface. For full admin functionality, access your Google Sheet directly.
+            </div>
+            
+            <div class="grid">
+                <div class="form-group">
+                    <label>Google Sheet Access</label>
+                    <p>Manage licenses directly in your Google Sheet:</p>
+                    <a href="#" id="sheetLink" class="btn btn-secondary" target="_blank">Open Google Sheet</a>
+                </div>
+                <div class="form-group">
+                    <label>API Endpoint</label>
+                    <p>Use this endpoint for programmatic access:</p>
+                    <code id="apiEndpoint" style="background: #f8f9fa; padding: 5px; border: 1px solid #dee2e6; border-radius: 3px; display: block; margin-top: 5px;"></code>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>&copy; 2024 FoodMine POS System. All rights reserved.</p>
+            <p>For support, contact your administrator.</p>
+        </footer>
+    </div>
+
+    <script>
+        // Configuration - Update these with your actual values
+        const CONFIG = {
+            // Replace with your deployed Google Apps Script URL
+            API_URL: 'https://script.google.com/macros/s/1ehdDZifdS3eMPhmvHnP825zsxejEACG7iyf3fEiKlZw/exec',
+            SHEET_ID: '1ehdDZifdS3eMPhmvHnP825zsxejEACG7iyf3fEiKlZw'
+        };
+
+        // Update UI with configuration
+        document.getElementById('sheetLink').href = `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/edit`;
+        document.getElementById('apiEndpoint').textContent = `${CONFIG.API_URL}?path=/validate&license_key=YOUR_KEY`;
+
+        // Form handlers
+        document.getElementById('licenseForm').addEventListener('submit', generateLicense);
+        document.getElementById('statusForm').addEventListener('submit', checkLicenseStatus);
+        document.getElementById('resetForm').addEventListener('click', resetForm);
+        document.getElementById('clearStatus').addEventListener('click', clearStatus);
+
+        // Generate License Function
+        async function generateLicense(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const subscriptionType = document.getElementById('subscriptionType').value;
+            const sendEmail = document.getElementById('sendEmail').checked;
+
+            if (!validateEmail(email)) {
+                showMessage('Please enter a valid email address.', 'danger');
+                return;
+            }
+
+            const btn = document.getElementById('generateBtn');
+            const text = document.getElementById('generateText');
+            const spinner = document.getElementById('loadingSpinner');
+
+            btn.classList.add('loading');
+            text.style.display = 'none';
+            spinner.style.display = 'inline-block';
+
+            try {
+                const response = await fetch(`${CONFIG.API_URL}?path=/generate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        type: subscriptionType,
+                        send_email: sendEmail
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showLicenseResult(data);
+                    showMessage('License generated successfully!', 'success');
+                } else {
+                    showMessage(data.error || 'Failed to generate license.', 'danger');
+                }
+            } catch (error) {
+                showMessage('Network error. Please try again.', 'danger');
+                console.error('Error:', error);
+            } finally {
+                btn.classList.remove('loading');
+                text.style.display = 'inline-block';
+                spinner.style.display = 'none';
+            }
+        }
+
+        // Check License Status Function
+        async function checkLicenseStatus(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('checkEmail').value;
+            const licenseKey = document.getElementById('checkLicenseKey').value;
+
+            if (!email && !licenseKey) {
+                showStatusResult({
+                    success: false,
+                    message: 'Please enter an email address or license key.'
+                });
+                return;
+            }
+
+            try {
+                let url = CONFIG.API_URL;
+                if (email) {
+                    url += `?path=/status&email=${encodeURIComponent(email)}`;
+                } else if (licenseKey) {
+                    url += `?path=/validate&license_key=${encodeURIComponent(licenseKey)}`;
+                }
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                showStatusResult(data);
+            } catch (error) {
+                showStatusResult({
+                    success: false,
+                    message: 'Network error. Please try again.'
+                });
+                console.error('Error:', error);
+            }
+        }
+
+        // UI Helper Functions
+        function showMessage(message, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.className = `alert alert-${type}`;
+            messageDiv.textContent = message;
+            messageDiv.classList.remove('hidden');
+            
+            setTimeout(() => {
+                messageDiv.classList.add('hidden');
+            }, 5000);
+        }
+
+        function showLicenseResult(data) {
+            document.getElementById('resultEmail').textContent = data.email;
+            document.getElementById('resultLicenseKey').textContent = data.license_key;
+            document.getElementById('resultType').textContent = data.subscription_type;
+            document.getElementById('resultExpiry').textContent = new Date(data.expiry_date).toLocaleDateString();
+            
+            document.getElementById('licenseResult').style.display = 'block';
+        }
+
+        function showStatusResult(data) {
+            const content = document.getElementById('statusContent');
+            
+            if (data.success) {
+                if (data.license) {
+                    content.innerHTML = `
+                        <p><strong>Status:</strong> <span style="color: green; font-weight: bold;">${data.license.status}</span></p>
+                        <p><strong>Email:</strong> ${data.license.email}</p>
+                        <p><strong>License Key:</strong> ${data.license.license_key}</p>
+                        <p><strong>Subscription Type:</strong> ${data.license.subscription_type}</p>
+                        <p><strong>Expiry Date:</strong> ${new Date(data.license.expiry_date).toLocaleDateString()}</p>
+                        ${data.license.activation_date ? `<p><strong>Activation Date:</strong> ${new Date(data.license.activation_date).toLocaleDateString()}</p>` : ''}
+                    `;
+                } else if (data.license_key) {
+                    content.innerHTML = `
+                        <p><strong>Status:</strong> <span style="color: green; font-weight: bold;">Active</span></p>
+                        <p><strong>License Key:</strong> ${data.license_key}</p>
+                        <p><strong>Email:</strong> ${data.email}</p>
+                        <p><strong>Expiry Date:</strong> ${new Date(data.expiry_date).toLocaleDateString()}</p>
+                    `;
+                }
+            } else {
+                content.innerHTML = `
+                    <p><strong>Status:</strong> <span style="color: red; font-weight: bold;">Invalid</span></p>
+                    <p><strong>Error:</strong> ${data.error || 'License not found or expired'}</p>
+                `;
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('licenseForm').reset();
+            document.getElementById('licenseResult').style.display = 'none';
+            document.getElementById('message').classList.add('hidden');
+        }
+
+        function clearStatus() {
+            document.getElementById('statusForm').reset();
+            document.getElementById('statusContent').innerHTML = '<p>Please enter an email address or license key to check status.</p>';
+        }
+
+        function copyToClipboard() {
+            const licenseKey = document.getElementById('resultLicenseKey').textContent;
+            navigator.clipboard.writeText(licenseKey).then(() => {
+                showMessage('License key copied to clipboard!', 'success');
+            });
+        }
+
+        function printLicense() {
+            window.print();
+        }
+
+        function validateEmail(email) {
+            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return re.test(email);
+        }
+    </script>
+</body>
+</html>

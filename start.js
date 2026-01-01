@@ -18,6 +18,11 @@ let mainWindow;
 let customerDisplayWindow = null;
 let kotDisplayWindow = null;
 
+// License checking variables
+let licenseCheckCompleted = false;
+let licenseValid = false;
+let licenseGracePeriod = false;
+
 //stop app from launching multiple times during these squirrel spawning events
 if (require('electron-squirrel-startup')) app.quit();
 
@@ -128,7 +133,19 @@ app.on("browser-window-created", (_, window) => {
 
 let serverReady = false;
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+    // First, check license before creating main window
+    const licenseValid = await checkLicenseBeforeStartup();
+    
+    if (!licenseValid) {
+        // Show license dialog and wait for activation
+        const activationSuccessful = await showLicenseActivationDialog();
+        if (!activationSuccessful) {
+            app.quit();
+            return;
+        }
+    }
+
     createWindow();
 
     // Monitor for server readiness
@@ -415,3 +432,305 @@ if (!isPackaged) {
         require("electron-reloader")(module);
     } catch (_) { }
 }
+
+/**
+ * License checking functions
+ */
+
+// License configuration
+const LICENSE_CONFIG = {
+    API_URL: 'https://script.google.com/macros/s/AKfycbycaTL7DqADUwcHDujyFdRqSpeaUCIrzCx4F6-W7tikXmmT9kxwO_iLRTgsdNn2WzL7/exec',
+    GRACE_PERIOD_DAYS: 7,
+    STORAGE_KEY: 'foodmine_license'
+};
+
+/**
+ * Check license before application startup
+ */
+async function checkLicenseBeforeStartup() {
+    try {
+        // Try to load existing license from storage
+        const license = loadLicenseFromStorage();
+        
+        if (!license || !license.license_key) {
+            console.log('No license found');
+            return false;
+        }
+
+        // Check license online
+        const isValid = await validateLicenseOnline(license.license_key, license.email);
+        
+        if (isValid) {
+            console.log('License is valid');
+            licenseValid = true;
+            licenseGracePeriod = false;
+            return true;
+        } else {
+            // Check if expired but in grace period
+            const expiryDate = new Date(license.expiry_date);
+            const now = new Date();
+            const graceEndDate = new Date(expiryDate.getTime() + (LICENSE_CONFIG.GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000));
+            
+            if (now <= graceEndDate) {
+                console.log('License expired but in grace period');
+                licenseValid = true;
+                licenseGracePeriod = true;
+                return true;
+            } else {
+                console.log('License has expired');
+                licenseValid = false;
+                licenseGracePeriod = false;
+                return false;
+            }
+        }
+        
+    } catch (error) {
+        console.error('License check failed:', error);
+        return false;
+    }
+}
+
+/**
+ * Show license activation dialog
+ */
+async function showLicenseActivationDialog() {
+    return new Promise((resolve) => {
+        const dialog = new BrowserWindow({
+            width: 400,
+            height: 300,
+            modal: true,
+            parent: mainWindow,
+            resizable: false,
+            title: 'License Activation Required',
+            webPreferences: {
+                nodeIntegration: false,
+                contextIsolation: true
+            }
+        });
+
+        dialog.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>License Activation</title>
+                <style>
+                    body { font-family: Arial, sans-serif; padding: 20px; }
+                    .container { max-width: 350px; margin: 0 auto; }
+                    h3 { color: #333; }
+                    .form-group { margin-bottom: 15px; }
+                    label { display: block; margin-bottom: 5px; font-weight: bold; }
+                    input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+                    .buttons { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+                    button { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; }
+                    .btn-primary { background: #007bff; color: white; }
+                    .btn-secondary { background: #6c757d; color: white; }
+                    .error { color: red; margin-top: 10px; }
+                    .success { color: green; margin-top: 10px; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h3>License Activation Required</h3>
+                    <p>Please enter your license key to activate the application.</p>
+                    
+                    <div class="form-group">
+                        <label>Email Address</label>
+                        <input type="email" id="email" placeholder="Enter your email">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>License Key</label>
+                        <input type="text" id="licenseKey" placeholder="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXX">
+                    </div>
+                    
+                    <div id="message" class="error" style="display: none;"></div>
+                    
+                    <div class="buttons">
+                        <button class="btn-secondary" id="cancelBtn">Cancel</button>
+                        <button class="btn-primary" id="activateBtn">Activate</button>
+                    </div>
+                </div>
+                
+                <script>
+                    const { ipcRenderer } = require('electron');
+                    
+                    document.getElementById('activateBtn').addEventListener('click', async () => {
+                        const email = document.getElementById('email').value.trim();
+                        const licenseKey = document.getElementById('licenseKey').value.trim();
+                        
+                        if (!email || !licenseKey) {
+                            document.getElementById('message').style.display = 'block';
+                            document.getElementById('message').textContent = 'Please enter both email and license key.';
+                            return;
+                        }
+                        
+                        document.getElementById('activateBtn').disabled = true;
+                        document.getElementById('activateBtn').textContent = 'Activating...';
+                        
+                        try {
+                            const result = await ipcRenderer.invoke('activate-license', licenseKey, email);
+                            
+                            if (result.success) {
+                                document.getElementById('message').className = 'success';
+                                document.getElementById('message').style.display = 'block';
+                                document.getElementById('message').textContent = 'License activated successfully!';
+                                
+                                setTimeout(() => {
+                                    window.close();
+                                    ipcRenderer.send('license-activated');
+                                }, 1000);
+                            } else {
+                                document.getElementById('message').className = 'error';
+                                document.getElementById('message').style.display = 'block';
+                                document.getElementById('message').textContent = result.error;
+                                document.getElementById('activateBtn').disabled = false;
+                                document.getElementById('activateBtn').textContent = 'Activate';
+                            }
+                        } catch (error) {
+                            document.getElementById('message').className = 'error';
+                            document.getElementById('message').style.display = 'block';
+                            document.getElementById('message').textContent = 'Network error. Please try again.';
+                            document.getElementById('activateBtn').disabled = false;
+                            document.getElementById('activateBtn').textContent = 'Activate';
+                        }
+                    });
+                    
+                    document.getElementById('cancelBtn').addEventListener('click', () => {
+                        window.close();
+                        ipcRenderer.send('license-cancelled');
+                    });
+                </script>
+            </body>
+            </html>
+        `)}`);
+
+        dialog.on('closed', () => {
+            resolve(false);
+        });
+    });
+}
+
+/**
+ * Load license from storage
+ */
+function loadLicenseFromStorage() {
+    try {
+        const { app } = require('electron');
+        const path = require('path');
+        const fs = require('fs');
+        
+        const userDataPath = app.getPath('userData');
+        const licensePath = path.join(userDataPath, 'license.json');
+        
+        if (fs.existsSync(licensePath)) {
+            const data = fs.readFileSync(licensePath, 'utf8');
+            return JSON.parse(data);
+        }
+    } catch (error) {
+        console.warn('Could not load license from storage:', error);
+    }
+    return null;
+}
+
+/**
+ * Save license to storage
+ */
+function saveLicenseToStorage(license) {
+    try {
+        const { app } = require('electron');
+        const path = require('path');
+        const fs = require('fs');
+        
+        const userDataPath = app.getPath('userData');
+        const licensePath = path.join(userDataPath, 'license.json');
+        
+        fs.writeFileSync(licensePath, JSON.stringify(license, null, 2));
+    } catch (error) {
+        console.warn('Could not save license to storage:', error);
+    }
+}
+
+/**
+ * Validate license online
+ */
+async function validateLicenseOnline(licenseKey, email) {
+    try {
+        const response = await fetch(`${LICENSE_CONFIG.API_URL}?path=/validate&license_key=${encodeURIComponent(licenseKey)}&email=${encodeURIComponent(email)}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        
+        if (data.success) {
+            // Save updated license info
+            const license = {
+                license_key: licenseKey,
+                email: email,
+                status: data.status,
+                expiry_date: data.expiry_date,
+                activation_date: data.activation_date,
+                hardware_id: data.hardware_id
+            };
+            saveLicenseToStorage(license);
+            return true;
+        } else {
+            return false;
+        }
+        
+    } catch (error) {
+        console.error('License validation failed:', error);
+        return false;
+    }
+}
+
+/**
+ * Activate license
+ */
+async function activateLicense(licenseKey, email) {
+    try {
+        const response = await fetch(`${LICENSE_CONFIG.API_URL}?path=/activate`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                license_key: licenseKey,
+                email: email
+            })
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+            // Save license info
+            const license = {
+                license_key: licenseKey,
+                email: email,
+                status: data.status,
+                activation_date: new Date().toISOString()
+            };
+            saveLicenseToStorage(license);
+            return { success: true, message: 'License activated successfully' };
+        } else {
+            return { success: false, error: data.error };
+        }
+        
+    } catch (error) {
+        return { success: false, error: 'Network error. Please try again.' };
+    }
+}
+
+// IPC handlers for license operations
+ipcMain.handle('activate-license', activateLicense);
+
+ipcMain.on('license-activated', () => {
+    licenseValid = true;
+    licenseGracePeriod = false;
+});
+
+ipcMain.on('license-cancelled', () => {
+    licenseValid = false;
+    licenseGracePeriod = false;
+});
