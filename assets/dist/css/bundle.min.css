@@ -29243,7 +29243,7 @@ div.table-responsive>div.dataTables_wrapper>div.row>div[class^=col-]:last-child 
 #total_items,
 #total_products,
 #total_sales,
-#total_transactions {
+#total_transactions, #total_suppliers {
     color: #fff;
     height: 120px;
     border: 1px solid #fff;

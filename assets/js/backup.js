@@ -34,10 +34,16 @@ class BackupManager {
         // Security Settings Save
         $('#saveSecurityBtn').on('click', () => this.saveSecurity());
 
+        // Local Folder Backup Events
+        $('#browseLocalBackupPath').on('click', () => this.browseLocalBackupPath());
+        $('#saveLocalBackupPathBtn').on('click', () => this.saveLocalBackupPath());
+        $('#manualLocalBackupBtn').on('click', () => this.createLocalBackup());
+
         // Settings modal tab change - reload backup data when tab becomes active
         $('a[href="#backupRestoreTab"]').on('shown.bs.tab', (e) => {
             this.loadBackupStatistics();
             this.loadBackupHistory();
+            this.loadLocalBackupSettings();
         });
     }
 
@@ -46,6 +52,7 @@ class BackupManager {
         $('#settingsModal').on('shown.bs.modal', () => {
             this.loadBackupStatistics();
             this.loadSecuritySettings();
+            this.loadLocalBackupSettings();
         });
     }
 
@@ -93,6 +100,21 @@ class BackupManager {
             }
         } catch (error) {
             console.error('Error loading security settings:', error);
+        }
+    }
+
+    /**
+     * Load local backup folder settings
+     */
+    async loadLocalBackupSettings() {
+        try {
+            const response = await fetch(window.api + 'settings/get');
+            const data = await response.json();
+            const set = data.settings || {};
+
+            $('#localBackupPath').val(set.local_backup_folder || '');
+        } catch (error) {
+            console.error('Error loading local backup settings:', error);
         }
     }
 
@@ -541,26 +563,129 @@ class BackupManager {
     }
 
     /**
-     * Show notification to user
+     * Browse for local backup folder path
      */
-    showNotification(message, type = 'info') {
-        // Use Notiflix if available, otherwise use alert
-        if (typeof Notiflix !== 'undefined') {
-            switch (type) {
-                case 'success':
-                    Notiflix.Notify.success(message);
-                    break;
-                case 'error':
-                    Notiflix.Notify.failure(message);
-                    break;
-                case 'warning':
-                    Notiflix.Notify.warning(message);
-                    break;
-                default:
-                    Notiflix.Notify.info(message);
+    browseLocalBackupPath() {
+        // For simplicity, we'll use a prompt. In a real Electron app, this would use dialog.showOpenDialog
+        const currentPath = $('#localBackupPath').val() || '';
+        const newPath = prompt('Enter the full path to your backup folder:', currentPath);
+
+        if (newPath !== null && newPath.trim() !== '') {
+            $('#localBackupPath').val(newPath.trim());
+        }
+    }
+
+    /**
+     * Save local backup folder path to settings
+     */
+    async saveLocalBackupPath() {
+        const localBackupPath = $('#localBackupPath').val().trim();
+
+        if (!localBackupPath) {
+            this.showNotification('Please enter a backup folder path', 'warning');
+            return;
+        }
+
+        try {
+            // Get current settings
+            const response = await fetch(window.api + 'settings/get');
+            const data = await response.json();
+            const settings = data.settings || {};
+
+            // Update local backup folder
+            settings.local_backup_folder = localBackupPath;
+
+            // Save settings
+            const saveResp = await fetch(window.api + 'settings/post', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(settings)
+            });
+
+            if (saveResp.ok) {
+                this.showNotification('Local backup folder path saved successfully', 'success');
+            } else {
+                throw new Error('Failed to save backup folder path');
             }
-        } else {
-            alert(message);
+        } catch (error) {
+            console.error('Error saving local backup path:', error);
+            this.showNotification('Error saving backup folder path: ' + error.message, 'error');
+        }
+    }
+
+    /**
+     * Create backup to configured local folder
+     */
+    async createLocalBackup() {
+        try {
+            // Check if local backup path is configured
+            const response = await fetch(window.api + 'settings/get');
+            const data = await response.json();
+            const settings = data.settings || {};
+
+            if (!settings.local_backup_folder || settings.local_backup_folder.trim() === '') {
+                this.showNotification('Please configure a local backup folder path first', 'warning');
+                return;
+            }
+
+            // Show progress
+            this.showBackupProgress('Creating Local Backup', 0, 'Initializing local backup process...');
+
+            const backupResponse = await fetch(window.api + 'backup/create-local', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({})
+            });
+
+            if (!backupResponse.ok) {
+                throw new Error(`HTTP error! status: ${backupResponse.status}`);
+            }
+
+            // Handle streaming response for progress updates
+            const reader = backupResponse.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop(); // Keep the last incomplete line
+
+                for (const line of lines) {
+                    if (line.trim()) {
+                        try {
+                            const data = JSON.parse(line);
+                            if (data.progress !== undefined) {
+                                this.updateBackupProgress(data.progress, data.message);
+                            }
+                            if (data.success) {
+                                this.hideBackupProgress();
+                                this.showNotification('Backup created successfully in local folder!', 'success');
+                                // Show status message
+                                $('#localBackupStatusMessage').text('Backup completed successfully!');
+                                $('#localBackupStatus').removeClass('alert-info alert-danger').addClass('alert-success').show();
+                            }
+                            if (data.error) {
+                                throw new Error(data.message || 'Backup failed');
+                            }
+                        } catch (parseError) {
+                            console.warn('Could not parse progress line:', line);
+                        }
+                    }
+                }
+            }
+
+        } catch (error) {
+            console.error('Local backup creation error:', error);
+            this.hideBackupProgress();
+            this.showNotification('Local backup failed: ' + error.message, 'error');
+            $('#localBackupStatusMessage').text('Backup failed: ' + error.message);
+            $('#localBackupStatus').removeClass('alert-info alert-success').addClass('alert-danger').show();
         }
     }
 

@@ -520,6 +520,297 @@ app.post("/import/csv", function (req, res) {
 });
 
 /**
+ * POST endpoint: Update menu item pricing based on recipe costs
+ */
+app.post("/recipes/update-menu-pricing", function (req, res) {
+    const { recipeId, profitMargin, updateMenu } = req.body;
+
+    // Validate parameters
+    if (!recipeId) {
+        return res.status(400).json({
+            error: "Validation Error",
+            message: "Recipe ID is required."
+        });
+    }
+
+    const profitMarginValue = parseFloat(profitMargin) || 0.3; // Default 30% margin
+
+    recipesDB.findOne({ _id: recipeId }, function (err, recipe) {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({
+                error: "Internal Server Error",
+                message: "Failed to retrieve recipe."
+            });
+        }
+
+        if (!recipe) {
+            return res.status(404).json({
+                error: "Recipe not found",
+                message: "The specified recipe does not exist."
+            });
+        }
+
+        // Calculate suggested price based on recipe cost and profit margin
+        const recipeCost = recipe.cost_per_serving || 0;
+        const suggestedPrice = recipeCost * (1 + profitMarginValue);
+
+        const responseData = {
+            recipe_id: recipe._id,
+            recipe_name: recipe.name,
+            recipe_cost: recipeCost,
+            profit_margin: profitMarginValue,
+            suggested_price: suggestedPrice,
+            menu_item_updated: false,
+            menu_item_id: null,
+            old_price: null,
+            new_price: null
+        };
+
+        // If updateMenu is true and recipe has a linked menu item, update the menu item price
+        if (updateMenu && recipe.menu_item_id) {
+            // Get the inventory database
+            const inventoryDB = getDatabase(path.join(
+                appData,
+                appName,
+                "server",
+                "databases",
+                "products.db"
+            ));
+
+            inventoryDB.findOne({ _id: recipe.menu_item_id }, function (err, menuItem) {
+                if (err) {
+                    console.error("Error finding menu item:", err);
+                    return res.status(500).json({
+                        error: "Internal Server Error",
+                        message: "Failed to retrieve menu item."
+                    });
+                }
+
+                if (!menuItem) {
+                    return res.status(404).json({
+                        error: "Menu item not found",
+                        message: "The linked menu item does not exist."
+                    });
+                }
+
+                // Store old price for response
+                responseData.menu_item_id = menuItem._id;
+                responseData.old_price = menuItem.price;
+                responseData.new_price = suggestedPrice;
+
+                // Update menu item price
+                inventoryDB.update(
+                    { _id: menuItem._id },
+                    { $set: { price: suggestedPrice } },
+                    {},
+                    function (err, numReplaced) {
+                        if (err) {
+                            console.error("Error updating menu item price:", err);
+                            return res.status(500).json({
+                                error: "Internal Server Error",
+                                message: "Failed to update menu item price."
+                            });
+                        }
+
+                        if (numReplaced === 0) {
+                            return res.status(404).json({
+                                error: "Menu item not found",
+                                message: "The menu item to update does not exist."
+                            });
+                        }
+
+                        responseData.menu_item_updated = true;
+                        res.json(responseData);
+                    }
+                );
+            });
+        } else {
+            // Return suggested price without updating menu item
+            res.json(responseData);
+        }
+    });
+});
+
+/**
+ * GET endpoint: Get pricing suggestions for all recipes with menu items
+ */
+app.get("/recipes/pricing-suggestions", function (req, res) {
+    const defaultProfitMargin = parseFloat(req.query.profit_margin) || 0.3;
+
+    recipesDB.find({ menu_item_id: { $exists: true, $ne: null } }, function (err, recipes) {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({
+                error: "Internal Server Error",
+                message: "Failed to retrieve recipes."
+            });
+        }
+
+        const pricingSuggestions = recipes.map(recipe => {
+            const recipeCost = recipe.cost_per_serving || 0;
+            const suggestedPrice = recipeCost * (1 + defaultProfitMargin);
+
+            return {
+                recipe_id: recipe._id,
+                recipe_name: recipe.name,
+                menu_item_id: recipe.menu_item_id,
+                current_cost: recipeCost,
+                suggested_price: suggestedPrice,
+                profit_margin: defaultProfitMargin,
+                current_price: null // Will be populated below
+            };
+        });
+
+        // Get inventory database to fetch current menu item prices
+        const inventoryDB = getDatabase(path.join(
+            appData,
+            appName,
+            "server",
+            "databases",
+            "products.db"
+        ));
+
+        // Fetch current prices for all menu items
+        const menuItemIds = pricingSuggestions.map(s => s.menu_item_id);
+        inventoryDB.find({ _id: { $in: menuItemIds } }, function (err, menuItems) {
+            if (err) {
+                console.error("Error fetching menu items:", err);
+                return res.json(pricingSuggestions); // Return without current prices
+            }
+
+            // Map menu items to create a lookup
+            const menuItemMap = {};
+            menuItems.forEach(item => {
+                menuItemMap[item._id] = item.price;
+            });
+
+            // Update pricing suggestions with current prices
+            const suggestionsWithCurrentPrices = pricingSuggestions.map(suggestion => ({
+                ...suggestion,
+                current_price: menuItemMap[suggestion.menu_item_id] || null,
+                price_difference: suggestion.suggested_price - (menuItemMap[suggestion.menu_item_id] || 0)
+            }));
+
+            res.json(suggestionsWithCurrentPrices);
+        });
+    });
+});
+
+/**
+ * POST endpoint: Bulk update menu pricing based on recipes
+ */
+app.post("/recipes/bulk-update-menu-pricing", function (req, res) {
+    const { profitMargin, recipeIds } = req.body;
+    const profitMarginValue = parseFloat(profitMargin) || 0.3;
+
+    // Get inventory database
+    const inventoryDB = getDatabase(path.join(
+        appData,
+        appName,
+        "server",
+        "databases",
+        "products.db"
+    ));
+
+    // Find recipes to update
+    const query = recipeIds && recipeIds.length > 0
+        ? { _id: { $in: recipeIds }, menu_item_id: { $exists: true, $ne: null } }
+        : { menu_item_id: { $exists: true, $ne: null } };
+
+    recipesDB.find(query, function (err, recipes) {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({
+                error: "Internal Server Error",
+                message: "Failed to retrieve recipes."
+            });
+        }
+
+        if (!recipes || recipes.length === 0) {
+            return res.json({
+                success: true,
+                updated_count: 0,
+                message: "No recipes with linked menu items found to update."
+            });
+        }
+
+        // Prepare updates
+        const updates = recipes.map(recipe => {
+            const recipeCost = recipe.cost_per_serving || 0;
+            const newPrice = recipeCost * (1 + profitMarginValue);
+
+            return {
+                menu_item_id: recipe.menu_item_id,
+                new_price: newPrice,
+                recipe_id: recipe._id,
+                recipe_name: recipe.name,
+                old_price: null // Will be populated below
+            };
+        });
+
+        // Get current menu item prices
+        const menuItemIds = updates.map(u => u.menu_item_id);
+        inventoryDB.find({ _id: { $in: menuItemIds } }, function (err, menuItems) {
+            if (err) {
+                console.error("Error fetching menu items:", err);
+                return res.status(500).json({
+                    error: "Internal Server Error",
+                    message: "Failed to retrieve menu items."
+                });
+            }
+
+            // Create menu item lookup
+            const menuItemMap = {};
+            menuItems.forEach(item => {
+                menuItemMap[item._id] = item;
+            });
+
+            // Update with old prices and prepare bulk operations
+            const bulkOperations = updates.map(update => {
+                const menuItem = menuItemMap[update.menu_item_id];
+                if (menuItem) {
+                    update.old_price = menuItem.price;
+                    return {
+                        updateOne: {
+                            filter: { _id: menuItem._id },
+                            update: { $set: { price: update.new_price } }
+                        }
+                    };
+                }
+                return null;
+            }).filter(op => op !== null);
+
+            if (bulkOperations.length === 0) {
+                return res.json({
+                    success: true,
+                    updated_count: 0,
+                    message: "No valid menu items found to update."
+                });
+            }
+
+            // Execute bulk update
+            inventoryDB.bulkWrite(bulkOperations, function (err, result) {
+                if (err) {
+                    console.error("Error bulk updating menu items:", err);
+                    return res.status(500).json({
+                        error: "Internal Server Error",
+                        message: "Failed to update menu item prices."
+                    });
+                }
+
+                res.json({
+                    success: true,
+                    updated_count: result.modifiedCount || bulkOperations.length,
+                    updates: updates,
+                    message: "Menu item prices updated successfully based on recipe costs."
+                });
+            });
+        });
+    });
+});
+
+/**
  * GET endpoint: Get recipe nutritional information
  */
 app.get("/recipes/:recipeId/nutrition", function (req, res) {

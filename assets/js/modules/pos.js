@@ -8,6 +8,7 @@ class POSModule {
     this.container = null;
     this.showPayment = false;
     this.saleType = 'intra'; // intra or inter
+    this.orderType = 'dine-in'; // dine-in or takeaway
   }
   
   initialize() {
@@ -94,28 +95,60 @@ class POSModule {
     }
   }
   
-  addToCart(product) {
-    const posState = this.app.state.getModuleState('pos');
-    const cart = [...posState.cart];
-    
-    // Check if product already exists in cart
-    const existingIndex = cart.findIndex(item => item.id === product._id);
-    
-    if (existingIndex >= 0) {
-      // Increase quantity
-      cart[existingIndex].quantity += 1;
-    } else {
-      // Add new item
-      cart.push({
-        id: product._id,
-        product_name: product.name,
-        sku: product.barcode || product._id,
-        price: parseFloat(product.price),
-        quantity: 1
-      });
+  async addToCart(product) {
+    try {
+      // Fetch current price considering time-based pricing
+      const priceResponse = await fetch(`${window.api}inventory/product/${product._id}/current-price`);
+      const priceData = await priceResponse.json();
+
+      const currentPrice = priceData.current_price;
+      const discountInfo = priceData.discount_info;
+
+      const posState = this.app.state.getModuleState('pos');
+      const cart = [...posState.cart];
+
+      // Check if product already exists in cart
+      const existingIndex = cart.findIndex(item => item.id === product._id);
+
+      if (existingIndex >= 0) {
+        // Increase quantity
+        cart[existingIndex].quantity += 1;
+      } else {
+        // Add new item
+        cart.push({
+          id: product._id,
+          product_name: product.name,
+          sku: product.barcode || product._id,
+          price: currentPrice,
+          original_price: priceData.original_price,
+          discount_info: discountInfo,
+          quantity: 1
+        });
+      }
+
+      this.app.state.updateModule('pos', { cart });
+    } catch (error) {
+      console.error('Error fetching current price:', error);
+      // Fallback to original price
+      const posState = this.app.state.getModuleState('pos');
+      const cart = [...posState.cart];
+
+      const existingIndex = cart.findIndex(item => item.id === product._id);
+
+      if (existingIndex >= 0) {
+        cart[existingIndex].quantity += 1;
+      } else {
+        cart.push({
+          id: product._id,
+          product_name: product.name,
+          sku: product.barcode || product._id,
+          price: parseFloat(product.price),
+          quantity: 1
+        });
+      }
+
+      this.app.state.updateModule('pos', { cart });
     }
-    
-    this.app.state.updateModule('pos', { cart });
   }
   
   removeFromCart(index) {
@@ -186,8 +219,9 @@ class POSModule {
       customer: posState.currentCustomer || { id: 0, name: 'Walk in customer' },
       status: 0, // 0 for Hold
       subtotal: parseFloat(totals.subtotal),
+      packaging_fee: parseFloat(totals.packagingFee),
       tax: parseFloat(totals.tax),
-      order_type: 1,
+      order_type: this.orderType === 'takeaway' ? 2 : 1, // 1 for dine-in, 2 for takeaway
       items: posState.cart,
       date: new Date(),
       total: parseFloat(totals.total),
@@ -285,14 +319,19 @@ class POSModule {
     const appState = this.app.state.getModuleState('app');
     const settings = appState.settings || {};
     const cart = posState.cart;
-    
+
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const discount = 0; // TODO: Get from form
-    
+
+    let packagingFee = 0;
+    if (this.orderType === 'takeaway' && settings.enable_packaging_charge && settings.packaging_charge_amount) {
+      packagingFee = parseFloat(settings.packaging_charge_amount);
+    }
+
     let cgst = 0, sgst = 0, igst = 0, totalTax = 0;
-    
+
     if (settings.charge_tax) {
-        const taxableAmount = subtotal - discount;
+        const taxableAmount = subtotal - discount + packagingFee;
         if (this.saleType === 'intra') {
             const cgstRate = parseFloat(settings.cgst || 0) / 100;
             const sgstRate = parseFloat(settings.sgst || 0) / 100;
@@ -304,12 +343,13 @@ class POSModule {
         }
         totalTax = cgst + sgst + igst;
     }
-    
-    const total = subtotal - discount + totalTax;
-    
+
+    const total = subtotal - discount + packagingFee + totalTax;
+
     return {
       subtotal: subtotal.toFixed(2),
       discount: discount.toFixed(2),
+      packagingFee: packagingFee.toFixed(2),
       tax: totalTax.toFixed(2),
       cgst: cgst.toFixed(2),
       sgst: sgst.toFixed(2),
@@ -471,21 +511,29 @@ class POSModule {
                     <div class="flex-1">
                       <div class="font-medium">${item.product_name}</div>
                       <div class="text-sm text-gray-500">${item.sku}</div>
+                      ${item.discount_info ? `
+                        <div class="text-xs text-green-600 font-medium">
+                          <i class="fa fa-tag"></i> ${item.discount_info.rule_name}
+                        </div>
+                      ` : ''}
                     </div>
                     <div class="flex items-center gap-2">
-                      <button class="btn btn-sm btn-secondary" 
+                      <button class="btn btn-sm btn-secondary"
                               onclick="window.pharmaApp.getModule('pos').updateCartQuantity(${index}, ${item.quantity - 1})">-</button>
-                      <input type="number" class="form-input" style="width: 60px" 
+                      <input type="number" class="form-input" style="width: 60px"
                              value="${item.quantity}" min="1"
                              onchange="window.pharmaApp.getModule('pos').updateCartQuantity(${index}, this.value)">
-                      <button class="btn btn-sm btn-secondary" 
+                      <button class="btn btn-sm btn-secondary"
                               onclick="window.pharmaApp.getModule('pos').updateCartQuantity(${index}, ${item.quantity + 1})">+</button>
                     </div>
                     <div class="text-right">
-                      <div class="font-medium">$${(item.price * item.quantity).toFixed(2)}</div>
-                      <div class="text-sm text-gray-500">$${item.price.toFixed(2)} each</div>
+                      <div class="font-medium">${(item.price * item.quantity).toFixed(2)}</div>
+                      ${item.original_price && item.original_price !== item.price ? `
+                        <div class="text-sm text-gray-500 line-through">${(item.original_price * item.quantity).toFixed(2)}</div>
+                      ` : ''}
+                      <div class="text-sm text-gray-500">${item.price.toFixed(2)} each</div>
                     </div>
-                    <button class="btn btn-sm btn-danger" 
+                    <button class="btn btn-sm btn-danger"
                             onclick="window.pharmaApp.getModule('pos').removeFromCart(${index})">
                       <i class="fa fa-times"></i>
                     </button>
@@ -494,12 +542,22 @@ class POSModule {
               }
             </div>
             
+            <div class="cart-order-type mt-3 flex justify-between items-center p-2 bg-green-50 rounded">
+                <span class="text-sm font-medium">Order Type:</span>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn ${this.orderType === 'dine-in' ? 'btn-primary' : 'btn-default'}"
+                            onclick="window.pharmaApp.getModule('pos').setOrderType('dine-in')">Dine-in</button>
+                    <button class="btn ${this.orderType === 'takeaway' ? 'btn-primary' : 'btn-default'}"
+                            onclick="window.pharmaApp.getModule('pos').setOrderType('takeaway')">Takeaway</button>
+                </div>
+            </div>
+
             <div class="cart-tax-toggle mt-3 flex justify-between items-center p-2 bg-blue-50 rounded">
                 <span class="text-sm font-medium">Sale Type:</span>
                 <div class="btn-group btn-group-sm">
-                    <button class="btn ${this.saleType === 'intra' ? 'btn-primary' : 'btn-default'}" 
+                    <button class="btn ${this.saleType === 'intra' ? 'btn-primary' : 'btn-default'}"
                             onclick="window.pharmaApp.getModule('pos').setSaleType('intra')">Intra-state</button>
-                    <button class="btn ${this.saleType === 'inter' ? 'btn-primary' : 'btn-default'}" 
+                    <button class="btn ${this.saleType === 'inter' ? 'btn-primary' : 'btn-default'}"
                             onclick="window.pharmaApp.getModule('pos').setSaleType('inter')">Inter-state</button>
                 </div>
             </div>
@@ -520,31 +578,37 @@ class POSModule {
         </div>
         <div class="flex justify-between mb-2">
           <span>Subtotal:</span>
-          <span>$${totals.subtotal}</span>
+          <span>${totals.subtotal}</span>
         </div>
+        ${totals.packagingFee > 0 ? `
+            <div class="flex justify-between mb-1 text-sm text-gray-600">
+                <span>Packaging Fee:</span>
+                <span>${totals.packagingFee}</span>
+            </div>
+        ` : ''}
         ${totals.cgst > 0 ? `
             <div class="flex justify-between mb-1 text-sm text-gray-600">
                 <span>CGST:</span>
-                <span>$${totals.cgst}</span>
+                <span>${totals.cgst}</span>
             </div>
             <div class="flex justify-between mb-1 text-sm text-gray-600">
                 <span>SGST:</span>
-                <span>$${totals.sgst}</span>
+                <span>${totals.sgst}</span>
             </div>
         ` : ''}
         ${totals.igst > 0 ? `
             <div class="flex justify-between mb-1 text-sm text-gray-600">
                 <span>IGST:</span>
-                <span>$${totals.igst}</span>
+                <span>${totals.igst}</span>
             </div>
         ` : ''}
         <div class="flex justify-between mb-2 font-medium">
           <span>Total Tax:</span>
-          <span>$${totals.tax}</span>
+          <span>${totals.tax}</span>
         </div>
         <div class="flex justify-between font-bold text-lg border-t pt-2">
           <span>TOTAL:</span>
-          <span>$${totals.total}</span>
+          <span>${totals.total}</span>
         </div>
       </div>
     `;
@@ -572,6 +636,11 @@ class POSModule {
 
   setSaleType(type) {
     this.saleType = type;
+    this.render();
+  }
+
+  setOrderType(type) {
+    this.orderType = type;
     this.render();
   }
   
@@ -607,8 +676,22 @@ class POSModule {
           
           <div class="payment-calculation mb-4">
             <div class="flex justify-between mb-2">
+              <span>Subtotal:</span>
+              <span>${totals.subtotal}</span>
+            </div>
+            ${totals.packagingFee > 0 ? `
+                <div class="flex justify-between mb-1 text-sm text-gray-600">
+                    <span>Packaging Fee:</span>
+                    <span>${totals.packagingFee}</span>
+                </div>
+            ` : ''}
+            <div class="flex justify-between mb-1 text-sm text-gray-600">
+              <span>Tax:</span>
+              <span>${totals.tax}</span>
+            </div>
+            <div class="flex justify-between mb-2 font-medium">
               <span>Total:</span>
-              <span>$${totals.total}</span>
+              <span>${totals.total}</span>
             </div>
             <div class="flex justify-between mb-2">
               <span>Paid:</span>
@@ -670,11 +753,11 @@ class POSModule {
     }
   }
   
-  addToCartFromSearch(productId) {
+  async addToCartFromSearch(productId) {
     const products = this.app.state.getModuleState('pos').products;
     const product = products.find(p => p._id === productId);
     if (product) {
-      this.addToCart(product);
+      await this.addToCart(product);
     }
   }
   
@@ -898,6 +981,7 @@ class POSModule {
       customer: posState.currentCustomer || { id: 0, name: 'Walk in customer' },
       status: 1,
       subtotal: parseFloat(totals.subtotal),
+      packaging_fee: parseFloat(totals.packagingFee),
       tax: parseFloat(totals.tax),
       tax_details: {
           cgst: parseFloat(totals.cgst),
@@ -905,7 +989,7 @@ class POSModule {
           igst: parseFloat(totals.igst),
           total_tax: parseFloat(totals.tax)
       },
-      order_type: 1,
+      order_type: this.orderType === 'takeaway' ? 2 : 1, // 1 for dine-in, 2 for takeaway
       items: posState.cart,
       date: new Date(),
       payment_type: $("#selectedPaymentMethod").val() || 'Cash',

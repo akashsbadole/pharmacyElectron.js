@@ -14,6 +14,7 @@ class TableModule {
     this.draggedElement = null;
     this.soundEnabled = true;
     this.currentView = 'layout'; // layout, list, metrics
+    this.users = [];
   }
   
   initialize() {
@@ -66,6 +67,12 @@ class TableModule {
       this.showEditTableModal(tableId);
     });
 
+    // Handle order creation (seat customers)
+    $(document).on('click', '#seatCustomersBtn', (e) => {
+      const tableId = $(e.target).data('table-id');
+      this.showSeatCustomersModal(tableId);
+    });
+
     // Handle bill splitting
     $(document).on('click', '.split-bill-btn', (e) => {
       const orderId = $(e.target).data('order-id');
@@ -76,6 +83,12 @@ class TableModule {
     $(document).on('click', '.mark-paid-btn', (e) => {
       const orderId = $(e.target).data('order-id');
       this.markBillPaid(orderId);
+    });
+
+    // Handle order transfer
+    $(document).on('click', '.transfer-order-btn', (e) => {
+      const orderId = $(e.target).data('order-id');
+      this.showTransferOrderModal(orderId);
     });
 
     // Handle manual refresh
@@ -148,6 +161,11 @@ class TableModule {
         console.log('Layout updated:', data);
         this.handleLayoutUpdate(data);
       });
+
+      socket.on('table-order-transferred', (data) => {
+        console.log('Order transferred:', data);
+        this.handleOrderTransferred(data);
+      });
     }
   }
 
@@ -199,7 +217,8 @@ class TableModule {
     await Promise.all([
       this.loadTables(),
       this.loadTableOrders(),
-      this.loadMetrics()
+      this.loadMetrics(),
+      this.loadUsers()
     ]);
   }
   
@@ -247,11 +266,23 @@ class TableModule {
     try {
       const response = await fetch(`${window.api}tables/metrics`);
       const metrics = await response.json();
-      
+
       this.app.state.updateModule('tables', { metrics });
-      
+
     } catch (error) {
       console.error('Error loading table metrics:', error);
+    }
+  }
+
+  async loadUsers() {
+    try {
+      const response = await fetch(`${window.api}users/all`);
+      const users = await response.json();
+
+      this.users = users;
+
+    } catch (error) {
+      console.error('Error loading users:', error);
     }
   }
   
@@ -391,25 +422,59 @@ class TableModule {
         },
         body: JSON.stringify({ split_type: splitType, split_data: splitData })
       });
-      
+
       const result = await response.json();
-      
+
       if (response.ok) {
         await this.loadTableOrders();
-        
+
         if (window.notiflix) {
           window.notiflix.Notify.success('Bill split successfully');
         }
-        
+
         return result;
       } else {
         throw new Error(result.message || 'Failed to split bill');
       }
-      
+
     } catch (error) {
       console.error('Error splitting bill:', error);
       if (window.notiflix) {
         window.notiflix.Report.failure('Error', 'Failed to split bill', 'Ok');
+      }
+      throw error;
+    }
+  }
+
+  async transferOrder(orderId, newTableId) {
+    try {
+      const response = await fetch(`${window.api}tables/orders/${orderId}/transfer`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ new_table_id: newTableId })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        await this.loadTableOrders();
+        await this.loadTables(); // Refresh tables to update status
+
+        if (window.notiflix) {
+          window.notiflix.Notify.success('Order transferred successfully');
+        }
+
+        return result;
+      } else {
+        throw new Error(result.message || 'Failed to transfer order');
+      }
+
+    } catch (error) {
+      console.error('Error transferring order:', error);
+      if (window.notiflix) {
+        window.notiflix.Report.failure('Error', 'Failed to transfer order', 'Ok');
       }
       throw error;
     }
@@ -563,6 +628,19 @@ class TableModule {
     // Refresh layout
     this.loadTables();
   }
+
+  handleOrderTransferred(data) {
+    // Update the order's table_id
+    const orderIndex = this.tableOrders.findIndex(o => o._id === data.order_id);
+    if (orderIndex !== -1) {
+      this.tableOrders[orderIndex].table_id = data.new_table_id;
+      this.app.state.updateModule('tables', { tableOrders: this.tableOrders });
+    }
+
+    // Refresh tables and orders to update status
+    this.loadTables();
+    this.loadTableOrders();
+  }
   
   // Modal functions
   showCreateTableModal() {
@@ -578,6 +656,88 @@ class TableModule {
   showBillSplitModal(orderId) {
     // Implementation for bill split modal
     console.log('Show bill split modal for order:', orderId);
+  }
+
+  showTransferOrderModal(orderId) {
+    const order = this.tableOrders.find(o => o._id === orderId);
+    if (!order) return;
+
+    const currentTable = this.tables.find(t => t._id === order.table_id);
+    if (!currentTable) return;
+
+    // Get available tables (not occupied)
+    const availableTables = this.tables.filter(t =>
+      t.status === 'available' &&
+      t._id !== order.table_id &&
+      t.is_active
+    );
+
+    if (availableTables.length === 0) {
+      if (window.notiflix) {
+        window.notiflix.Report.info('No Available Tables', 'There are no available tables to transfer to.', 'Ok');
+      }
+      return;
+    }
+
+    const modalHtml = `
+      <div class="modal fade" id="transferOrderModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Transfer Order to Another Table</h5>
+              <button type="button" class="close" data-dismiss="modal">
+                <span>&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <p><strong>Current Table:</strong> Table ${currentTable.table_number} (${currentTable.location})</p>
+              <p><strong>Order:</strong> #${order.order_number} - ${order.customer_count} customers</p>
+              <p><strong>Status:</strong> ${this.formatStatus(order.order_status)}</p>
+              <div class="form-group">
+                <label for="newTableSelect">Select New Table:</label>
+                <select class="form-control" id="newTableSelect">
+                  <option value="">Choose a table...</option>
+                  ${availableTables.map(table => `
+                    <option value="${table._id}">Table ${table.table_number} - ${table.location} (${table.capacity} seats)</option>
+                  `).join('')}
+                </select>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-primary" id="confirmTransfer">Transfer Order</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Remove existing modal if any
+    $('#transferOrderModal').remove();
+
+    // Append modal to body
+    $('body').append(modalHtml);
+
+    // Show modal
+    $('#transferOrderModal').modal('show');
+
+    // Handle transfer button click
+    $('#confirmTransfer').on('click', async () => {
+      const newTableId = $('#newTableSelect').val();
+      if (!newTableId) {
+        if (window.notiflix) {
+          window.notiflix.Report.warning('No Table Selected', 'Please select a table to transfer to.', 'Ok');
+        }
+        return;
+      }
+
+      try {
+        await this.transferOrder(orderId, newTableId);
+        $('#transferOrderModal').modal('hide');
+      } catch (error) {
+        // Error already handled in transferOrder function
+      }
+    });
   }
   
   render() {
@@ -885,7 +1045,7 @@ class TableModule {
     const serverItems = Object.entries(serviceMetrics.server_performance || {}).map(([serverId, data]) => `
       <div class="server-performance-item">
         <div class="server-header">
-          <span class="server-name">Server ${serverId}</span>
+          <span class="server-name">${this.getServerName(serverId)}</span>
           <span class="server-orders">${data.total_orders} orders</span>
         </div>
         <div class="server-stats">
@@ -938,7 +1098,7 @@ class TableModule {
               </div>
             </div>
             
-            ${order ? this.renderOrderDetails(order) : '<div class="no-order">No active order</div>'}
+            ${order ? this.renderOrderDetails(order) : this.renderSeatCustomersButton(table)}
           </div>
         </div>
       </div>
@@ -961,9 +1121,15 @@ class TableModule {
           <span class="detail-label">Customers:</span>
           <span class="detail-value">${order.customer_count}</span>
         </div>
+        ${order.server_id ? `
+          <div class="detail-row">
+            <span class="detail-label">Server:</span>
+            <span class="detail-value">${this.getServerName(order.server_id)}</span>
+          </div>
+        ` : ''}
         <div class="detail-row">
           <span class="detail-label">Bill Total:</span>
-          <span class="detail-value">$${order.bill_total.toFixed(2)}</span>
+          <span class="detail-value">${order.bill_total.toFixed(2)}</span>
         </div>
         <div class="detail-row">
           <span class="detail-label">Bill Status:</span>
@@ -985,8 +1151,14 @@ class TableModule {
               Close
             </button>
           </div>
-          
+
           <div class="btn-group mt-2">
+            <button class="btn btn-sm btn-outline-primary transfer-order-btn" data-order-id="${order._id}">
+              <i class="fa fa-exchange"></i> Transfer
+            </button>
+            <button class="btn btn-sm btn-outline-secondary change-server-btn" data-order-id="${order._id}">
+              <i class="fa fa-user"></i> Change Server
+            </button>
             <button class="btn btn-sm btn-outline-secondary split-bill-btn" data-order-id="${order._id}">
               <i class="fa fa-cut"></i> Split Bill
             </button>
@@ -1047,6 +1219,242 @@ class TableModule {
     };
     
     return statusMap[status] || status;
+  }
+
+  getServerName(serverId) {
+    const user = this.users.find(u => u._id === serverId);
+    return user ? user.fullname : `Server ${serverId}`;
+  }
+
+  renderSeatCustomersButton(table) {
+    return `
+      <div class="seat-customers-section mt-4">
+        <button id="seatCustomersBtn" class="btn btn-primary" data-table-id="${table._id}">
+          <i class="fa fa-user-plus"></i> Seat Customers
+        </button>
+        <div class="mt-2 text-muted">Assign a server and start an order for this table</div>
+      </div>
+    `;
+  }
+
+  async showSeatCustomersModal(tableId) {
+    const table = this.tables.find(t => t._id === tableId);
+    if (!table) return;
+
+    // Load users for server selection
+    let users = [];
+    try {
+      const response = await fetch(`${window.api}users/all`);
+      users = await response.json();
+    } catch (error) {
+      console.error('Error loading users:', error);
+    }
+
+    const modalHtml = `
+      <div class="modal fade" id="seatCustomersModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Seat Customers at Table ${table.table_number}</h5>
+              <button type="button" class="close" data-dismiss="modal">
+                <span>&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <div class="form-group">
+                <label for="customerCount">Number of Customers:</label>
+                <input type="number" class="form-control" id="customerCount" min="1" max="${table.capacity}" value="1">
+              </div>
+              <div class="form-group">
+                <label for="serverSelect">Assign Server:</label>
+                <select class="form-control" id="serverSelect">
+                  <option value="">Select Server...</option>
+                  ${users.filter(user => user.perm_products || user.perm_transactions).map(user => `
+                    <option value="${user._id}">${user.fullname}</option>
+                  `).join('')}
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="orderNotes">Order Notes (Optional):</label>
+                <textarea class="form-control" id="orderNotes" rows="2" placeholder="Special requests or notes..."></textarea>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-primary" id="confirmSeatCustomers">Seat Customers</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Remove existing modal if any
+    $('#seatCustomersModal').remove();
+
+    // Append modal to body
+    $('body').append(modalHtml);
+
+    // Show modal
+    $('#seatCustomersModal').modal('show');
+
+    // Handle confirm button click
+    $('#confirmSeatCustomers').on('click', async () => {
+      const customerCount = parseInt($('#customerCount').val()) || 1;
+      const serverId = $('#serverSelect').val();
+      const orderNotes = $('#orderNotes').val() || '';
+
+      if (!serverId) {
+        if (window.notiflix) {
+          window.notiflix.Report.warning('Server Required', 'Please select a server to assign to this table.', 'Ok');
+        }
+        return;
+      }
+
+      try {
+        const orderData = {
+          table_id: tableId,
+          order_number: Math.floor(Date.now() / 1000).toString(),
+          customer_count: customerCount,
+          server_id: serverId,
+          special_requests: orderNotes,
+          notes: orderNotes
+        };
+
+        const response = await fetch(`${window.api}tables/orders`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(orderData)
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          await this.loadTableOrders();
+          await this.loadTables();
+
+          if (window.notiflix) {
+            window.notiflix.Notify.success('Customers seated successfully');
+          }
+
+          $('#seatCustomersModal').modal('hide');
+        } else {
+          throw new Error(result.message || 'Failed to seat customers');
+        }
+
+      } catch (error) {
+        console.error('Error seating customers:', error);
+        if (window.notiflix) {
+          window.notiflix.Report.failure('Error', 'Failed to seat customers', 'Ok');
+        }
+      }
+    });
+  }
+
+  async showChangeServerModal(orderId) {
+    const order = this.tableOrders.find(o => o._id === orderId);
+    if (!order) return;
+
+    const table = this.tables.find(t => t._id === order.table_id);
+    if (!table) return;
+
+    // Load users for server selection
+    let users = [];
+    try {
+      const response = await fetch(`${window.api}users/all`);
+      users = await response.json();
+    } catch (error) {
+      console.error('Error loading users:', error);
+    }
+
+    const modalHtml = `
+      <div class="modal fade" id="changeServerModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Change Server for Table ${table.table_number}</h5>
+              <button type="button" class="close" data-dismiss="modal">
+                <span>&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <div class="form-group">
+                <label for="newServerSelect">Select New Server:</label>
+                <select class="form-control" id="newServerSelect">
+                  <option value="">Select Server...</option>
+                  ${users.filter(user => user.perm_products || user.perm_transactions).map(user => `
+                    <option value="${user._id}" ${user._id === order.server_id ? 'selected' : ''}>${user.fullname}</option>
+                  `).join('')}
+                </select>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-primary" id="confirmChangeServer">Change Server</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Remove existing modal if any
+    $('#changeServerModal').remove();
+
+    // Append modal to body
+    $('body').append(modalHtml);
+
+    // Show modal
+    $('#changeServerModal').modal('show');
+
+    // Handle confirm button click
+    $('#confirmChangeServer').on('click', async () => {
+      const newServerId = $('#newServerSelect').val();
+
+      if (!newServerId) {
+        if (window.notiflix) {
+          window.notiflix.Report.warning('Server Required', 'Please select a server.', 'Ok');
+        }
+        return;
+      }
+
+      if (newServerId === order.server_id) {
+        if (window.notiflix) {
+          window.notiflix.Report.warning('No Change', 'Please select a different server.', 'Ok');
+        }
+        return;
+      }
+
+      try {
+        const response = await fetch(`${window.api}tables/orders/${orderId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ server_id: newServerId })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          await this.loadTableOrders();
+
+          if (window.notiflix) {
+            window.notiflix.Notify.success('Server changed successfully');
+          }
+
+          $('#changeServerModal').modal('hide');
+        } else {
+          throw new Error(result.message || 'Failed to change server');
+        }
+
+      } catch (error) {
+        console.error('Error changing server:', error);
+        if (window.notiflix) {
+          window.notiflix.Report.failure('Error', 'Failed to change server', 'Ok');
+        }
+      }
+    });
   }
 }
 

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test API Endpoint</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>Testing Inventory Turnover Report Endpoint</h1>
+    <button onclick="testEndpoint()">Test Endpoint</button>
+    <div id="result"></div>
+
+    <script>
+        function testEndpoint() {
+            // Use the port that the Electron app would use
+            const baseUrl = "http://localhost:3000/api";
+            const endpoint = baseUrl + "/transactions/reports/inventory-turnover?start=2023-01-01T00:00:00.000Z&end=2023-12-31T23:59:59.999Z";
+            
+            $('#result').html('<p>Testing endpoint: ' + endpoint + '</p>');
+            
+            $.get(endpoint)
+                .done(function(data) {
+                    $('#result').html('<p style="color: green;">SUCCESS: ' + JSON.stringify(data, null, 2) + '</p>');
+                })
+                .fail(function(xhr, status, error) {
+                    $('#result').html('<p style="color: red;">ERROR: ' + xhr.status + ' - ' + error + '</p>');
+                    $('#result').html('<p style="color: red;">Response: ' + xhr.responseText + '</p>');
+                });
+        }
+    </script>
+</body>
+</html>

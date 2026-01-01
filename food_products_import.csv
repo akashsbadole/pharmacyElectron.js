@@ -1,0 +1,37 @@
+Product Name,Barcode/SKU,Price,Cost Price,Category,Quantity,Stock Management,Minimum Stock,Expiration Date,Requires Prescription,Supplier ID,Reorder Quantity,Image File
+Margherita Pizza,1000000000001,12.99,6.50,Fast Food,50,Enabled,10,2025-01-31,No,SUP-001,30,margherita_pizza.jpg
+Pepperoni Pizza,1000000000002,14.99,7.25,Fast Food,45,Enabled,8,2025-01-31,No,SUP-001,25,pepperoni_pizza.jpg
+Chicken Burger,1000000000003,9.99,4.75,Fast Food,60,Enabled,15,2025-01-31,No,SUP-002,40,chicken_burger.jpg
+Beef Burger,1000000000004,11.99,5.50,Fast Food,55,Enabled,12,2025-01-31,No,SUP-002,35,beef_burger.jpg
+French Fries,1000000000005,4.99,1.75,Fast Food,100,Enabled,20,2025-01-31,No,SUP-003,50,french_fries.jpg
+Onion Rings,1000000000006,5.99,2.25,Fast Food,40,Enabled,8,2025-01-31,No,SUP-003,25,onion_rings.jpg
+Chicken Wings (6 pcs),1000000000007,8.99,3.50,Fast Food,30,Enabled,6,2025-01-31,No,SUP-004,20,chicken_wings.jpg
+Coca-Cola (330ml),2000000000001,2.50,0.80,Beverages,200,Enabled,50,2025-06-30,No,SUP-005,100,coca_cola.jpg
+Pepsi (330ml),2000000000002,2.50,0.80,Beverages,180,Enabled,40,2025-06-30,No,SUP-005,90,pepsi.jpg
+Sprite (330ml),2000000000003,2.50,0.80,Beverages,150,Enabled,30,2025-06-30,No,SUP-005,75,sprite.jpg
+Fresh Orange Juice,2000000000004,4.99,1.50,Beverages,80,Enabled,20,2025-01-15,No,SUP-006,40,orange_juice.jpg
+Iced Tea,2000000000005,3.50,1.20,Beverages,120,Enabled,25,2025-01-20,No,SUP-006,60,iced_tea.jpg
+Coffee,2000000000006,3.00,0.90,Beverages,150,Enabled,30,2025-01-25,No,SUP-007,75,coffee.jpg
+Milkshake (Chocolate),2000000000007,5.99,2.00,Beverages,60,Enabled,15,2025-01-18,No,SUP-007,30,chocolate_milkshake.jpg
+Nachos with Cheese,3000000000001,7.99,2.75,Snacks,40,Enabled,8,2025-01-28,No,SUP-008,25,nachos.jpg
+Garlic Bread,3000000000002,4.99,1.50,Snacks,50,Enabled,10,2025-01-25,No,SUP-009,30,garlic_bread.jpg
+Chicken Nuggets (8 pcs),3000000000003,6.99,2.50,Snacks,45,Enabled,9,2025-01-30,No,SUP-004,25,chicken_nuggets.jpg
+Mozzarella Sticks,3000000000004,7.49,2.75,Snacks,35,Enabled,7,2025-01-28,No,SUP-010,20,mozzarella_sticks.jpg
+Potato Wedges,3000000000005,5.99,2.00,Snacks,60,Enabled,12,2025-01-31,No,SUP-003,35,potato_wedges.jpg
+Chocolate Brownie,4000000000001,4.99,1.75,Desserts,40,Enabled,8,2025-01-20,No,SUP-011,25,brownie.jpg
+Ice Cream (Vanilla),4000000000002,3.99,1.25,Desserts,50,Enabled,10,2025-03-31,No,SUP-012,30,vanilla_ice_cream.jpg
+Cheesecake,4000000000003,6.99,2.50,Desserts,30,Enabled,6,2025-01-18,No,SUP-011,20,cheesecake.jpg
+Fruit Salad,4000000000004,5.99,2.00,Desserts,35,Enabled,7,2025-01-15,No,SUP-013,20,fruit_salad.jpg
+Butter Chicken,5000000000001,14.99,6.00,Indian Cuisine,40,Enabled,8,2025-01-16,No,SUP-014,25,butter_chicken.jpg
+Chicken Tikka Masala,5000000000002,15.99,6.50,Indian Cuisine,35,Enabled,7,2025-01-16,No,SUP-014,20,chicken_tikka_masala.jpg
+Palak Paneer,5000000000003,13.99,5.50,Indian Cuisine,30,Enabled,6,2025-01-16,No,SUP-015,18,palak_paneer.jpg
+Chicken Biryani,5000000000004,12.99,5.00,Indian Cuisine,45,Enabled,9,2025-01-16,No,SUP-016,30,chicken_biryani.jpg
+Vegetable Biryani,5000000000005,11.99,4.50,Indian Cuisine,40,Enabled,8,2025-01-16,No,SUP-016,25,vegetable_biryani.jpg
+Naan Bread,5000000000006,3.99,1.25,Indian Cuisine,80,Enabled,16,2025-01-18,No,SUP-017,40,naan_bread.jpg
+Rogan Josh,5000000000007,16.99,7.00,Indian Cuisine,25,Enabled,5,2025-01-16,No,SUP-014,15,rogan_josh.jpg
+Classic Burger Combo,6000000000001,14.99,6.75,Combo Meals,50,Enabled,10,2025-01-31,No,SUP-002,30,burger_combo.jpg
+Pizza & Drink Combo,6000000000002,16.99,7.50,Combo Meals,40,Enabled,8,2025-01-31,No,SUP-001,25,pizza_combo.jpg
+Family Feast,6000000000003,29.99,12.50,Combo Meals,25,Enabled,5,2025-01-31,No,SUP-002,15,family_feast.jpg
+Full English Breakfast,7000000000001,12.99,5.00,Breakfast,30,Enabled,6,2025-01-15,No,SUP-018,20,english_breakfast.jpg
+Pancakes with Syrup,7000000000002,8.99,3.00,Breakfast,40,Enabled,8,2025-01-18,No,SUP-019,25,pancakes.jpg
+Avocado Toast,7000000000003,9.99,3.50,Breakfast,35,Enabled,7,2025-01-16,No,SUP-020,20,avocado_toast.jpg

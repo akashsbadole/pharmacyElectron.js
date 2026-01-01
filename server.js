@@ -7,6 +7,7 @@ const rateLimit = require("express-rate-limit");
 const pkg = require("./package.json");
 const {app} = require('electron');
 const { periodicCleanup, getDatabase, createBackup, getEncryptionKey, setGlobalEncryptionKey } = require("./api/database_utils");
+const dayCloseModule = require("./api/day_close");
 process.env.APPDATA = app.getPath('appData');
 process.env.APPNAME = pkg.name;
 const path = require('path');
@@ -25,18 +26,35 @@ if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// Initialize Encryption based on settings
+// Initialize Encryption based on settings with retry logic
 const settingsPath = path.join(dbDir, "settings.db");
 const settingsDB = getDatabase(settingsPath);
-settingsDB.findOne({ _id: 1 }, (err, doc) => {
-    if (doc && doc.settings && doc.settings.enable_encryption) {
-        const key = getEncryptionKey();
-        if (key) {
-            console.log("Encryption enabled. Setting global encryption key.");
-            setGlobalEncryptionKey(key);
+
+// Function to safely initialize encryption with retry logic
+function initializeEncryptionWithRetry(attempt = 1, maxAttempts = 5) {
+    settingsDB.findOne({ _id: 1 }, (err, doc) => {
+        if (err) {
+            if (attempt < maxAttempts) {
+                console.warn(`Encryption initialization attempt ${attempt} failed: ${err.message}. Retrying...`);
+                setTimeout(() => initializeEncryptionWithRetry(attempt + 1, maxAttempts), 1000 * attempt);
+            } else {
+                console.error(`Failed to initialize encryption after ${maxAttempts} attempts: ${err.message}`);
+            }
+            return;
         }
-    }
-});
+
+        if (doc && doc.settings && doc.settings.enable_encryption) {
+            const key = getEncryptionKey();
+            if (key) {
+                console.log("Encryption enabled. Setting global encryption key.");
+                setGlobalEncryptionKey(key);
+            }
+        }
+    });
+}
+
+// Start encryption initialization with retry logic
+initializeEncryptionWithRetry();
 
 const PORT = process.env.PORT || 0;
 const limiter = rateLimit({
@@ -85,7 +103,6 @@ express.use("/api/categories", require("./api/categories"));
 express.use("/api/settings", require("./api/settings"));
 express.use("/api/contact", require("./api/contact"));
 express.use("/api/users", require("./api/users"));
-// express.use("/api/prescriptions", require("./api/prescriptions")); // Removed for restaurant conversion
 express.use("/api/suppliers", require("./api/suppliers"));
 express.use("/api/purchase_orders", require("./api/purchase_orders"));
 express.use("/api/session-logs", require("./api/session_logs"));
@@ -98,6 +115,10 @@ express.use("/api/recipes", require("./api/recipes"));
 express.use("/api/kitchen", require("./api/kitchen"));
 express.use("/api/tables", require("./api/tables"));
 express.use("/api/combos", require("./api/combos"));
+express.use("/api/waste", require("./api/waste"));
+express.use("/api/shifts", require("./api/shifts"));
+express.use("/api/time-pricing-rules", require("./api/time_pricing_rules"));
+express.use("/api/day-close", require("./api/day_close"));
 
 global.io = io;
 
@@ -132,10 +153,11 @@ server.listen(PORT, () => {
         require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "kitchen_orders.db"), // Added for kitchen display system
         require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "tables.db"), // Added for table management
         require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "combos.db"), // Added for combo meal builder
-        // require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "prescriptions.db"), // Removed for restaurant conversion
         require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "purchase_orders.db"),
         require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "contact.db"),
-        require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "audit_logs.db")
+        require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "audit_logs.db"),
+        require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "shifts.db"),
+        require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "time_pricing_rules.db")
     ];
     
     // Run cleanup every 10 minutes (increased from 5)
@@ -151,6 +173,9 @@ server.listen(PORT, () => {
 
     // Initialize Automated Backup Scheduler
     initBackupScheduler();
+    
+    // Initialize Automated Day Close Scheduler
+    initDayCloseScheduler();
 });
 
 /**
@@ -195,6 +220,102 @@ function initBackupScheduler() {
                     }).catch(err => {
                         console.error("Auto-backup failed:", err);
                     });
+                }
+            }
+        });
+    }, 60 * 1000); // Check every minute
+}
+
+/**
+ * Initializes the automated day close scheduler.
+ */
+function initDayCloseScheduler() {
+    console.log("Initializing Automated Day Close Scheduler...");
+    
+    const settingsPath = path.join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "settings.db");
+    const settingsDB = getDatabase(settingsPath);
+    const dayCloseAPI = require("./api/day_close");
+
+    setInterval(() => {
+        settingsDB.findOne({ _id: 1 }, (err, doc) => {
+            if (err || !doc || !doc.settings) return;
+
+            const settings = doc.settings;
+            const autoDayClose = settings.autoDayClose;
+            const dayCloseTime = settings.dayCloseTime || "23:59";
+            const dayCloseDay = settings.dayCloseDay || "everyday";
+            const lastDayCloseDate = settings.lastDayCloseDate;
+
+            if (!autoDayClose) return;
+
+            const now = new Date();
+            const currentDayStr = now.toISOString().split('T')[0];
+            const currentTime = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
+
+            // Check if we already did day close today
+            if (lastDayCloseDate === currentDayStr) {
+                return;
+            }
+
+            // Check if it's time for day close
+            if (currentTime === dayCloseTime) {
+                // Check day of week condition
+                let shouldClose = false;
+                const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+                
+                switch (dayCloseDay) {
+                    case 'everyday':
+                        shouldClose = true;
+                        break;
+                    case 'friday':
+                        shouldClose = dayOfWeek === 5; // Friday
+                        break;
+                    case 'saturday':
+                        shouldClose = dayOfWeek === 6; // Saturday
+                        break;
+                    case 'weekly':
+                        shouldClose = dayOfWeek === 0; // Sunday
+                        break;
+                }
+                
+                if (shouldClose) {
+                    console.log(`Triggering automatic day close at ${currentTime}...`);
+                    
+                    // Make HTTP request to day close API
+                    const http = require('http');
+                    const postData = JSON.stringify({
+                        date: currentDayStr,
+                        generateReport: true,
+                        backup: true
+                    });
+                    
+                    const options = {
+                        hostname: 'localhost',
+                        port: serverPort,
+                        path: '/api/day-close/close-day',
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Content-Length': Buffer.byteLength(postData)
+                        }
+                    };
+                    
+                    const req = http.request(options, (res) => {
+                        let data = '';
+                        res.on('data', (chunk) => {
+                            data += chunk;
+                        });
+                        res.on('end', () => {
+                            console.log('Automatic day close completed:', data);
+                        });
+                    });
+                    
+                    req.on('error', (error) => {
+                        console.error('Automatic day close failed:', error);
+                    });
+                    
+                    req.write(postData);
+                    req.end();
                 }
             }
         });

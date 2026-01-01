@@ -246,6 +246,7 @@
   height: 2.6em;
   overflow: hidden;
   display: -webkit-box;
+  line-clamp: 2;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
@@ -333,6 +334,143 @@
   background: #6c757d;
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+/* Dietary Preference Tags */
+.dietary-tags {
+  margin: 0.5rem 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.dietary-tag {
+  display: inline-block;
+  padding: 2px 6px;
+  font-size: 0.7em;
+  font-weight: 500;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 1px solid transparent;
+}
+
+.dietary-tag.vegetarian {
+  background: #d4edda;
+  color: #155724;
+  border-color: #c3e6cb;
+}
+
+.dietary-tag.vegan {
+  background: #d1ecf1;
+  color: #0c5460;
+  border-color: #bee5eb;
+}
+
+.dietary-tag.non-vegetarian {
+  background: #f8d7da;
+  color: #721c24;
+  border-color: #f5c6cb;
+}
+
+.dietary-tag.jain {
+  background: #fff3cd;
+  color: #856404;
+  border-color: #ffeaa7;
+}
+
+.dietary-tag.gluten-free {
+  background: #e2e3e5;
+  color: #383d41;
+  border-color: #d6d8db;
+}
+
+.dietary-tag.halal {
+  background: #d4edda;
+  color: #155724;
+  border-color: #c3e6cb;
+}
+
+.dietary-tag.keto {
+  background: #e8f4fd;
+  color: #0c5460;
+  border-color: #b3d7f2;
+}
+
+.dietary-tag.low-carb {
+  background: #f8f9fa;
+  color: #6c757d;
+  border-color: #dee2e6;
+}
+
+/* Dietary tag container for product cards */
+.product-dietary-info {
+  margin: 0.5rem 0;
+}
+
+.product-dietary-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.product-dietary-tags .dietary-tag {
+  font-size: 0.65em;
+  padding: 1px 4px;
+  line-height: 1.2;
+}
+
+/* Quick dietary tag indicators for tile view */
+.dietary-indicator {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7em;
+  font-weight: bold;
+  color: white;
+  z-index: 10;
+}
+
+.dietary-indicator.vegetarian {
+  background: #28a745;
+}
+
+.dietary-indicator.vegan {
+  background: #17a2b8;
+}
+
+.dietary-indicator.non-vegetarian {
+  background: #dc3545;
+}
+
+.dietary-indicator.jain {
+  background: #ffc107;
+  color: #212529;
+}
+
+/* Responsive adjustments for dietary tags */
+@media (max-width: 768px) {
+  .dietary-tags {
+    gap: 0.2rem;
+  }
+  
+  .dietary-tag {
+    font-size: 0.65em;
+    padding: 1px 4px;
+  }
+  
+  .dietary-indicator {
+    width: 18px;
+    height: 18px;
+    font-size: 0.6em;
+  }
 }
 
 /* Responsive Design */

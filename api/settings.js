@@ -158,7 +158,16 @@ app.post("/post", function (req, res) {
             upi_merchant_name: validator.escape(req.body.upi_merchant_name || ""),
             backup_frequency: validator.escape(req.body.backup_frequency || "off"),
             backup_time: validator.escape(req.body.backup_time || "00:00"),
-            enable_encryption: req.body.enable_encryption === 'on' || req.body.enable_encryption === true
+            local_backup_folder: validator.escape(req.body.local_backup_folder || ""),
+            enable_encryption: req.body.enable_encryption === 'on' || req.body.enable_encryption === true,
+            happy_hours: req.body.happy_hours || [],
+            enable_packaging_charge: req.body.enable_packaging_charge === 'on' || req.body.enable_packaging_charge === true,
+            packaging_charge_amount: parseFloat(req.body.packaging_charge_amount) || 0,
+            autoDayClose: req.body.autoDayClose === 'on' || req.body.autoDayClose === true,
+            dayCloseTime: validator.escape(req.body.dayCloseTime || "23:59"),
+            dayCloseDay: validator.escape(req.body.dayCloseDay || "everyday"),
+            print_language: validator.escape(req.body.print_language || "english"),
+            kot_display_language: validator.escape(req.body.kot_display_language || "english")
         },
     };
 

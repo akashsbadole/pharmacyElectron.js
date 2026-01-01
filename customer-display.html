@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Display - Order Summary</title>
+    <link href="assets/dist/css/bundle.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .display-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .restaurant-name {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .order-number {
+            font-size: 1.5rem;
+            opacity: 0.9;
+        }
+
+        .content {
+            flex: 1;
+            display: flex;
+            gap: 30px;
+        }
+
+        .order-summary {
+            flex: 2;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+        }
+
+        .order-details {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+            padding-bottom: 10px;
+        }
+
+        .order-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .item-name {
+            font-size: 1.2rem;
+            font-weight: 500;
+        }
+
+        .item-quantity {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 5px 10px;
+            border-radius: 20px;
+            margin: 0 15px;
+        }
+
+        .item-price {
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        .total-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+        }
+
+        .grand-total {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #ffd700;
+        }
+
+        .payment-status {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .status-pending {
+            background: #ff9800;
+            color: white;
+        }
+
+        .status-paid {
+            background: #4caf50;
+            color: white;
+        }
+
+        .status-processing {
+            background: #2196f3;
+            color: white;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+            opacity: 0.7;
+        }
+
+        .empty-state h3 {
+            font-size: 2rem;
+            margin-bottom: 20px;
+        }
+
+        .empty-state p {
+            font-size: 1.2rem;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="display-container">
+        <div class="header">
+            <div class="restaurant-name" id="restaurantName">Restaurant Name</div>
+            <div class="order-number" id="orderNumber">Order #--</div>
+        </div>
+
+        <div class="content" id="orderContent">
+            <div class="empty-state">
+                <h3>Welcome to Our Restaurant!</h3>
+                <p>Your order will appear here shortly.</p>
+            </div>
+        </div>
+
+        <div class="order-summary" id="orderSummary" style="display: none;">
+            <div class="section-title">Order Summary</div>
+            <div id="orderItems"></div>
+
+            <div class="total-section">
+                <div class="total-row">
+                    <span>Subtotal:</span>
+                    <span id="subtotal">$0.00</span>
+                </div>
+                <div class="total-row">
+                    <span>Tax:</span>
+                    <span id="tax">$0.00</span>
+                </div>
+                <div class="total-row">
+                    <span>Service Charge:</span>
+                    <span id="serviceCharge">$0.00</span>
+                </div>
+                <div class="total-row">
+                    <span>Discount:</span>
+                    <span id="discount">$0.00</span>
+                </div>
+                <div class="total-row grand-total">
+                    <span>Total:</span>
+                    <span id="grandTotal">$0.00</span>
+                </div>
+            </div>
+
+            <div class="payment-status">
+                <div class="status-indicator pulse" id="paymentStatus">Awaiting Order</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
+    <script>
+        // Real-time updates via IPC from main process
+        const { ipcRenderer } = require('electron');
+
+        let languageSupport = null;
+        let settings = {};
+
+        // Try to load language support
+        try {
+            // Load language support module
+            const script = document.createElement('script');
+            script.src = 'assets/js/language.js';
+            script.onload = function() {
+                if (window.LanguageSupport) {
+                    languageSupport = window.LanguageSupport;
+                    console.log('✅ Language support loaded in customer display');
+                    updateDisplayLanguage();
+                }
+            };
+            document.head.appendChild(script);
+        } catch (error) {
+            console.warn('⚠️ Language support not available in customer display:', error);
+        }
+
+        function getTranslatedText(key, fallback) {
+            if (!languageSupport || !settings) return fallback;
+            
+            const printLanguage = languageSupport.getCurrentPrintLanguage();
+            if (printLanguage === 'english') return fallback;
+            
+            if (printLanguage === 'bilingual') {
+                return languageSupport.getBilingualText(key);
+            }
+            
+            const translated = languageSupport.getText(key, printLanguage);
+            return translated || fallback;
+        }
+
+        function updateDisplayLanguage() {
+            if (!languageSupport || !settings) return;
+            
+            const printLanguage = languageSupport.getCurrentPrintLanguage();
+            
+            // Apply font family for Hindi text if needed
+            const fontFamily = printLanguage === 'hindi' || printLanguage === 'bilingual' ? 
+                "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif, 'Devanagari Sangam MN'" : 
+                "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+            
+            document.body.style.fontFamily = fontFamily;
+            
+            // Update static text based on language
+            if (printLanguage !== 'english') {
+                const getTrans = (key) => {
+                    if (printLanguage === 'bilingual') {
+                        return languageSupport.getBilingualText(key);
+                    }
+                    return languageSupport.getText(key, printLanguage);
+                };
+                
+                // Update welcome text
+                $('.empty-state h3').text(getTrans('thank_you') + ' to Our Restaurant!');
+                $('.empty-state p').text('Your order will appear here shortly.');
+                
+                // Update section titles
+                $('.section-title').text(getTrans('order_no') + ' ' + getTrans('summary'));
+                
+                // Update total labels
+                $('#orderSummary .total-row:first span:first').text(getTrans('subtotal') + ':');
+                $('#orderSummary .total-row:nth-child(2) span:first').text(getTrans('tax') + ':');
+                $('#orderSummary .total-row:nth-child(3) span:first').text(getTrans('service_charge') + ':');
+                $('#orderSummary .total-row:nth-child(4) span:first').text(getTrans('discount') + ':');
+                $('#orderSummary .grand-total span:first').text(getTrans('total') + ':');
+            }
+        }
+
+        function updateOrderDisplay(orderData) {
+            if (!orderData || !orderData.items || orderData.items.length === 0) {
+                $('#orderContent').show();
+                $('#orderSummary').hide();
+                $('#orderNumber').text('Order #--');
+                return;
+            }
+
+            $('#orderContent').hide();
+            $('#orderSummary').show();
+
+            $('#orderNumber').text(`${getTranslatedText('order_no', 'Order')} #${orderData.orderNumber || '--'}`);
+
+            let itemsHtml = '';
+            let subtotal = 0;
+
+            orderData.items.forEach(item => {
+                const itemTotal = item.price * item.quantity;
+                subtotal += itemTotal;
+
+                itemsHtml += `
+                    <div class="order-item">
+                        <span class="item-name">${item.name}</span>
+                        <span class="item-quantity">${item.quantity}</span>
+                        <span class="item-price">${itemTotal.toFixed(2)}</span>
+                    </div>
+                `;
+            });
+
+            $('#orderItems').html(itemsHtml);
+
+            const tax = subtotal * (orderData.taxRate || 0);
+            const serviceCharge = subtotal * (orderData.serviceChargeRate || 0);
+            const discount = orderData.discount || 0;
+            const grandTotal = subtotal + tax + serviceCharge - discount;
+
+            $('#subtotal').text(`${subtotal.toFixed(2)}`);
+            $('#tax').text(`${tax.toFixed(2)}`);
+            $('#serviceCharge').text(`${serviceCharge.toFixed(2)}`);
+            $('#discount').text(`${discount.toFixed(2)}`);
+            $('#grandTotal').text(`${grandTotal.toFixed(2)}`);
+
+            updatePaymentStatus(orderData.status);
+            
+            // Update display language for new content
+            updateDisplayLanguage();
+        }
+
+        function updatePaymentStatus(status) {
+            const statusElement = $('#paymentStatus');
+            statusElement.removeClass('status-pending status-paid status-processing');
+
+            switch(status) {
+                case 'pending':
+                    statusElement.addClass('status-pending').text(getTranslatedText('order_placed', 'Order Placed') + ' - ' + getTranslatedText('awaiting_payment', 'Awaiting Payment'));
+                    break;
+                case 'paid':
+                    statusElement.addClass('status-paid').text(getTranslatedText('payment_complete', 'Payment Complete') + ' - ' + getTranslatedText('order_confirmed', 'Order Confirmed'));
+                    break;
+                case 'processing':
+                    statusElement.addClass('status-processing').text(getTranslatedText('order_preparing', 'Order Being Prepared'));
+                    break;
+                default:
+                    statusElement.addClass('status-pending').text(getTranslatedText('awaiting_order', 'Awaiting Order'));
+            }
+        }
+
+        function updateRestaurantInfo(settingsData) {
+            settings = settingsData || {};
+            if (settings.store) {
+                $('#restaurantName').text(settings.store);
+            }
+            
+            // Update display language based on settings
+            updateDisplayLanguage();
+        }
+
+        // Listen for updates from main process
+        ipcRenderer.on('customer-display-update', (event, data) => {
+            if (data.type === 'order') {
+                updateOrderDisplay(data.orderData);
+            } else if (data.type === 'settings') {
+                updateRestaurantInfo(data.settings);
+            }
+        });
+
+        // Initial load
+        $(document).ready(function() {
+            // Request current order data
+            ipcRenderer.send('customer-display-ready');
+        });
+    </script>
+</body>
+</html>

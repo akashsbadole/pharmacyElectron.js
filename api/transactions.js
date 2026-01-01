@@ -161,7 +161,7 @@ app.get("/by-date", function (req, res) {
  */
 app.post("/new", function (req, res) {
   let newTransaction = req.body;
-  
+
   // Ensure tax details structure exist (Default to 0 if not provided)
   newTransaction.tax_details = newTransaction.tax_details || {
       cgst: 0,
@@ -173,24 +173,118 @@ app.post("/new", function (req, res) {
   // Ensure payment mode exists (Default to Cash)
   newTransaction.payment_mode = newTransaction.payment_mode || "Cash";
 
-  transactionsDB.insert(newTransaction, function (err, transaction) {
-    if (err) {
-      console.error(err);
-      res.status(500).json({
-        error: "Internal Server Error",
-        message: "An unexpected error occurred.",
-      });
-    } else {
-      res.sendStatus(200);
+  // Find current open shift for this user/till combination
+  if (newTransaction.user_id && newTransaction.till) {
+    // Use the shifts database directly instead of HTTP call
+    const shiftsDB = getDatabase(path.join(
+      appData,
+      appName,
+      "server",
+      "databases",
+      "shifts.db",
+    ));
 
-      if (newTransaction.paid >= newTransaction.total) {
-        Inventory.decrementInventory(newTransaction.items);
-
-        // Removed pharmaceutical audit logging for restaurant conversion
+    shiftsDB.findOne({
+      user_id: parseInt(newTransaction.user_id),
+      till_id: parseInt(newTransaction.till),
+      status: 'open'
+    }, function (err, currentShift) {
+      if (!err && currentShift && currentShift.shift_id) {
+        newTransaction.shift_id = currentShift.shift_id;
       }
-    }
-  });
+
+      // Proceed with transaction creation
+      createTransaction();
+    });
+  } else {
+    // No user_id or till, proceed normally
+    createTransaction();
+  }
+
+  function createTransaction() {
+    transactionsDB.insert(newTransaction, function (err, transaction) {
+      if (err) {
+        console.error(err);
+        res.status(500).json({
+          error: "Internal Server Error",
+          message: "An unexpected error occurred.",
+        });
+      } else {
+        res.sendStatus(200);
+
+        if (newTransaction.paid >= newTransaction.total) {
+          Inventory.decrementInventory(newTransaction.items);
+
+          // Update shift expected cash if we have a shift_id
+          if (newTransaction.shift_id) {
+            updateShiftExpectedCash(newTransaction);
+          }
+
+          // Removed pharmaceutical audit logging for restaurant conversion
+        }
+      }
+    });
+  }
 });
+
+/**
+ * Helper function to update shift expected cash when a transaction occurs
+ */
+function updateShiftExpectedCash(transaction) {
+  const shiftsDB = getDatabase(path.join(
+    appData,
+    appName,
+    "server",
+    "databases",
+    "shifts.db",
+  ));
+
+  const transactionAmount = parseFloat(transaction.total) || 0;
+  const transactionType = transaction.status === 1 ? 'sale' : 'pending';
+  const paymentMode = transaction.payment_mode || 'Cash';
+
+  shiftsDB.findOne({ shift_id: transaction.shift_id }, function (err, shift) {
+    if (err) {
+      console.error('Error finding shift for update:', err);
+      return;
+    }
+
+    if (!shift || shift.status !== 'open') {
+      console.log('Shift not found or not open');
+      return;
+    }
+
+    const updateData = {
+      transactions_count: (shift.transactions_count || 0) + 1
+    };
+
+    // Update expected cash based on transaction type
+    if (transactionType === 'sale' || transactionType === 'payment') {
+      updateData.expected_cash = (shift.expected_cash || 0) + transactionAmount;
+      if (paymentMode === 'Cash') {
+        updateData.cash_sales = (shift.cash_sales || 0) + transactionAmount;
+      } else {
+        updateData.card_sales = (shift.card_sales || 0) + transactionAmount;
+      }
+    } else if (transactionType === 'return' || transactionType === 'refund') {
+      updateData.expected_cash = (shift.expected_cash || 0) - transactionAmount;
+      updateData.returns = (shift.returns || 0) + transactionAmount;
+    }
+
+    shiftsDB.update(
+      { shift_id: transaction.shift_id },
+      { $set: updateData },
+      {},
+      function (err, numReplaced) {
+        if (err) {
+          console.error('Error updating shift expected cash:', err);
+        } else {
+          console.log('Shift expected cash updated successfully');
+        }
+      }
+    );
+  });
+}
 
 /**
  * PUT endpoint: Update an existing transaction.
@@ -366,8 +460,32 @@ app.get("/reports/sales", function (req, res) {
  * Query parameters: start, end
  */
 app.get("/reports/inventory-turnover", function (req, res) {
-  let startDate = new Date(req.query.start);
-  let endDate = new Date(req.query.end);
+  // Validate query parameters
+  if (!req.query.start || !req.query.end) {
+    return res.status(400).json({
+      error: "Bad Request",
+      message: "Both start and end parameters are required"
+    });
+  }
+
+  // Parse dates with validation
+  let startDate, endDate;
+  try {
+    startDate = new Date(req.query.start);
+    endDate = new Date(req.query.end);
+    
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Invalid date format for start or end parameter"
+      });
+    }
+  } catch (error) {
+    return res.status(400).json({
+      error: "Bad Request",
+      message: "Invalid date format"
+    });
+  }
 
   transactionsDB.find({
     $and: [
@@ -518,4 +636,365 @@ app.post("/share", function (req, res) {
     console.log(`Sharing invoice ${transactionId} via ${method} to ${recipient}`);
     // Future integration with Email/WhatsApp API goes here.
     res.json({ success: true, message: `Invoice shared via ${method}` });
+});
+
+/**
+ * POST endpoint: Process item return/refund.
+ */
+app.post("/return", function (req, res) {
+    const { transactionId, items, reason, refundAmount, refundMethod, notes } = req.body;
+
+    // Validate input
+    if (!transactionId || !items || !Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({
+            error: "Bad Request",
+            message: "Transaction ID and items are required for return."
+        });
+    }
+
+    // Find the original transaction
+    transactionsDB.findOne({ _id: transactionId }, function (err, transaction) {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({
+                error: "Internal Server Error",
+                message: "Database error occurred."
+            });
+        }
+
+        if (!transaction) {
+            return res.status(404).json({
+                error: "Transaction Not Found",
+                message: "The specified transaction could not be found."
+            });
+        }
+
+        // Check if transaction is eligible for return (completed sales only)
+        if (transaction.status !== 1) {
+            return res.status(400).json({
+                error: "Invalid Transaction",
+                message: "Only completed transactions can be returned."
+            });
+        }
+
+        // Validate items to be returned
+        const validItems = [];
+        const invalidItems = [];
+
+        items.forEach(returnItem => {
+            const originalItem = transaction.items.find(item =>
+                item.id === returnItem.id || item.product_id === returnItem.id
+            );
+
+            if (originalItem) {
+                const returnQuantity = parseInt(returnItem.quantity) || 0;
+                const originalQuantity = parseInt(originalItem.quantity) || 0;
+
+                if (returnQuantity > 0 && returnQuantity <= originalQuantity) {
+                    validItems.push({
+                        ...originalItem,
+                        returnQuantity: returnQuantity,
+                        returnReason: returnItem.reason || 'General Return',
+                        returnNotes: returnItem.notes || ''
+                    });
+                } else {
+                    invalidItems.push({
+                        id: returnItem.id,
+                        requestedQuantity: returnQuantity,
+                        availableQuantity: originalQuantity,
+                        reason: 'Invalid quantity'
+                    });
+                }
+            } else {
+                invalidItems.push({
+                    id: returnItem.id,
+                    reason: 'Item not found in transaction'
+                });
+            }
+        });
+
+        if (invalidItems.length > 0) {
+            return res.status(400).json({
+                error: "Invalid Items",
+                message: "Some items cannot be returned.",
+                invalidItems: invalidItems
+            });
+        }
+
+        // Calculate refund amount
+        const calculatedRefundAmount = validItems.reduce((total, item) => {
+            return total + (parseFloat(item.price) * item.returnQuantity);
+        }, 0);
+
+        const finalRefundAmount = refundAmount || calculatedRefundAmount;
+
+        // Create return transaction record
+        const returnTransaction = {
+            _id: Math.floor(Date.now() / 1000),
+            originalTransactionId: transactionId,
+            type: 'return',
+            order: Date.now(),
+            ref_number: `RTN-${transaction.order}`,
+            customer: transaction.customer,
+            status: 1, // Completed return
+            subtotal: -finalRefundAmount,
+            tax: 0, // Tax adjustments handled separately
+            order_type: transaction.order_type,
+            items: validItems.map(item => ({
+                id: item.id,
+                product_id: item.product_id,
+                product_name: item.product_name,
+                sku: item.sku,
+                price: item.price,
+                quantity: -item.returnQuantity, // Negative quantity for return
+                returnReason: item.returnReason,
+                returnNotes: item.returnNotes
+            })),
+            date: new Date(),
+            total: -finalRefundAmount,
+            paid: -finalRefundAmount,
+            change: 0,
+            refund_method: refundMethod || 'Cash',
+            return_reason: reason,
+            return_notes: notes || '',
+            user: req.body.user || 'System',
+            user_id: req.body.user_id || transaction.user_id || 0,
+            till: req.body.till || transaction.till || 0,
+            return_date: new Date(),
+            shift_id: transaction.shift_id // Inherit shift_id from original transaction
+        };
+
+        // Insert return transaction
+        transactionsDB.insert(returnTransaction, function (err, savedReturn) {
+            if (err) {
+                console.error(err);
+                return res.status(500).json({
+                    error: "Internal Server Error",
+                    message: "Failed to create return transaction."
+                });
+            }
+
+            // Adjust inventory - increment stock for returned items
+            const returnItemsForInventory = validItems.map(item => ({
+                id: item.id,
+                quantity: item.returnQuantity
+            }));
+
+            Inventory.incrementInventory(returnItemsForInventory);
+
+            // Update shift expected cash for the return
+            if (returnTransaction.shift_id) {
+                updateShiftExpectedCashForReturn(returnTransaction);
+            }
+
+            // Update original transaction to track returns
+            const updatedItems = [...transaction.items];
+            validItems.forEach(returnItem => {
+                const itemIndex = updatedItems.findIndex(item =>
+                    item.id === returnItem.id || item.product_id === returnItem.id
+                );
+                if (itemIndex >= 0) {
+                    if (!updatedItems[itemIndex].returns) {
+                        updatedItems[itemIndex].returns = [];
+                    }
+                    updatedItems[itemIndex].returns.push({
+                        date: new Date(),
+                        quantity: returnItem.returnQuantity,
+                        reason: returnItem.returnReason,
+                        notes: returnItem.returnNotes,
+                        refundAmount: parseFloat(returnItem.price) * returnItem.returnQuantity
+                    });
+                }
+            });
+
+            transactionsDB.update(
+                { _id: transactionId },
+                { $set: { items: updatedItems } },
+                {},
+                function (err) {
+                    if (err) {
+                        console.error('Error updating original transaction:', err);
+                        // Don't fail the whole operation for this
+                    }
+
+                    res.json({
+                        success: true,
+                        message: "Return processed successfully",
+                        returnTransaction: savedReturn,
+                        refundAmount: finalRefundAmount,
+                        returnedItems: validItems.length
+                    });
+                }
+            );
+        });
+    });
+});
+
+/**
+ * Helper function to update shift expected cash for returns
+ */
+function updateShiftExpectedCashForReturn(returnTransaction) {
+  const shiftsDB = getDatabase(path.join(
+    appData,
+    appName,
+    "server",
+    "databases",
+    "shifts.db",
+  ));
+
+  const refundAmount = Math.abs(parseFloat(returnTransaction.total) || 0);
+
+  shiftsDB.findOne({ shift_id: returnTransaction.shift_id }, function (err, shift) {
+    if (err) {
+      console.error('Error finding shift for return update:', err);
+      return;
+    }
+
+    if (!shift || shift.status !== 'open') {
+      console.log('Shift not found or not open for return update');
+      return;
+    }
+
+    const updateData = {
+      transactions_count: (shift.transactions_count || 0) + 1,
+      expected_cash: (shift.expected_cash || 0) - refundAmount,
+      returns: (shift.returns || 0) + refundAmount
+    };
+
+    shiftsDB.update(
+      { shift_id: returnTransaction.shift_id },
+      { $set: updateData },
+      {},
+      function (err, numReplaced) {
+        if (err) {
+          console.error('Error updating shift expected cash for return:', err);
+        } else {
+          console.log('Shift expected cash updated for return successfully');
+        }
+      }
+    );
+  });
+}
+
+/**
+ * GET endpoint: Get return history for a transaction.
+ */
+app.get("/returns/:transactionId", function (req, res) {
+    const transactionId = req.params.transactionId;
+    
+    transactionsDB.find({
+        $or: [
+            { _id: transactionId },
+            { originalTransactionId: transactionId }
+        ]
+    }, function (err, transactions) {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({
+                error: "Internal Server Error",
+                message: "Database error occurred."
+            });
+        }
+        
+        const originalTransaction = transactions.find(t => t._id == transactionId);
+        const returnTransactions = transactions.filter(t => t.originalTransactionId == transactionId && t.type === 'return');
+        
+        res.json({
+            originalTransaction: originalTransaction,
+            returnTransactions: returnTransactions,
+            totalReturned: returnTransactions.reduce((sum, t) => sum + parseFloat(t.total || 0), 0),
+            returnCount: returnTransactions.length
+        });
+    });
+});
+
+/**
+ * GET endpoint: Get all return transactions.
+ */
+app.get("/returns", function (req, res) {
+    const { startDate, endDate, reason } = req.query;
+    
+    let query = { type: 'return', status: 1 };
+    
+    if (startDate && endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        query.date = { $gte: start.toISOString(), $lte: end.toISOString() };
+    }
+    
+    if (reason) {
+        query.return_reason = reason;
+    }
+    
+    transactionsDB.find(query, function (err, returns) {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({
+                error: "Internal Server Error",
+                message: "Database error occurred."
+            });
+        }
+        
+        res.send(returns);
+    });
+});
+
+/**
+ * POST endpoint: Generate return receipt.
+ */
+app.post("/return-receipt", function (req, res) {
+    const { returnTransactionId } = req.body;
+    
+    if (!returnTransactionId) {
+        return res.status(400).json({
+            error: "Bad Request",
+            message: "Return transaction ID is required."
+        });
+    }
+    
+    transactionsDB.findOne({ _id: returnTransactionId, type: 'return' }, function (err, returnTransaction) {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({
+                error: "Internal Server Error",
+                message: "Database error occurred."
+            });
+        }
+        
+        if (!returnTransaction) {
+            return res.status(404).json({
+                error: "Return Transaction Not Found",
+                message: "The specified return transaction could not be found."
+            });
+        }
+        
+        // Find original transaction for reference
+        transactionsDB.findOne({ _id: returnTransaction.originalTransactionId }, function (err, originalTransaction) {
+            if (err) {
+                console.error(err);
+                return res.status(500).json({
+                    error: "Internal Server Error",
+                    message: "Database error occurred."
+                });
+            }
+            
+            const receipt = {
+                returnTransaction: returnTransaction,
+                originalTransaction: originalTransaction,
+                receiptNumber: `R-${returnTransaction._id}`,
+                generatedDate: new Date(),
+                refundAmount: Math.abs(parseFloat(returnTransaction.total)),
+                refundMethod: returnTransaction.refund_method,
+                returnReason: returnTransaction.return_reason,
+                returnNotes: returnTransaction.return_notes,
+                storeInfo: {
+                    name: "Restaurant POS", // This should come from settings
+                    address: "Store Address",
+                    phone: "Store Phone"
+                }
+            };
+            
+            res.json(receipt);
+        });
+    });
 });

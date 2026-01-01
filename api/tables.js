@@ -714,6 +714,156 @@ app.post("/orders", function (req, res) {
 });
 
 /**
+ * PUT endpoint: Transfer table order to another table
+ */
+app.put("/orders/:orderId/transfer", function (req, res) {
+  try {
+    const orderId = req.params.orderId;
+    const { new_table_id } = req.body;
+
+    if (!new_table_id) {
+      return res.status(400).json({
+        error: "Validation Error",
+        message: "New table ID is required."
+      });
+    }
+
+    // Check if order exists
+    tableOrdersDB.findOne({ _id: orderId }, function (err, order) {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({
+          error: "Internal Server Error",
+          message: "Database error."
+        });
+      }
+
+      if (!order) {
+        return res.status(404).json({
+          error: "Order not found",
+          message: "The order to transfer does not exist."
+        });
+      }
+
+      if (order.table_id === new_table_id) {
+        return res.status(400).json({
+          error: "Validation Error",
+          message: "Cannot transfer order to the same table."
+        });
+      }
+
+      // Check if new table exists and is available
+      tablesDB.findOne({ _id: new_table_id }, function (err, newTable) {
+        if (err) {
+          return res.status(500).json({
+            error: "Database Error",
+            message: "Failed to find new table."
+          });
+        }
+
+        if (!newTable) {
+          return res.status(404).json({
+            error: "New table not found",
+            message: "The destination table does not exist."
+          });
+        }
+
+        // Check if new table already has an active order
+        tableOrdersDB.findOne({
+          table_id: new_table_id,
+          order_status: { $in: [TABLE_ORDER_STATUS.SEATED, TABLE_ORDER_STATUS.ORDERING, TABLE_ORDER_STATUS.EATING] }
+        }, function (err, existingOrder) {
+          if (err) {
+            return res.status(500).json({
+              error: "Database Error",
+              message: "Failed to check for existing orders on new table."
+            });
+          }
+
+          if (existingOrder) {
+            return res.status(400).json({
+              error: "Validation Error",
+              message: "The destination table already has an active order."
+            });
+          }
+
+          const oldTableId = order.table_id;
+
+          // Update order with new table
+          tableOrdersDB.update(
+            { _id: orderId },
+            {
+              $set: {
+                table_id: validator.escape(new_table_id),
+                last_modified: new Date().toISOString()
+              }
+            },
+            {},
+            function (err, numReplaced) {
+              if (err) {
+                console.error(err);
+                res.status(500).json({
+                  error: "Internal Server Error",
+                  message: "Failed to transfer order.",
+                });
+              } else {
+                // Update old table status to available
+                updateTableStatus(oldTableId, TABLE_ORDER_STATUS.CLOSED);
+
+                // Update new table status to occupied
+                updateTableStatus(new_table_id, order.order_status);
+
+                // Log the transfer in audit logs if available
+                if (global.auditLogsDB) {
+                  const logData = {
+                    order_id: orderId,
+                    old_table_id: oldTableId,
+                    new_table_id: new_table_id,
+                    user_id: req.user ? req.user._id : '',
+                    action: 'table_transfer',
+                    timestamp: new Date().toISOString(),
+                    details: `Transferred order ${order.order_number} from table ${oldTableId} to table ${new_table_id}`
+                  };
+                  global.auditLogsDB.insert(logData, function(err) {
+                    if (err) console.error('Failed to log transfer:', err);
+                  });
+                }
+
+                // Emit real-time updates
+                if (global.io) {
+                  global.io.emit('table-order-transferred', {
+                    order_id: orderId,
+                    old_table_id: oldTableId,
+                    new_table_id: new_table_id,
+                    order_status: order.order_status
+                  });
+                }
+
+                tableOrdersDB.findOne({ _id: orderId }, function (err, updatedOrder) {
+                  res.json({
+                    message: "Order transferred successfully",
+                    order: updatedOrder,
+                    old_table_id: oldTableId,
+                    new_table_id: new_table_id
+                  });
+                });
+              }
+            }
+          );
+        });
+      });
+    });
+
+  } catch (error) {
+    console.error("Order transfer error:", error);
+    res.status(500).json({
+      error: "Internal Server Error",
+      message: "An error occurred while transferring the order.",
+    });
+  }
+});
+
+/**
  * PUT endpoint: Update table order status
  */
 app.put("/orders/:orderId/status", function (req, res) {

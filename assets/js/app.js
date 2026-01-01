@@ -111,7 +111,6 @@ class AppState extends EventEmitter {
           todaySales: 0,
           transactions: 0,
           lowStock: 0,
-          pendingPrescriptions: 0,
           salesChange: 0,
           transactionChange: 0,
           stockChange: 0,
@@ -229,6 +228,20 @@ class AppState extends EventEmitter {
         network: {},
         backup: {},
         loading: false
+      },
+
+      waste: {
+        wasteEntries: [],
+        analytics: {},
+        products: [],
+        loading: false
+      },
+
+      shifts: {
+        currentShift: null,
+        shifts: [],
+        selectedShift: null,
+        loading: false
       }
     };
 
@@ -327,11 +340,9 @@ class AppState extends EventEmitter {
           todaySales: 0,
           transactions: 0,
           lowStock: 0,
-          pendingPrescriptions: 0,
           salesChange: 0,
           transactionChange: 0,
           stockChange: 0,
-          prescriptionChange: 0,
           salesData: []
         },
         alerts: [],
@@ -357,7 +368,7 @@ class ViewManager {
     console.log('=== INITIALIZING VIEWMANAGER ===');
 
     // Check for module containers in DOM (prescriptions removed for restaurant conversion)
-    const moduleIds = ['dashboard', 'pos', 'inventory', 'recipes', 'kitchen', 'tables', 'combos', 'analytics', 'customers', 'suppliers', 'reports', 'settings'];
+    const moduleIds = ['dashboard', 'pos', 'inventory', 'recipes', 'kitchen', 'tables', 'combos', 'analytics', 'customers', 'suppliers', 'reports', 'settings', 'waste', 'shifts'];
 
     this.modules = new Map();
     moduleIds.forEach(id => {
@@ -379,11 +390,12 @@ class ViewManager {
       'tables': 'Table Management',
       'combos': 'Combo Meal Builder',
       'analytics': 'Restaurant Analytics',
-      // 'prescriptions': 'Prescription Management', // Removed for restaurant conversion
       'customers': 'Customer Management',
       'suppliers': 'Supplier Management',
       'reports': 'Reports & Analytics',
-      'settings': 'Settings'
+      'settings': 'Settings',
+      'waste': 'Waste / Spoilage Tracking',
+      'shifts': 'Shift Management'
     };
 
     this.currentModule = 'dashboard';
@@ -1253,7 +1265,8 @@ class foodMineApp {
       CustomersModule: !!window.CustomersModule,
       SuppliersModule: !!window.SuppliersModule,
       ReportsModule: !!window.ReportsModule,
-      SettingsModule: !!window.SettingsModule
+      SettingsModule: !!window.SettingsModule,
+      ShiftsModule: !!window.ShiftsModule
     });
 
     // Register core modules if classes are available
@@ -1270,7 +1283,9 @@ class foodMineApp {
       ['customers', window.CustomersModule],
       ['suppliers', window.SuppliersModule],
       ['reports', window.ReportsModule],
-      ['settings', window.SettingsModule]
+      ['settings', window.SettingsModule],
+      ['waste', window.WasteModule],
+      ['shifts', window.ShiftsModule]
     ];
 
     moduleClasses.forEach(([name, ModuleClass]) => {

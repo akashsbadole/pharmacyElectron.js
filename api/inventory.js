@@ -21,6 +21,17 @@ const maxFileSize = 2097152 //2MB = 2*1024*1024
 const validator = require("validator");
 const appName = process.env.APPNAME;
 const appData = process.env.APPDATA;
+
+// Import time pricing rules DB
+const { getDatabase } = require('./database_utils');
+const timePricingRulesDbPath = path.join(
+    appData,
+    appName,
+    "server",
+    "databases",
+    "time_pricing_rules.db",
+);
+const timePricingRulesDB = getDatabase(timePricingRulesDbPath);
 const dbPath = path.join(
     appData,
     appName,
@@ -43,14 +54,77 @@ const upload = multer({
 }).single("imagename");
 
 
-const { getDatabase } = require('./database_utils');
-
 app.use(bodyParser.json());
-
 module.exports = app;
 
 let inventoryDB = getDatabase(dbPath);
+module.exports.inventoryDB = inventoryDB;
 inventoryDB.ensureIndex({ fieldName: "_id", unique: true });
+
+/**
+ * Get the current effective price for a product, considering time-based pricing rules.
+ * @param {number} productId - The product ID
+ * @param {Function} callback - Callback function with (err, currentPrice, originalPrice, discountInfo)
+ */
+function getCurrentPrice(productId, callback) {
+    inventoryDB.findOne({ _id: productId }, function(err, product) {
+        if (err || !product) {
+            return callback(err || new Error('Product not found'), null, null, null);
+        }
+
+        const originalPrice = parseFloat(product.price) || 0;
+
+        // Check for applicable time-based pricing rules
+        const now = new Date();
+        const currentTime = now.toTimeString().slice(0, 5); // HH:MM format
+        const currentDay = now.getDay(); // 0 = Sunday
+
+        timePricingRulesDB.find(
+            { item_id: productId, active: true },
+            function(err, rules) {
+                if (err) {
+                    return callback(err, originalPrice, originalPrice, null);
+                }
+
+                // Find applicable rules
+                const applicableRules = rules.filter(rule => {
+                    // Check if current day is included
+                    if (!rule.days_of_week.includes(currentDay)) {
+                        return false;
+                    }
+
+                    // Check if current time is within range
+                    return currentTime >= rule.start_time && currentTime <= rule.end_time;
+                });
+
+                if (applicableRules.length === 0) {
+                    return callback(null, originalPrice, originalPrice, null);
+                }
+
+                // Apply the first applicable rule (could be extended to handle multiple/priority)
+                const rule = applicableRules[0];
+                let discountedPrice = originalPrice;
+
+                if (rule.discount_type === 'percentage') {
+                    discountedPrice = originalPrice * (1 - rule.discount_value / 100);
+                } else if (rule.discount_type === 'fixed') {
+                    discountedPrice = Math.max(0, originalPrice - rule.discount_value);
+                }
+
+                const discountInfo = {
+                    rule_id: rule._id,
+                    rule_name: rule.name,
+                    discount_type: rule.discount_type,
+                    discount_value: rule.discount_value,
+                    start_time: rule.start_time,
+                    end_time: rule.end_time
+                };
+
+                callback(null, discountedPrice, originalPrice, discountInfo);
+            }
+        );
+    });
+}
 
 /**
  * GET endpoint: Get the welcome message for the Inventory API.
@@ -104,6 +178,41 @@ app.get("/product/:productId", function (req, res) {
             },
         );
     }
+});
+
+/**
+ * GET endpoint: Get current effective price for a product, including any time-based discounts.
+ *
+ * @param {Object} req request object with product ID as a parameter.
+ * @param {Object} res response object.
+ * @returns {void}
+ */
+app.get("/product/:productId/current-price", function (req, res) {
+    const productId = parseInt(req.params.productId);
+    if (!productId) {
+        return res.status(400).json({
+            error: "Bad Request",
+            message: "Valid product ID is required.",
+        });
+    }
+
+    getCurrentPrice(productId, function(err, currentPrice, originalPrice, discountInfo) {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({
+                error: "Internal Server Error",
+                message: "An unexpected error occurred.",
+            });
+        }
+
+        res.json({
+            product_id: productId,
+            current_price: currentPrice,
+            original_price: originalPrice,
+            discount_applied: discountInfo !== null,
+            discount_info: discountInfo
+        });
+    });
 });
 
 /**
@@ -218,6 +327,7 @@ app.post("/product", function (req, res) {
             lastRestocked: validator.escape(req.body.lastRestocked || "") || null,
             supplierId: validator.escape(req.body.supplierId || "") || null,
             reorderQuantity: validator.escape(req.body.reorderQuantity || "") || 0,
+            availability_status: validator.escape(req.body.availability_status || "Available"),
             // Removed pharmaceutical fields for restaurant conversion
             batches: batches
         };
@@ -382,7 +492,7 @@ app.put("/product", function (req, res) {
                 minStock: validator.escape(req.body.minStock || ""),
                 
                 // Restaurant-specific fields
-                availability_status: validator.escape(req.body.availability_status || "Available"),
+                available: req.body.available ? true : false,
                 preparation_time: parseInt(validator.escape(req.body.preparation_time || "15")),
                 dietary_info: parseDietaryInfo(req.body.dietary_info || "[]"),
                 allergens: parseAllergens(req.body.allergens || "[]"),
@@ -691,6 +801,110 @@ app.decrementInventory = function (products) {
 };
 
 /**
+ * Increment inventory quantities based on a list of returned products.
+ * Used for processing returns and refunds.
+ *
+ * @param {Array} products - List of returned products with quantities to increment.
+ * @returns {void}
+ */
+app.incrementInventory = function (products) {
+    async.eachSeries(products, function (returnedProduct, callback) {
+        inventoryDB.findOne(
+            {
+                _id: parseInt(returnedProduct.id),
+            },
+            function (err, product) {
+                if (!product) {
+                    callback();
+                } else {
+                    let quantityToAdd = parseInt(returnedProduct.quantity);
+                    let currentQuantity = parseInt(product.quantity) || 0;
+                    let updatedQuantity = currentQuantity + quantityToAdd;
+                    
+                    let updateObj = {
+                        quantity: updatedQuantity,
+                    };
+
+                    // Handle Batches Logic for returns
+                    // For returns, we'll add to the first batch or create a new batch
+                    if (product.batches && product.batches.length > 0) {
+                        let updatedBatches = [...product.batches];
+                        
+                        // Try to add to the batch with the latest expiry date (newest stock)
+                        updatedBatches.sort((a, b) => new Date(b.expirationDate) - new Date(a.expirationDate));
+                        
+                        if (updatedBatches[0]) {
+                            updatedBatches[0].quantity = parseInt(updatedBatches[0].quantity) + quantityToAdd;
+                        } else {
+                            // If no valid batches, create a new one
+                            updatedBatches.push({
+                                batch_id: `RTN-${Date.now()}`,
+                                quantity: quantityToAdd,
+                                expirationDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // 1 year from now
+                            });
+                        }
+
+                        updateObj.batches = updatedBatches;
+                        
+                        // Update expirationDate to the earliest batch
+                        updatedBatches.sort((a, b) => new Date(a.expirationDate) - new Date(b.expirationDate));
+                        if (updatedBatches.length > 0) {
+                            updateObj.expirationDate = updatedBatches[0].expirationDate;
+                        }
+                    } else {
+                        // No batches exist, create a new one for the returned items
+                        updateObj.batches = [{
+                            batch_id: `RTN-${Date.now()}`,
+                            quantity: quantityToAdd,
+                            expirationDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // 1 year from now
+                        }];
+                        updateObj.expirationDate = updateObj.batches[0].expirationDate;
+                    }
+
+                    // Log the restock event
+                    let restockEntry = {
+                        date: new Date().toISOString(),
+                        type: 'return',
+                        quantity: quantityToAdd,
+                        reason: 'Item return',
+                        source: 'return_transaction'
+                    };
+                    
+                    updateObj.lastRestocked = new Date().toISOString();
+                    updateObj.alertHistory = product.alertHistory || [];
+                    
+                    // Remove low stock alerts if they exist since we're restocking
+                    updateObj.alertHistory = updateObj.alertHistory.filter(alert => 
+                        !alert.message.includes('Low stock alert')
+                    );
+
+                    if(global.io) {
+                        global.io.emit('inventory-restock', {
+                            productId: product._id,
+                            name: product.name,
+                            quantityAdded: quantityToAdd,
+                            newQuantity: updatedQuantity,
+                            source: 'return'
+                        });
+                    }
+
+                    inventoryDB.update(
+                        {
+                            _id: parseInt(product._id),
+                        },
+                        {
+                            $set: updateObj,
+                        },
+                        {},
+                        callback,
+                    );
+                }
+            },
+        );
+    });
+};
+
+/**
  * GET endpoint: Get alternative/similar menu items based on category and dietary info.
  *
  * @param {Object} req request object.
@@ -716,7 +930,7 @@ app.get("/alternatives/:menuItemId", function (req, res) {
         inventoryDB.find({ 
             category: category,
             _id: { $ne: menuItemId },
-            availability_status: { $ne: 'Out of Stock' }
+            available: { $ne: false }
         }, function (err, alternatives) {
             if (err) {
                 console.error(err);
@@ -959,7 +1173,7 @@ app.get("/export/csv", function (req, res) {
                 stock: menuItem.stock === 1 ? 'Enabled' : 'Disabled',
                 minStock: menuItem.minStock || 1,
                 expirationDate: menuItem.expirationDate || '',
-                availabilityStatus: menuItem.availability_status || 'Available',
+                available: menuItem.available ? 'Yes' : 'No',
                 preparationTime: menuItem.preparation_time || 15,
                 dietaryInfo: (menuItem.dietary_info || []).join(', '),
                 allergens: (menuItem.allergens || []).join(', '),
@@ -984,7 +1198,7 @@ app.get("/export/csv", function (req, res) {
                 { label: 'Stock Management', value: 'stock' },
                 { label: 'Minimum Stock', value: 'minStock' },
                 { label: 'Expiration Date', value: 'expirationDate' },
-                { label: 'Availability Status', value: 'availabilityStatus' },
+                { label: 'Available', value: 'available' },
                 { label: 'Preparation Time (min)', value: 'preparationTime' },
                 { label: 'Dietary Info', value: 'dietaryInfo' },
                 { label: 'Allergens', value: 'allergens' },
@@ -1085,8 +1299,7 @@ app.post("/import/csv", function (req, res) {
                 'minstock': 'minstock',
                 'expirationdate': 'expirationdate',
                 'expiry': 'expirationdate',
-                'availabilitystatus': 'availability_status',
-                'availability': 'availability_status',
+                'available': 'available',
                 'preparationtime': 'preparation_time',
                 'prepTime': 'preparation_time',
                 'dietaryinfo': 'dietary_info',
@@ -1206,6 +1419,7 @@ app.post("/import/csv", function (req, res) {
                         stock: productData.stock && productData.stock.toLowerCase().includes('disable') ? 0 : 1,
                         minStock: productData.minstock ? parseInt(productData.minstock) || 1 : 1,
                         expirationDate: productData.expirationdate || '',
+                        available: productData.available && productData.available.toLowerCase() === 'yes' ? true : false,
                         // Removed pharmaceutical prescription requirement field
                         supplierId: productData.supplierid || null,
                         reorderQuantity: productData.reorderquantity ? parseInt(productData.reorderquantity) || 0 : 0,

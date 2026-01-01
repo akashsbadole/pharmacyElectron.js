@@ -30,7 +30,6 @@ function cleanupOrphanedFiles() {
         'inventory.db',
         'transactions.db',
         'users.db',
-        'prescriptions.db',
         'suppliers.db',
         'customers.db',
         'categories.db',

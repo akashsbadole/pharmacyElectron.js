@@ -149,7 +149,6 @@ function testAllApiModules() {
         ['Customers', './api/customers'],
         ['Transactions', './api/transactions'],
         ['Inventory', './api/inventory'],
-        ['Prescriptions', './api/prescriptions'],
         ['Purchase Orders', './api/purchase_orders'],
         ['Categories', './api/categories'],
         ['Users', './api/users'],

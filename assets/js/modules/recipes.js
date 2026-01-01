@@ -217,24 +217,344 @@ class RecipesModule {
     try {
       const response = await fetch(`${window.api}recipes/export/csv`);
       const blob = await response.blob();
-      
+
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `recipes-export-${new Date().toISOString().split('T')[0]}.csv`;
       a.click();
       window.URL.revokeObjectURL(url);
-      
+
       if (window.notiflix) {
         window.notiflix.Notify.success('Recipes exported successfully!');
       }
-      
+
     } catch (error) {
       console.error('Error exporting recipes:', error);
       if (window.notiflix) {
         window.notiflix.Report.failure('Error', 'Failed to export recipes', 'Ok');
       }
     }
+  }
+
+  // Menu pricing integration methods
+  async updateMenuPricingFromRecipe(recipeId, profitMargin, updateMenu = false) {
+    try {
+      const response = await fetch(`${window.api}recipes/recipes/update-menu-pricing`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          recipeId,
+          profitMargin,
+          updateMenu
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        if (window.notiflix) {
+          if (result.menu_item_updated) {
+            window.notiflix.Report.success(
+              'Success',
+              `Menu item price updated from $${result.old_price.toFixed(2)} to $${result.new_price.toFixed(2)}`,
+              'Ok'
+            );
+          } else {
+            window.notiflix.Report.success(
+              'Success',
+              `Suggested price: $${result.suggested_price.toFixed(2)} (${(profitMargin * 100)}% margin)`,
+              'Ok'
+            );
+          }
+        }
+        return result;
+      } else {
+        throw new Error(result.error || 'Failed to update menu pricing');
+      }
+
+    } catch (error) {
+      console.error('Error updating menu pricing:', error);
+      if (window.notiflix) {
+        window.notiflix.Report.failure('Error', error.message, 'Ok');
+      }
+      throw error;
+    }
+  }
+
+  async getPricingSuggestions(profitMargin = 0.3) {
+    try {
+      const response = await fetch(`${window.api}recipes/recipes/pricing-suggestions?profit_margin=${profitMargin}`);
+      const suggestions = await response.json();
+      return suggestions;
+
+    } catch (error) {
+      console.error('Error getting pricing suggestions:', error);
+      if (window.notiflix) {
+        window.notiflix.Report.failure('Error', 'Failed to get pricing suggestions', 'Ok');
+      }
+      throw error;
+    }
+  }
+
+  async bulkUpdateMenuPricing(profitMargin = 0.3, recipeIds = null) {
+    try {
+      const response = await fetch(`${window.api}recipes/recipes/bulk-update-menu-pricing`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          profitMargin,
+          recipeIds
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        if (window.notiflix) {
+          window.notiflix.Report.success(
+            'Success',
+            `${result.updated_count} menu item prices updated successfully`,
+            'Ok'
+          );
+        }
+        return result;
+      } else {
+        throw new Error(result.error || 'Failed to bulk update menu pricing');
+      }
+
+    } catch (error) {
+      console.error('Error bulk updating menu pricing:', error);
+      if (window.notiflix) {
+        window.notiflix.Report.failure('Error', error.message, 'Ok');
+      }
+      throw error;
+    }
+  }
+
+  // Add pricing suggestion UI to recipe row
+  renderRecipeRow(recipe) {
+    const recipesState = this.app.state.getModuleState('recipes');
+    const isSelected = recipesState.selectedRecipes?.includes(recipe._id) || false;
+
+    const pricingAction = recipe.menu_item_id ? `
+      <button class="btn btn-sm btn-warning" onclick="window.pharmaApp.getModule('recipes').showPricingSuggestion('${recipe._id}')" title="Update Menu Pricing">
+        <i class="fa fa-dollar"></i>
+      </button>
+    ` : '';
+
+    return `
+      <tr class="${isSelected ? 'bg-blue-50' : ''}">
+        <td class="p-4">
+          <input type="checkbox" ${isSelected ? 'checked' : ''}
+                 onchange="window.pharmaApp.getModule('recipes').toggleRecipeSelection('${recipe._id}')">
+        </td>
+        <td class="p-4">
+          <div class="font-medium">${recipe.name}</div>
+          <div class="text-xs text-gray-500">${recipe.ingredients?.length || 0} ingredients</div>
+        </td>
+        <td class="p-4 text-sm">${recipe.category || '-'}</td>
+        <td class="p-4 text-sm">${recipe.serving_size || 1}</td>
+        <td class="p-4 text-sm">${recipe.prep_time || 0} min</td>
+        <td class="p-4 font-medium">$${(recipe.cost_per_serving || 0).toFixed(2)}</td>
+        <td class="p-4">
+          <span class="px-2 py-1 rounded text-xs ${
+            recipe.difficulty_level === 'Easy' ? 'bg-green-100 text-green-800' :
+            recipe.difficulty_level === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
+            'bg-red-100 text-red-800'
+          }">
+            ${recipe.difficulty_level || 'Medium'}
+          </span>
+        </td>
+        <td class="p-4">
+          <div class="flex gap-2">
+            <button class="btn btn-sm btn-info" onclick="window.pharmaApp.getModule('recipes').viewRecipe('${recipe._id}')">
+              <i class="fa fa-eye"></i>
+            </button>
+            <button class="btn btn-sm btn-primary" onclick="window.pharmaApp.getModule('recipes').editRecipe('${recipe._id}')">
+              <i class="fa fa-edit"></i>
+            </button>
+            <button class="btn btn-sm btn-success" onclick="window.pharmaApp.getModule('recipes').showCostCalculator('${recipe._id}')">
+              <i class="fa fa-calculator"></i>
+            </button>
+            ${pricingAction}
+            <button class="btn btn-sm btn-danger" onclick="window.pharmaApp.getModule('recipes').deleteRecipe('${recipe._id}')">
+              <i class="fa fa-trash"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }
+
+  // Add pricing suggestion methods
+  showPricingSuggestion(recipeId) {
+    const recipesState = this.app.state.getModuleState('recipes');
+    const recipe = recipesState.recipes.find(r => r._id.toString() === recipeId.toString());
+
+    if (recipe) {
+      // Show a modal with pricing suggestion options
+      const modalHtml = `
+        <div class="modal fade" id="pricingSuggestionModal" tabindex="-1" role="dialog">
+          <div class="modal-dialog modal-md">
+            <div class="modal-content">
+              <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                <h4 class="modal-title">Update Menu Pricing</h4>
+              </div>
+              <div class="modal-body">
+                <div class="form-group">
+                  <label>Recipe: <strong>${recipe.name}</strong></label>
+                </div>
+                <div class="form-group">
+                  <label>Current Recipe Cost: <strong>$${(recipe.cost_per_serving || 0).toFixed(2)}</strong></label>
+                </div>
+                <div class="form-group">
+                  <label for="profitMargin">Profit Margin (%)</label>
+                  <div class="input-group">
+                    <input type="number" class="form-control" id="profitMargin" min="0" max="100" step="0.1" value="30">
+                    <span class="input-group-addon">%</span>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Suggested Price: <strong>$<span id="suggestedPrice">${((recipe.cost_per_serving || 0) * 1.3).toFixed(2)}</span></strong></label>
+                </div>
+                <div class="checkbox">
+                  <label>
+                    <input type="checkbox" id="updateMenuCheckbox" checked> Update Menu Item Price
+                  </label>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="window.pharmaApp.getModule('recipes').applyPricingUpdate('${recipeId}')">Apply</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Add modal to body and show it
+      $('body').append(modalHtml);
+      $('#pricingSuggestionModal').modal('show');
+
+      // Update suggested price when profit margin changes
+      $('#profitMargin').on('input', function() {
+        const margin = parseFloat($(this).val()) || 0;
+        const recipeCost = recipe.cost_per_serving || 0;
+        const suggestedPrice = recipeCost * (1 + margin / 100);
+        $('#suggestedPrice').text(suggestedPrice.toFixed(2));
+      });
+    }
+  }
+
+  applyPricingUpdate(recipeId) {
+    const profitMargin = parseFloat($('#profitMargin').val()) / 100;
+    const updateMenu = $('#updateMenuCheckbox').is(':checked');
+
+    $('#pricingSuggestionModal').modal('hide');
+    $('#pricingSuggestionModal').remove();
+
+    this.updateMenuPricingFromRecipe(recipeId, profitMargin, updateMenu);
+  }
+
+  // Add bulk pricing update action to the actions section
+  renderActions() {
+    const recipesState = this.app.state.getModuleState('recipes');
+    const selectedCount = recipesState.selectedRecipes?.length || 0;
+
+    const bulkPricingButton = selectedCount > 0 ? `
+      <button class="btn btn-success" onclick="window.pharmaApp.getModule('recipes').showBulkPricingModal()">
+        <i class="fa fa-dollar"></i> Update Pricing for Selected
+      </button>
+    ` : '';
+
+    return `
+      <div class="actions-section mb-6">
+        <div class="flex justify-between items-center">
+          <div class="flex gap-3">
+            <button class="btn btn-success" onclick="window.pharmaApp.getModule('recipes').showAddRecipeModal()">
+              <i class="fa fa-plus"></i> Add Recipe
+            </button>
+            <button class="btn btn-info" onclick="window.pharmaApp.getModule('recipes').showImportModal()">
+              <i class="fa fa-upload"></i> Import
+            </button>
+            <button class="btn btn-warning" onclick="window.pharmaApp.getModule('recipes').exportRecipes()">
+              <i class="fa fa-download"></i> Export All
+            </button>
+            ${bulkPricingButton}
+          </div>
+
+          <div class="text-sm text-gray-500">
+            ${recipesState.recipes?.length || 0} recipes total
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  showBulkPricingModal() {
+    const recipesState = this.app.state.getModuleState('recipes');
+    const selectedRecipes = recipesState.selectedRecipes || [];
+    const selectedCount = selectedRecipes.length;
+
+    if (selectedCount === 0) {
+      if (window.notiflix) {
+        window.notiflix.Notify.warning('Please select at least one recipe first');
+      }
+      return;
+    }
+
+    const modalHtml = `
+      <div class="modal fade" id="bulkPricingModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-md">
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+              <h4 class="modal-title">Bulk Update Menu Pricing</h4>
+            </div>
+            <div class="modal-body">
+              <div class="form-group">
+                <label>Selected Recipes: <strong>${selectedCount}</strong></label>
+              </div>
+              <div class="form-group">
+                <label for="bulkProfitMargin">Profit Margin (%)</label>
+                <div class="input-group">
+                  <input type="number" class="form-control" id="bulkProfitMargin" min="0" max="100" step="0.1" value="30">
+                  <span class="input-group-addon">%</span>
+                </div>
+              </div>
+              <div class="alert alert-info">
+                <i class="fa fa-info-circle"></i> This will update menu item prices for all selected recipes that have linked menu items.
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-primary" onclick="window.pharmaApp.getModule('recipes').applyBulkPricingUpdate()">Apply to All</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Add modal to body and show it
+    $('body').append(modalHtml);
+    $('#bulkPricingModal').modal('show');
+  }
+
+  applyBulkPricingUpdate() {
+    const profitMargin = parseFloat($('#bulkProfitMargin').val()) / 100;
+    const recipesState = this.app.state.getModuleState('recipes');
+    const selectedRecipes = recipesState.selectedRecipes || [];
+
+    $('#bulkPricingModal').modal('hide');
+    $('#bulkPricingModal').remove();
+
+    this.bulkUpdateMenuPricing(profitMargin, selectedRecipes);
   }
   
   render() {

@@ -13,6 +13,18 @@ const {
     getDatabaseFiles
 } = require('./database_utils');
 
+// Get settings database
+const Datastore = require("@seald-io/nedb");
+const dbPath = path.join(
+    process.env.APPDATA,
+    process.env.APPNAME,
+    "server",
+    "databases",
+    "settings.db",
+);
+const settingsDB = new Datastore({ filename: dbPath });
+settingsDB.loadDatabase();
+
 app.use(bodyParser.json());
 
 module.exports = app;
@@ -58,7 +70,7 @@ app.post("/create", async function (req, res) {
     try {
         const backupDir = req.body.backupLocation || getBackupDirectory();
         const backupLocation = path.resolve(backupDir);
-        
+
         // Validate backup location
         try {
             const pathParts = backupLocation.split(path.sep);
@@ -83,9 +95,9 @@ app.post("/create", async function (req, res) {
         });
 
         // Send initial response
-        res.write(JSON.stringify({ 
-            message: 'Backup started', 
-            status: 'in_progress' 
+        res.write(JSON.stringify({
+            message: 'Backup started',
+            status: 'in_progress'
         }));
 
         // Create backup with progress callback
@@ -107,6 +119,111 @@ app.post("/create", async function (req, res) {
 
     } catch (error) {
         console.error('Backup creation error:', error);
+        if (!res.headersSent) {
+            res.status(500).json({
+                error: 'Backup Failed',
+                message: error.message
+            });
+        } else {
+            res.write(JSON.stringify({
+                error: 'Backup Failed',
+                message: error.message
+            }) + '\n');
+            res.end();
+        }
+    }
+});
+
+/**
+ * POST endpoint: Create backup to configured local folder
+ */
+app.post("/create-local", async function (req, res) {
+    try {
+        // Get settings to retrieve local backup folder path
+        const settings = await new Promise((resolve, reject) => {
+            settingsDB.findOne({ _id: 1 }, function (err, docs) {
+                if (err) reject(err);
+                else resolve(docs);
+            });
+        });
+
+        if (!settings || !settings.settings || !settings.settings.local_backup_folder) {
+            return res.status(400).json({
+                error: 'Configuration Error',
+                message: 'Local backup folder path is not configured. Please set it in Settings > Backup & Restore.'
+            });
+        }
+
+        const backupDir = settings.settings.local_backup_folder;
+        const backupLocation = path.resolve(backupDir);
+
+        // Validate backup location exists and is writable
+        if (!fs.existsSync(backupDir)) {
+            return res.status(400).json({
+                error: 'Invalid backup location',
+                message: 'Configured backup folder does not exist: ' + backupDir
+            });
+        }
+
+        // Test write permissions
+        try {
+            const testFile = path.join(backupDir, 'test_write.tmp');
+            fs.writeFileSync(testFile, 'test');
+            fs.unlinkSync(testFile);
+        } catch (err) {
+            return res.status(400).json({
+                error: 'Permission denied',
+                message: 'Cannot write to backup folder: ' + backupDir
+            });
+        }
+
+        // Validate path for security
+        try {
+            const pathParts = backupLocation.split(path.sep);
+            if (backupLocation.includes('..') || backupLocation.includes('~')) {
+                return res.status(400).json({
+                    error: 'Invalid backup location',
+                    message: 'Backup location cannot contain .. or ~ characters'
+                });
+            }
+        } catch (err) {
+            return res.status(400).json({
+                error: 'Invalid backup location',
+                message: 'Invalid backup location path'
+            });
+        }
+
+        // Set headers for progress tracking
+        res.writeHead(200, {
+            'Content-Type': 'application/json',
+            'Transfer-Encoding': 'chunked'
+        });
+
+        // Send initial response
+        res.write(JSON.stringify({
+            message: 'Local folder backup started',
+            status: 'in_progress'
+        }));
+
+        // Create backup with progress callback
+        const backupInfo = await createBackup(backupLocation, (progress, message) => {
+            res.write(JSON.stringify({
+                progress: progress,
+                message: message
+            }) + '\n');
+        });
+
+        // Send final result
+        res.write(JSON.stringify({
+            success: true,
+            backup: backupInfo,
+            message: 'Backup to local folder completed successfully'
+        }) + '\n');
+
+        res.end();
+
+    } catch (error) {
+        console.error('Local backup creation error:', error);
         if (!res.headersSent) {
             res.status(500).json({
                 error: 'Backup Failed',

@@ -34,11 +34,27 @@ function cleanupTempFiles(dbPath) {
                     const now = Date.now();
                     const fileAge = now - stats.mtime.getTime();
 
-                    // Increase age threshold to 30 minutes to be safe during startup
-                    if (fileAge > 30 * 60 * 1000) {
-                        fs.unlinkSync(tempFilePath);
-                        cleanedCount++;
-                        console.log(`Cleaned up orphaned temp file: ${tempFilePath}`);
+                    // Increase age threshold to 45 minutes to be extra safe during startup
+                    // This prevents cleanup of files that might still be in use
+                    if (fileAge > 45 * 60 * 1000) {
+                        // Double-check that the main database file exists and is newer
+                        const mainDbPath = path.join(dir, dbName);
+                        if (fs.existsSync(mainDbPath)) {
+                            const mainStats = fs.statSync(mainDbPath);
+                            // Only clean up if the main file is newer than the temp file
+                            if (mainStats.mtime > stats.mtime) {
+                                fs.unlinkSync(tempFilePath);
+                                cleanedCount++;
+                                console.log(`Cleaned up orphaned temp file: ${tempFilePath}`);
+                            }
+                        } else {
+                            // If main file doesn't exist, be more conservative
+                            if (fileAge > 60 * 60 * 1000) { // 1 hour
+                                fs.unlinkSync(tempFilePath);
+                                cleanedCount++;
+                                console.log(`Cleaned up orphaned temp file (no main file): ${tempFilePath}`);
+                            }
+                        }
                     }
                 } catch (err) {
                     if (err.code !== 'ENOENT' && err.code !== 'EBUSY') {
@@ -94,6 +110,226 @@ function isDatabaseValid(dbPath) {
 }
 
 /**
+ * Validates database file integrity by checking for corruption
+ * @param {string} dbPath - Path to the database file
+ * @returns {boolean} - True if database file appears valid
+ */
+function validateDatabaseIntegrity(dbPath) {
+    try {
+        if (!fs.existsSync(dbPath)) {
+            return false;
+        }
+
+        const stats = fs.statSync(dbPath);
+        
+        // Check if file is empty (which is valid for NeDB)
+        if (stats.size === 0) {
+            return true;
+        }
+
+        // Check if file is too large (potential corruption indicator)
+        if (stats.size > 100 * 1024 * 1024) { // 100MB limit
+            console.warn(`Database file ${dbPath} is unusually large (${stats.size} bytes), may indicate corruption`);
+            return false;
+        }
+
+        // Try to read a small portion of the file to check for basic JSON validity
+        try {
+            const buffer = Buffer.alloc(1024);
+            const fd = fs.openSync(dbPath, 'r');
+            const bytesRead = fs.readSync(fd, buffer, 0, 1024, 0);
+            fs.closeSync(fd);
+
+            if (bytesRead > 0) {
+                const content = buffer.toString('utf8', 0, bytesRead);
+                // Check for basic JSON structure indicators
+                if (content.includes('{') && content.includes('}')) {
+                    return true;
+                }
+                // Check for common corruption indicators
+                if (content.includes('') || content.includes('\u0000')) {
+                    console.warn(`Database file ${dbPath} contains null bytes or invalid characters, may be corrupted`);
+                    return false;
+                }
+            }
+        } catch (readErr) {
+            console.warn(`Failed to read database file ${dbPath}:`, readErr.message);
+            return false;
+        }
+
+        return true;
+    } catch (err) {
+        console.warn(`Error validating database integrity for ${dbPath}:`, err.message);
+        return false;
+    }
+}
+
+/**
+ * Attempts to recover a corrupted database file
+ * @param {string} dbPath - Path to the corrupted database file
+ * @returns {boolean} - True if recovery was successful
+ */
+function recoverDatabase(dbPath) {
+    try {
+        if (!fs.existsSync(dbPath)) {
+            console.log(`Database file ${dbPath} does not exist, will be created on load`);
+            return true;
+        }
+
+        const backupPath = `${dbPath}.backup.${Date.now()}`;
+        
+        // Create backup of corrupted file
+        fs.copyFileSync(dbPath, backupPath);
+        console.log(`Created backup of corrupted database: ${backupPath}`);
+
+        // Try to validate the file
+        if (validateDatabaseIntegrity(dbPath)) {
+            console.log(`Database file ${dbPath} appears to be valid after all`);
+            return true;
+        }
+
+        // Remove the corrupted file
+        fs.unlinkSync(dbPath);
+        console.log(`Removed corrupted database file: ${dbPath}`);
+
+        // NeDB will create a new empty database file on next load
+        console.log(`Database ${dbPath} will be recreated as empty on next load`);
+        
+        // Log the recovery for audit purposes
+        const recoveryLog = {
+            timestamp: new Date().toISOString(),
+            action: 'database_recovery',
+            originalFile: dbPath,
+            backupFile: backupPath,
+            reason: 'corrupted_file_detected'
+        };
+        
+        const logPath = path.join(path.dirname(dbPath), 'recovery.log');
+        try {
+            const logEntry = JSON.stringify(recoveryLog) + '\n';
+            fs.appendFileSync(logPath, logEntry);
+        } catch (logErr) {
+            console.warn('Failed to write recovery log:', logErr.message);
+        }
+
+        return true;
+    } catch (err) {
+        console.error(`Failed to recover database ${dbPath}:`, err);
+        return false;
+    }
+}
+
+/**
+ * Validates database file integrity by checking for corruption
+ * @param {string} dbPath - Path to the database file
+ * @returns {boolean} - True if database file appears valid
+ */
+function validateDatabaseIntegrity(dbPath) {
+    try {
+        if (!fs.existsSync(dbPath)) {
+            return false;
+        }
+
+        const stats = fs.statSync(dbPath);
+        
+        // Check if file is empty (which is valid for NeDB)
+        if (stats.size === 0) {
+            return true;
+        }
+
+        // Check if file is too large (potential corruption indicator)
+        if (stats.size > 100 * 1024 * 1024) { // 100MB limit
+            console.warn(`Database file ${dbPath} is unusually large (${stats.size} bytes), may indicate corruption`);
+            return false;
+        }
+
+        // Try to read a small portion of the file to check for basic JSON validity
+        try {
+            const buffer = Buffer.alloc(1024);
+            const fd = fs.openSync(dbPath, 'r');
+            const bytesRead = fs.readSync(fd, buffer, 0, 1024, 0);
+            fs.closeSync(fd);
+
+            if (bytesRead > 0) {
+                const content = buffer.toString('utf8', 0, bytesRead);
+                // Check for basic JSON structure indicators
+                if (content.includes('{') && content.includes('}')) {
+                    return true;
+                }
+                // Check for common corruption indicators
+                if (content.includes('') || content.includes('\u0000')) {
+                    console.warn(`Database file ${dbPath} contains null bytes or invalid characters, may be corrupted`);
+                    return false;
+                }
+            }
+        } catch (readErr) {
+            console.warn(`Failed to read database file ${dbPath}:`, readErr.message);
+            return false;
+        }
+
+        return true;
+    } catch (err) {
+        console.warn(`Error validating database integrity for ${dbPath}:`, err.message);
+        return false;
+    }
+}
+
+/**
+ * Attempts to recover a corrupted database file
+ * @param {string} dbPath - Path to the corrupted database file
+ * @returns {boolean} - True if recovery was successful
+ */
+function recoverDatabase(dbPath) {
+    try {
+        if (!fs.existsSync(dbPath)) {
+            console.log(`Database file ${dbPath} does not exist, will be created on load`);
+            return true;
+        }
+
+        const backupPath = `${dbPath}.backup.${Date.now()}`;
+        
+        // Create backup of corrupted file
+        fs.copyFileSync(dbPath, backupPath);
+        console.log(`Created backup of corrupted database: ${backupPath}`);
+
+        // Try to validate the file
+        if (validateDatabaseIntegrity(dbPath)) {
+            console.log(`Database file ${dbPath} appears to be valid after all`);
+            return true;
+        }
+
+        // Remove the corrupted file
+        fs.unlinkSync(dbPath);
+        console.log(`Removed corrupted database file: ${dbPath}`);
+
+        // NeDB will create a new empty database file on next load
+        console.log(`Database ${dbPath} will be recreated as empty on next load`);
+        
+        // Log the recovery for audit purposes
+        const recoveryLog = {
+            timestamp: new Date().toISOString(),
+            action: 'database_recovery',
+            originalFile: dbPath,
+            backupFile: backupPath,
+            reason: 'corrupted_file_detected'
+        };
+        
+        const logPath = path.join(path.dirname(dbPath), 'recovery.log');
+        try {
+            const logEntry = JSON.stringify(recoveryLog) + '\n';
+            fs.appendFileSync(logPath, logEntry);
+        } catch (logErr) {
+            console.warn('Failed to write recovery log:', logErr.message);
+        }
+
+        return true;
+    } catch (err) {
+        console.error(`Failed to recover database ${dbPath}:`, err);
+        return false;
+    }
+}
+
+/**
  * Initializes database with crash recovery and cleanup
  * @param {Object} db - NeDB database instance
  * @param {string} dbPath - Path to the database file
@@ -106,9 +342,19 @@ function initializeDatabase(db, dbPath) {
         // Clean up any orphaned temporary files (with improved error handling)
         cleanupTempFiles(dbPath);
 
-        // Check if database file exists
+        // Check if database file exists and is valid
         if (!isDatabaseValid(dbPath)) {
             console.log(`Database file ${dbPath} does not exist, NeDB will create it.`);
+        } else {
+            // Validate database integrity before attempting to load
+            if (!validateDatabaseIntegrity(dbPath)) {
+                console.warn(`Database file ${dbPath} appears to be corrupted, attempting recovery...`);
+                if (recoverDatabase(dbPath)) {
+                    console.log(`Database ${dbPath} recovered successfully`);
+                } else {
+                    console.error(`Failed to recover database ${dbPath}, will attempt to load anyway`);
+                }
+            }
         }
 
         // Add error handlers for database operations
@@ -116,9 +362,18 @@ function initializeDatabase(db, dbPath) {
             // Handle specific database errors more gracefully
             if (err.code === 'ENOENT') {
                 console.warn(`Database file operation failed (file not found), this is usually temporary: ${err.message}`);
+            } else if (err.code === 'EBUSY') {
+                console.warn(`Database file is busy/locked: ${err.message}`);
+            } else if (err.message && err.message.includes('rename')) {
+                console.warn(`Database rename operation failed (temporary file issue): ${err.message}`);
             } else {
                 console.error(`Database error for ${dbPath}:`, err);
             }
+        });
+
+        // Add load handler to detect successful database loading
+        db.on('load', () => {
+            console.log(`Database loaded successfully: ${dbPath}`);
         });
 
         console.log(`Database initialized successfully: ${dbPath}`);
@@ -157,14 +412,15 @@ function getDatabaseFiles(appData, appName) {
         'inventory.db',
         'transactions.db',
         'users.db',
-        // 'prescriptions.db', // Removed for restaurant conversion
         'suppliers.db',
         'customers.db',
         'categories.db',
         'settings.db',
         'purchase_orders.db',
         'session_logs.db',
-        'recipes.db' // Added for recipe management
+        'recipes.db', // Added for recipe management
+        'shifts.db', // Added for shift management
+        'time_pricing_rules.db' // Added for time-based pricing
     ];
 
     return dbFiles.map(dbName => {

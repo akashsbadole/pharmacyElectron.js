@@ -11,7 +11,18 @@ const _ = require("lodash");
 let fs = require("fs");
 let path = require("path");
 window.moment = require("moment");
-let { ipcRenderer } = require("electron");
+const { ipcRenderer } = require("electron");
+
+// Import language support module
+let LanguageSupport;
+try {
+  LanguageSupport = require("./language");
+  window.LanguageSupport = LanguageSupport;
+  console.log('✅ Language support module loaded successfully');
+} catch (error) {
+  console.warn('⚠️ Language support module not available:', error.message);
+  console.log('📝 Receipts will be generated in English only');
+}
 
 // Import vanilla JavaScript store and store manager (with error handling)
 let useStore, storeManager;
@@ -170,6 +181,7 @@ let auth;
 let holdOrder = 0;
 let vat = 0;
 let perms = null;
+let originalOrder = null;
 let deleteId = 0;
 let paymentType = 0;
 let receipt = "";
@@ -548,6 +560,9 @@ function initializeApp() {
               return;
             }
             
+            // Filter out unavailable items from display
+            data = data.filter(item => item.available !== false);
+
             data.forEach((item) => {
               item.price = parseFloat(item.price).toFixed(2);
             });
@@ -622,7 +637,6 @@ function initializeApp() {
                    ? item.quantity
                   : "N/A"}</span></span>
                                         <br>
-                                        <button class="btn btn-xs btn-info" onclick="$(this).viewSubstitutes(${item._id}, '${item.name}')"><i class="fa fa-exchange"></i> Subs</button>
                                         </div>
                                          <span class="text-success text-center"><b data-plugin="counterup">${getCurrencySymbol() +
                  moneyFormat(item.price)
@@ -744,7 +758,17 @@ function initializeApp() {
       $.fn.addToCart = function (id, count, stock, bypassPrescription = false) {
         $.get(window.api + "inventory/product/" + id)
           .done(function (product) {
-            
+
+            // Check if product is available
+            if (product.available === false) {
+              notiflix.Report.warning(
+                "Unavailable",
+                `${product.name} is currently unavailable.`,
+                "Ok",
+              );
+              return;
+            }
+
             // Removed prescription check for restaurant conversion
 
             if (isExpired(product.expirationDate)) {
@@ -755,7 +779,7 @@ function initializeApp() {
               );
             } else {
               if (count > 0) {
-                $(this).addProductToCart(product);
+                $(this).showModifiersModal(product);
               } else {
                 if (stock == 1) {
                   notiflix.Report.failure(
@@ -796,7 +820,7 @@ function initializeApp() {
             $(".search-barcode-btn").html(searchBarCodeIcon);
             const expired = isExpired(product.expirationDate);
             if (product._id != undefined && product.quantity >= 1 && !expired) {
-              $(this).addProductToCart(product);
+              $(this).showModifiersModal(product);
               $("#searchBarCode").get(0).reset();
               $("#basic-addon2").empty();
               $("#basic-addon2").append(
@@ -875,13 +899,136 @@ function initializeApp() {
         }
       });
 
-      $.fn.addProductToCart = function (data) {
+      // Define default modifiers with categories
+      const defaultModifiers = [
+        {
+          category: 'Spice Level',
+          options: [
+            { name: 'Less spicy', price: 0 },
+            { name: 'Extra spicy', price: 0 },
+            { name: 'No spice', price: 0 }
+          ]
+        },
+        {
+          category: 'Ingredients',
+          options: [
+            { name: 'No onion', price: 0 },
+            { name: 'No garlic', price: 0 },
+            { name: 'Extra cheese', price: 1.0 },
+            { name: 'No cheese', price: 0 }
+          ]
+        },
+        {
+          category: 'Preparation',
+          options: [
+            { name: 'Extra ice', price: 0.5 },
+            { name: 'No ice', price: 0 },
+            { name: 'Well done', price: 0 },
+            { name: 'Medium rare', price: 0 }
+          ]
+        },
+        {
+          category: 'Extras',
+          options: [
+            { name: 'Add cheese', price: 1.0 },
+            { name: 'Add bacon', price: 1.5 },
+            { name: 'Add avocado', price: 2.0 },
+            { name: 'Extra sauce', price: 0.5 }
+          ]
+        }
+      ];
+
+      $.fn.showModifiersModal = function (product) {
+        // Create modal HTML with categorized modifiers
+        const modalHtml = `
+          <div class="modal fade" id="modifiersModal" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title">Select Modifiers for ${product.name}</h5>
+                  <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                  </button>
+                </div>
+                <div class="modal-body">
+                  <div id="modifiers-list" class="row">
+                    ${defaultModifiers.map((category, catIndex) => `
+                      <div class="col-md-6 mb-3">
+                        <h6>${category.category}</h6>
+                        ${category.options.map((option, optIndex) => `
+                          <div class="form-check">
+                            <input class="form-check-input" type="checkbox"
+                                   id="mod-${catIndex}-${optIndex}"
+                                   value="${catIndex}-${optIndex}"
+                                   data-category="${catIndex}"
+                                   data-option="${optIndex}">
+                            <label class="form-check-label" for="mod-${catIndex}-${optIndex}">
+                              ${option.name} ${option.price > 0 ? `(+${getCurrencySymbol()}${option.price})` : ''}
+                            </label>
+                          </div>
+                        `).join('')}
+                      </div>
+                    `).join('')}
+                  </div>
+                  <div class="form-group mt-3">
+                    <label for="specialInstructions">Special Instructions:</label>
+                    <textarea class="form-control" id="specialInstructions" rows="2" placeholder="Add any special instructions..."></textarea>
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                  <button type="button" class="btn btn-primary" id="addWithModifiers">Add to Cart</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+
+        // Remove existing modal if any
+        $('#modifiersModal').remove();
+
+        // Append modal to body
+        $('body').append(modalHtml);
+
+        // Show modal
+        $('#modifiersModal').modal('show');
+
+        // Handle add button click
+        $('#addWithModifiers').on('click', function() {
+          const selectedModifiers = [];
+          const specialInstructions = $('#specialInstructions').val().trim();
+
+          $('#modifiers-list input:checked').each(function() {
+            const [catIndex, optIndex] = $(this).val().split('-').map(Number);
+            const modifier = defaultModifiers[catIndex].options[optIndex];
+            selectedModifiers.push({
+              ...modifier,
+              category: defaultModifiers[catIndex].category
+            });
+          });
+
+          // Add special instructions as a modifier if provided
+          if (specialInstructions) {
+            selectedModifiers.push({
+              name: `Special: ${specialInstructions}`,
+              price: 0,
+              category: 'Special Instructions'
+            });
+          }
+
+          $(this).addProductToCart(product, selectedModifiers);
+          $('#modifiersModal').modal('hide');
+        });
+      };
+
+      $.fn.addProductToCart = function (data, modifiers = []) {
         item = {
           id: data._id,
           product_name: data.name,
           sku: data.sku,
           price: data.price,
           quantity: 1,
+          modifiers: modifiers,
         };
 
         if ($(this).isExist(item)) {
@@ -895,7 +1042,7 @@ function initializeApp() {
       $.fn.isExist = function (data) {
         let toReturn = false;
         $.each(cart, function (index, value) {
-          if (value.id == data.id) {
+          if (value.id == data.id && JSON.stringify(value.modifiers) == JSON.stringify(data.modifiers)) {
             $(this).setIndex(index);
             toReturn = true;
           }
@@ -912,7 +1059,8 @@ function initializeApp() {
         let grossTotal;
         let total_items = 0;
         $.each(cart, function (_, data) {
-          total += data.quantity * data.price;
+          const modifierPrice = data.modifiers ? data.modifiers.reduce((sum, mod) => sum + mod.price, 0) : 0;
+          total += data.quantity * (data.price + modifierPrice);
           total_items += parseInt(data.quantity);
         });
         $("#total").text(total_items);
@@ -923,6 +1071,21 @@ function initializeApp() {
 
         if ($("#inputDiscount").val() >= total) {
           $("#inputDiscount").val(0);
+        }
+
+        // Calculate packaging fee for takeaway orders
+        let packagingFee = 0;
+        if (window.orderType === "2" && settings.enable_packaging_charge && settings.packaging_charge_amount) {
+          packagingFee = parseFloat(settings.packaging_charge_amount);
+          total += packagingFee;
+        }
+        window.packagingFee = packagingFee;
+
+        // Calculate service charge if enabled
+        let serviceCharge = 0;
+        if (settings.charge_service_charge && settings.service_charge) {
+          serviceCharge = (total * parseFloat(settings.service_charge)) / 100;
+          total += serviceCharge;
         }
 
         if (settings.charge_tax) {
@@ -936,16 +1099,34 @@ function initializeApp() {
 
         $("#gross_price").text(getCurrencySymbol() + moneyFormat(orderTotal));
         $("#payablePrice").val(moneyFormat(grossTotal));
+
+        // Update service charge display in cart
+        if (settings.charge_service_charge && settings.service_charge) {
+          $("#service_charge_amount").text(getCurrencySymbol() + moneyFormat(serviceCharge.toFixed(2)));
+          $("#service_charge_row").show();
+        } else {
+          $("#service_charge_row").hide();
+        }
+
+        // Update packaging fee display in cart
+        if (packagingFee > 0) {
+          $("#packaging_charge_amount").text(getCurrencySymbol() + moneyFormat(packagingFee.toFixed(2)));
+          $("#packagingChargeRow").show();
+        } else {
+          $("#packagingChargeRow").hide();
+        }
       };
 
       $.fn.renderTable = function (cartList) {
         $("#cartTable .card-body").empty();
         $(this).calculateCart();
         $.each(cartList, function (index, data) {
+          const modifierPrice = data.modifiers ? data.modifiers.reduce((sum, mod) => sum + mod.price, 0) : 0;
+          const modifierText = data.modifiers && data.modifiers.length > 0 ? ` (${data.modifiers.map(m => m.name).join(', ')})` : '';
           $("#cartTable .card-body").append(
             $("<div>", { class: "row m-t-10" }).append(
               $("<div>", { class: "col-md-1", text: index + 1 }),
-              $("<div>", { class: "col-md-3", text: data.product_name }),
+              $("<div>", { class: "col-md-3", text: data.product_name + modifierText }),
               $("<div>", { class: "col-md-3" }).append(
                 $("<div>", { class: "input-group" }).append(
                   $("<span>", { class: "input-group-btn" }).append(
@@ -974,7 +1155,7 @@ function initializeApp() {
                 class: "col-md-3",
                 text:
                   getCurrencySymbol() +
-                  moneyFormat((data.price * data.quantity).toFixed(2)),
+                  moneyFormat(((data.price + modifierPrice) * data.quantity).toFixed(2)),
               }),
               $("<div>", { class: "col-md-1" }).append(
                 $("<button>", {
@@ -982,6 +1163,16 @@ function initializeApp() {
                   title: "View Alternatives",
                   onclick: "$(this).viewSubstitutes(" + data.id + ", '" + data.product_name + "')",
                 }).append($("<i>", { class: "fa fa-exchange" })),
+                $("<button>", {
+                  class: "btn btn-success btn-xs m-r-5",
+                  title: "Make Complimentary",
+                  onclick: "$(this).makeComplimentary(" + index + ")",
+                }).append($("<i>", { class: "fa fa-gift" })),
+                $("<button>", {
+                  class: "btn btn-warning btn-xs m-r-5",
+                  title: "Void Item",
+                  onclick: "$(this).voidItem(" + index + ")",
+                }).append($("<i>", { class: "fa fa-ban" })),
                 $("<button>", {
                   class: "btn btn-light btn-xs",
                   onclick: "$(this).deleteFromCart(" + index + ")",
@@ -992,44 +1183,117 @@ function initializeApp() {
         });
       };
 
-      $.fn.viewSubstitutes = function (productId, productName) {
-        $("#orig_product_name").text(productName);
-        $("#substitutes_list").html('<tr><td colspan="5" class="text-center"><i class="fa fa-spinner fa-spin"></i> Loading substitutes...</td></tr>');
-        $("#substitutesModal").modal("show");
-
-        $.get(window.api + "inventory/substitutes/" + productId)
-          .done(function (data) {
-            $("#substitutes_list").empty();
-            if (data.length === 0) {
-              $("#substitutes_list").html('<tr><td colspan="5" class="text-center text-muted">No substitutes found for this item.</td></tr>');
-              return;
-            }
-
-            data.forEach(item => {
-              let item_isExpired = isExpired(item.expirationDate);
-              let stockStatus = getStockStatus(item.quantity, item.minStock);
-              let row = `<tr>
-                <td>${item.name}</td>
-                <td>${item.generic_name || 'N/A'}</td>
-                <td>${getCurrencySymbol()}${moneyFormat(parseFloat(item.price).toFixed(2))}</td>
-                <td class="${stockStatus < 1 ? 'text-danger' : ''}">${item.stock == 1 ? item.quantity : 'N/A'}</td>
-                <td>
-                  <button class="btn btn-primary btn-sm" ${item_isExpired ? 'disabled' : ''} onclick="$(this).addToCart(${item._id}, ${item.quantity}, ${item.stock}); $('#substitutesModal').modal('hide');">
-                    <i class="fa fa-cart-plus"></i> Add to Cart
-                  </button>
-                </td>
-              </tr>`;
-              $("#substitutes_list").append(row);
-            });
-          })
-          .fail(function () {
-            $("#substitutes_list").html('<tr><td colspan="5" class="text-center text-danger">Failed to load substitutes.</td></tr>');
-          });
-      };
-
       $.fn.deleteFromCart = function (index) {
         cart.splice(index, 1);
         $(this).renderTable(cart);
+      };
+
+      $.fn.makeComplimentary = function (index) {
+        cart[index].price = 0;
+        $(this).renderTable(cart);
+
+        // Log the complimentary action
+        $.post(window.api + 'audit-logs/log', {
+          action: 'item_complimentary',
+          user: user.fullname,
+          details: {
+            item_name: cart[index].product_name,
+            item_id: cart[index].id,
+            quantity: cart[index].quantity,
+            timestamp: moment().toISOString()
+          },
+          severity: 'info'
+        });
+      };
+
+      $.fn.voidItem = function (index) {
+        // Show void modal
+        $('#voidModal').remove();
+        const modalHtml = `
+          <div class="modal fade" id="voidModal" tabindex="-1" role="dialog">
+            <div class="modal-dialog" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title">Void Item: ${cart[index].product_name}</h5>
+                  <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                  </button>
+                </div>
+                <div class="modal-body">
+                  <form id="voidForm">
+                    <div class="form-group">
+                      <label for="managerUsername">Manager Username:</label>
+                      <input type="text" class="form-control" id="managerUsername" required>
+                    </div>
+                    <div class="form-group">
+                      <label for="managerPIN">Manager PIN/Password:</label>
+                      <input type="password" class="form-control" id="managerPIN" required>
+                    </div>
+                    <div class="form-group">
+                      <label for="voidReason">Reason for Void:</label>
+                      <select class="form-control" id="voidReason" required>
+                        <option value="">Select Reason</option>
+                        <option value="Customer request">Customer request</option>
+                        <option value="Wrong item">Wrong item</option>
+                        <option value="Damaged item">Damaged item</option>
+                        <option value="Expired item">Expired item</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                  </form>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                  <button type="button" class="btn btn-danger" id="confirmVoid">Confirm Void</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        $('body').append(modalHtml);
+        $('#voidModal').modal('show');
+
+        $('#confirmVoid').on('click', function() {
+          const username = $('#managerUsername').val();
+          const pin = $('#managerPIN').val();
+          const reason = $('#voidReason').val();
+
+          if (!username || !pin || !reason) {
+            notiflix.Report.warning('Incomplete', 'Please fill all fields', 'Ok');
+            return;
+          }
+
+          // Verify manager credentials
+          $.post(window.api + 'users/verify-manager', { username, password: pin })
+            .done(function(response) {
+              if (response.valid) {
+                const item = cart.splice(index, 1)[0];
+                $(this).renderTable(cart);
+
+                // Log the void action
+                $.post(window.api + 'audit-logs/log', {
+                  action: 'item_void',
+                  user: user.fullname,
+                  details: {
+                    item_name: item.product_name,
+                    item_id: item.id,
+                    quantity: item.quantity,
+                    reason: reason,
+                    timestamp: moment().toISOString()
+                  },
+                  severity: 'warning'
+                });
+
+                $('#voidModal').modal('hide');
+                notiflix.Notify.success('Item voided successfully');
+              } else {
+                notiflix.Report.failure('Invalid Credentials', 'Manager credentials are incorrect', 'Ok');
+              }
+            })
+            .fail(function() {
+              notiflix.Report.failure('Error', 'Failed to verify credentials', 'Ok');
+            });
+        });
       };
 
       $.fn.qtIncrement = function (i) {
@@ -1115,6 +1379,10 @@ function initializeApp() {
 
       $("#hold").on("click", function () {
         if (cart.length != 0) {
+          // Add order notes textarea if not already added
+          if ($('#orderNotes').length === 0) {
+            $('#dueModal .modal-body').append('<div class="form-group"><label for="orderNotes">Order Notes:</label><textarea class="form-control" id="orderNotes" rows="3" placeholder="Add captain or order notes here..."></textarea></div>');
+          }
           $("#dueModal").modal("toggle");
         } else {
           notiflix.Report.warning("Oops!", "There is nothing to hold!", "Ok");
@@ -1128,14 +1396,43 @@ function initializeApp() {
       // Make printJobComplete available globally
       window.printJobComplete = printJobComplete;
 
-      $.fn.submitDueOrder = function (status) {
+      function getOrderChanges(originalItems, newItems) {
+      const changes = [];
+      const origMap = new Map();
+      originalItems.forEach(item => origMap.set(item.id + JSON.stringify(item.modifiers), item));
+
+      const newMap = new Map();
+      newItems.forEach(item => newMap.set(item.id + JSON.stringify(item.modifiers), item));
+
+      // Added
+      newMap.forEach((item, key) => {
+        if (!origMap.has(key)) {
+          changes.push({ type: 'added', item: item.product_name, quantity: item.quantity });
+        } else if (origMap.get(key).quantity !== item.quantity) {
+          changes.push({ type: 'modified', item: item.product_name, oldQty: origMap.get(key).quantity, newQty: item.quantity });
+        }
+      });
+
+      // Removed
+      origMap.forEach((item, key) => {
+        if (!newMap.has(key)) {
+          changes.push({ type: 'removed', item: item.product_name, quantity: item.quantity });
+        }
+      });
+
+      return changes;
+    }
+
+    $.fn.submitDueOrder = function (status) {
         let items = "";
         let payment = "";
         let paymentType = $('.list-group-item.active').data('payment-type');
         cart.forEach((item) => {
-          items += `<tr><td>${DOMPurify.sanitize(item.product_name)}</td><td>${DOMPurify.sanitize(item.quantity)
+          const modifierPrice = item.modifiers ? item.modifiers.reduce((sum, mod) => sum + mod.price, 0) : 0;
+          const modifierText = item.modifiers && item.modifiers.length > 0 ? ` (${item.modifiers.map(m => m.name).join(', ')})` : '';
+          items += `<tr><td>${DOMPurify.sanitize(item.product_name + modifierText)}</td><td>${DOMPurify.sanitize(item.quantity)
             } </td><td class="text-right"> ${DOMPurify.sanitize(getCurrencySymbol())} ${moneyFormat(
-              DOMPurify.sanitize(Math.abs(item.price).toFixed(2)),
+              DOMPurify.sanitize(Math.abs((item.price + modifierPrice) * item.quantity).toFixed(2)),
             )} </td></tr>`;
         });
 
@@ -1150,6 +1447,7 @@ function initializeApp() {
         let change =
           $("#change").text() == "" ? "" : parseFloat(changeAmount).toFixed(2);
         let refNumber = $("#refNumber").val();
+        let orderNotes = $("#orderNotes").val() || "";
         let orderNumber = holdOrder;
         let type = "";
         let tax_row = "";
@@ -1184,14 +1482,59 @@ function initializeApp() {
                         </tr>`;
         }
 
+        // Variables already calculated above for data object
+        // serviceCharge, tipAmount, tipPercentage, splitTipAmongStaff are already defined
+
+        let receipt_tax_row = "";
         if (settings.charge_tax) {
-          tax_row = `<tr>
-                    </tr>
-                    <tr>
+          receipt_tax_row = `<tr>
                         <td>Tax Details</td>
                         <td>:</td>
                         <td class="text-right">${getCurrencySymbol()} ${moneyFormat(parseFloat(totalVat).toFixed(2))} (${safeUnescape(settings.percentage)}%)</td>
                     </tr>`;
+        }
+
+        let receipt_packaging_fee_row = "";
+        const packagingFee = window.packagingFee || 0;
+        if (packagingFee > 0) {
+          receipt_packaging_fee_row = `<tr>
+                        <td>Packaging Fee</td>
+                        <td>:</td>
+                        <td class="text-right">${getCurrencySymbol()} ${moneyFormat(packagingFee.toFixed(2))}</td>
+                    </tr>`;
+        }
+
+        let receipt_service_charge_row = "";
+        if (serviceCharge > 0) {
+          receipt_service_charge_row = `<tr>
+                        <td>Service Charge (${settings.service_charge}%)</td>
+                        <td>:</td>
+                        <td class="text-right">${getCurrencySymbol()} ${moneyFormat(serviceCharge.toFixed(2))}</td>
+                    </tr>`;
+        }
+
+        let receipt_tip_row = "";
+        if (tipAmount > 0) {
+          receipt_tip_row = `<tr>
+                        <td>Tip (${tipPercentage}%)</td>
+                        <td>:</td>
+                        <td class="text-right">${getCurrencySymbol()} ${moneyFormat(tipAmount.toFixed(2))}</td>
+                    </tr>`;
+        }
+
+        let receipt_tip_split_rows = "";
+        if (splitTipAmongStaff && tipAmount > 0) {
+          $("#staffList input:checked").each(function() {
+            const staffName = $(this).siblings("label").text().trim();
+            const staffTipAmount = parseFloat($(this).siblings(".staff-tip-amount").val()) || 0;
+            if (staffTipAmount > 0) {
+              receipt_tip_split_rows += `<tr>
+                        <td>Tip - ${staffName}</td>
+                        <td>:</td>
+                        <td class="text-right">${getCurrencySymbol()} ${moneyFormat(staffTipAmount.toFixed(2))}</td>
+                    </tr>`;
+            }
+          });
         }
 
         if (status == 0) {
@@ -1217,79 +1560,49 @@ function initializeApp() {
 
         let logo = path.join(img_path, safeUnescape(settings.img));
 
-        receipt = `<div style="font-size: 10px">                            
-        <p style="text-align: center;">
-        ${checkFileExists(logo)
-            ? `<img style='max-width: 50px' src='${logo}' /><br>`
-            : ``
-          }
-            <span style="font-size: 22px;">${safeUnescape(settings.store)}</span> <br>
-            ${safeUnescape(settings.address_one)} <br>
-            ${safeUnescape(settings.address_two)} <br>
-            ${safeUnescape(settings.contact) != "" ? "Tel: " + safeUnescape(settings.contact) + "<br>" : ""
-          } 
-            ${safeUnescape(settings.tax) != "" ? "Vat No: " + safeUnescape(settings.tax) + "<br>" : ""} 
-        </p>
-        <hr>
-        <left>
-            <p>
-            Order No : ${orderNumber} <br>
-            Ref No : ${refNumber == "" ? orderNumber : _.escape(refNumber)} <br>
-            Customer : ${customer == 0 ? "Walk in customer" : _.escape(customer.name)
-          } <br>
-            Cashier : ${user.fullname} <br>
-            Date : ${date}<br>
-            </p>
-
-        </left>
-        <hr>
-        <table width="90%">
-            <thead>
-            <tr>
-                <th>Item</th>
-                <th>Qty</th>
-                <th class="text-right">Price</th>
-            </tr>
-            </thead>
-            <tbody>
-             ${items}                
-            <tr><td colspan="3"><hr></td></tr>
-            <tr>                        
-                <td><b>Subtotal</b></td>
-                <td>:</td>
-                <td class="text-right"><b>${getCurrencySymbol()}${moneyFormat(
-            subTotal.toFixed(2),
-          )}</b></td>
-            </tr>
-            <tr>
-                <td>Discount</td>
-                <td>:</td>
-                <td class="text-right">${discount > 0
-            ? getCurrencySymbol() +
-            moneyFormat(parseFloat(discount).toFixed(2))
-            : ""
-          }</td>
-            </tr>
-            ${tax_row}
-            <tr>
-                <td><h5>Total</h5></td>
-                <td><h5>:</h5></td>
-                <td class="text-right">
-                    <h5>${getCurrencySymbol()} ${moneyFormat(
-            parseFloat(orderTotal).toFixed(2),
-          )}</h5>
-                </td>
-            </tr>
-            ${payment == 0 ? "" : payment}
-            </tbody>
-            </table>
-            <br>
-            <hr>
-            <br>
-            <p style="text-align: center;">
-             ${safeUnescape(settings.footer)}
-             </p>
-            </div>`;
+        // Generate multilingual receipt
+        if (LanguageSupport && LanguageSupport.generateMultilingualReceipt) {
+          const receiptData = {
+            orderNumber: orderNumber,
+            refNumber: refNumber,
+            customer: customer == 0 ? "Walk in customer" : _.escape(customer.name),
+            cashier: user.fullname,
+            date: date,
+            items: cart.map(item => {
+              const modifierPrice = item.modifiers ? item.modifiers.reduce((sum, mod) => sum + mod.price, 0) : 0;
+              return {
+                product_name: item.product_name,
+                quantity: item.quantity,
+                price: item.price + modifierPrice,
+                modifiers: item.modifiers
+              };
+            }),
+            subtotal: subTotal,
+            discount: discount,
+            tax: totalVat,
+            taxRate: safeUnescape(settings.percentage),
+            serviceCharge: serviceCharge,
+            serviceChargeRate: settings.service_charge || 0,
+            tipAmount: tipAmount,
+            tipPercentage: tipPercentage,
+            total: orderTotal,
+            paid: paid,
+            change: change,
+            paymentType: type,
+            currencySymbol: getCurrencySymbol(),
+            storeName: safeUnescape(settings.store),
+            addressOne: safeUnescape(settings.address_one),
+            addressTwo: safeUnescape(settings.address_two),
+            contact: safeUnescape(settings.contact),
+            taxNumber: safeUnescape(settings.tax),
+            footer: safeUnescape(settings.footer),
+            logo: checkFileExists(logo) ? logo : ''
+          };
+          receipt = LanguageSupport.generateMultilingualReceipt(receiptData);
+        } else {
+          // Fallback to original receipt generation
+          receipt = this.generateOriginalReceipt(receiptData);
+        }
 
         if (status == 3) {
           if (cart.length > 0) {
@@ -1303,20 +1616,47 @@ function initializeApp() {
           }
         }
 
+        // Variables already calculated above: serviceCharge, tipAmount, tipPercentage, splitTipAmongStaff
+        
+        // Collect tip splitting data if enabled
+        let tipSplitData = [];
+        if (splitTipAmongStaff) {
+          $("#staffList input:checked").each(function() {
+            const staffId = $(this).val();
+            const staffName = $(this).siblings("label").text().trim();
+            const staffTipAmount = parseFloat($(this).siblings(".staff-tip-amount").val()) || 0;
+            if (staffTipAmount > 0) {
+              tipSplitData.push({
+                staff_id: staffId,
+                staff_name: staffName,
+                tip_amount: staffTipAmount
+              });
+            }
+          });
+        }
+
         let data = {
           order: orderNumber,
           ref_number: refNumber,
+          notes: orderNotes,
           discount: discount,
           customer: customer,
           status: status,
           subtotal: parseFloat(subTotal).toFixed(2),
+          packaging_fee: parseFloat(packagingFee || 0),
+          service_charge: serviceCharge,
+          service_charge_rate: settings.service_charge || 0,
+          tip_amount: tipAmount,
+          tip_percentage: tipPercentage,
+          split_tip_among_staff: splitTipAmongStaff,
+          tip_split_data: tipSplitData,
           tax: totalVat,
-          order_type: 1,
+          order_type: window.orderType || "1",
           items: cart,
           date: currentTime,
           payment_type: type,
           payment_info: $("#paymentInfo").val(),
-          total: orderTotal,
+          total: parseFloat(orderTotal).toFixed(2),
           paid: paid,
           change: change,
           _id: orderNumber,
@@ -1324,10 +1664,11 @@ function initializeApp() {
           mac: platform.mac,
           user: user.fullname,
           user_id: user._id,
+          delivery_partner: $("#deliveryPartner").val(),
           tax_details: {
             total: totalVat,
             rate: safeUnescape(settings.percentage),
-            type: 'VAT' 
+            type: 'VAT'
           },
           payment_mode: type
         };
@@ -1342,6 +1683,139 @@ function initializeApp() {
           success: function (response) {
             cart = [];
             receipt = DOMPurify.sanitize(receipt, { ALLOW_UNKNOWN_PROTOCOLS: true });
+
+        // Fallback function for original receipt generation
+        function generateOriginalReceipt(data, receiptData) {
+          let logo = path.join(img_path, safeUnescape(settings.img));
+          
+          let items = "";
+          let payment = "";
+          receiptData.items.forEach((item) => {
+            const modifierPrice = item.modifiers ? item.modifiers.reduce((sum, mod) => sum + mod.price, 0) : 0;
+            const modifierText = item.modifiers && item.modifiers.length > 0 ? ` (${item.modifiers.map(m => m.name).join(', ')})` : '';
+            items += `<tr><td>${DOMPurify.sanitize(item.product_name + modifierText)}</td><td>${DOMPurify.sanitize(item.quantity)}
+            </td><td class="text-right"> ${DOMPurify.sanitize(getCurrencySymbol())} ${moneyFormat(
+              DOMPurify.sanitize(Math.abs((item.price) * item.quantity).toFixed(2)),
+            )} </td></tr>`;
+          });
+
+          let receipt_tax_row = "";
+          if (settings.charge_tax) {
+            receipt_tax_row = `<tr>
+                        <td>Tax Details</td>
+                        <td>:</td>
+                        <td class="text-right">${getCurrencySymbol()} ${moneyFormat(parseFloat(totalVat).toFixed(2))} (${safeUnescape(settings.percentage)}%)</td>
+                    </tr>`;
+          }
+
+          let receipt_service_charge_row = "";
+          if (serviceCharge > 0) {
+            receipt_service_charge_row = `<tr>
+                        <td>Service Charge (${settings.service_charge}%)</td>
+                        <td>:</td>
+                        <td class="text-right">${getCurrencySymbol()} ${moneyFormat(serviceCharge.toFixed(2))}</td>
+                    </tr>`;
+          }
+
+          let receipt_tip_row = "";
+          if (tipAmount > 0) {
+            receipt_tip_row = `<tr>
+                        <td>Tip (${tipPercentage}%)</td>
+                        <td>:</td>
+                        <td class="text-right">${getCurrencySymbol()} ${moneyFormat(tipAmount.toFixed(2))}</td>
+                    </tr>`;
+          }
+
+          if (receiptData.paid && parseFloat(receiptData.paid) > 0) {
+            payment = `<tr>
+                            <td>Paid</td>
+                            <td>:</td>
+                            <td class="text-right">${getCurrencySymbol()} ${moneyFormat(Math.abs(receiptData.paid).toFixed(2))}</td>
+                        </tr>
+                        <tr>
+                            <td>Change</td>
+                            <td>:</td>
+                            <td class="text-right">${getCurrencySymbol()} ${moneyFormat(Math.abs(receiptData.change).toFixed(2))}</td>
+                        </tr>
+                        <tr>
+                            <td>Method</td>
+                            <td>:</td>
+                            <td class="text-right">${receiptData.paymentType}</td>
+                        </tr>`;
+          }
+
+          return `<div style="font-size: 10px">                            
+          <p style="text-align: center;">
+          ${checkFileExists(logo) ? `<img style='max-width: 50px' src='${logo}' /><br>` : ``}
+            <span style="font-size: 22px;">${safeUnescape(settings.store)}</span> <br>
+            ${safeUnescape(settings.address_one)} <br>
+            ${safeUnescape(settings.address_two)} <br>
+            ${safeUnescape(settings.contact) != "" ? "Tel: " + safeUnescape(settings.contact) + "<br>" : ""
+          } 
+            ${safeUnescape(settings.tax) != "" ? "Vat No: " + safeUnescape(settings.tax) + "<br>" : ""} 
+          </p>
+          <hr>
+          <left>
+              <p>
+              Order No : ${receiptData.orderNumber} <br>
+              Ref No : ${receiptData.refNumber == "" ? receiptData.orderNumber : _.escape(receiptData.refNumber)} <br>
+              Customer : ${receiptData.customer} <br>
+              Cashier : ${receiptData.cashier} <br>
+              Date : ${receiptData.date}<br>
+              </p>
+
+          </left>
+          <hr>
+          <table width="90%">
+              <thead>
+              <tr>
+                  <th>Item</th>
+                  <th>Qty</th>
+                  <th class="text-right">Price</th>
+              </tr>
+              </thead>
+              <tbody>
+               ${items}                
+              <tr><td colspan="3"><hr></td></tr>
+              <tr>                        
+                  <td><b>Subtotal</b></td>
+                  <td>:</td>
+                  <td class="text-right"><b>${getCurrencySymbol()}${moneyFormat(
+              receiptData.subtotal.toFixed(2),
+            )}</b></td>
+              </tr>
+              <tr>
+                  <td>Discount</td>
+                  <td>:</td>
+                  <td class="text-right">${receiptData.discount > 0
+              ? getCurrencySymbol() +
+              moneyFormat(parseFloat(receiptData.discount).toFixed(2))
+              : ""
+            }</td>
+              </tr>
+              ${receipt_service_charge_row}
+              ${receipt_tip_row}
+              ${receipt_tax_row}
+              <tr>
+                  <td><h5>Total</h5></td>
+                  <td><h5>:</h5></td>
+                  <td class="text-right">
+                      <h5>${getCurrencySymbol()} ${moneyFormat(
+              parseFloat(receiptData.total).toFixed(2),
+            )}</h5>
+                  </td>
+              </tr>
+              ${payment == 0 ? "" : payment}
+              </tbody>
+              </table>
+              <br>
+              <hr>
+              <br>
+              <p style="text-align: center;">
+               ${safeUnescape(settings.footer)}
+               </p>
+              </div>`;
+        }
             $("#viewTransaction").html("");
             $("#viewTransaction").html(receipt);
             $("#orderModal").modal("show");
@@ -1353,6 +1827,23 @@ function initializeApp() {
             $(this).getHoldOrders();
             $(this).getCustomerOrders();
             $(this).renderTable(cart);
+
+            // Log order edits
+            if (originalOrder && originalOrder.items) {
+              const newItems = cart.map(item => ({ id: item.id, product_name: item.product_name, quantity: item.quantity, modifiers: item.modifiers }));
+              const changes = getOrderChanges(originalOrder.items, newItems);
+              if (changes.length > 0) {
+                const logData = {
+                  order_id: originalOrder.orderId,
+                  user_id: user._id,
+                  timestamp: moment().toISOString(),
+                  changes: JSON.stringify(changes),
+                  action: 'order_edit'
+                };
+                $.post(window.api + "audit-logs", JSON.stringify(logData), "application/json");
+              }
+            }
+            originalOrder = null;
           },
           error: function (xhr, status, error) {
             $(".loading").hide();
@@ -1524,6 +2015,14 @@ function initializeApp() {
         $(this).renderTable(cart);
         $("#holdOrdersModal").modal("hide");
         $("#customerModal").modal("hide");
+
+        // Store original order for edit logging
+        originalOrder = {
+          orderId: holdOrder || orderNumber,
+          items: [...cart],
+          user: user.fullname,
+          timestamp: moment().toISOString()
+        };
       };
 
       $.fn.deleteOrder = function (index, type) {
@@ -1651,6 +2150,129 @@ function initializeApp() {
       $("#payment").on("input", function () {
         $(this).calculateChange();
       });
+
+      // Tip functionality
+      $("#tipAmount").on("input", function () {
+        const tipAmount = parseFloat($(this).val()) || 0;
+        const totalWithService = parseFloat($("#payablePrice").val()) || 0;
+        const tipPercentage = totalWithService > 0 ? (tipAmount / totalWithService * 100).toFixed(1) : 0;
+        $("#tipPercentage").val(tipPercentage);
+        updatePaymentSummary();
+      });
+
+      $("#tipPercentage").on("input", function () {
+        const tipPercentage = parseFloat($(this).val()) || 0;
+        const totalWithService = parseFloat($("#payablePrice").val()) || 0;
+        const tipAmount = (totalWithService * tipPercentage / 100).toFixed(2);
+        $("#tipAmount").val(tipAmount);
+        updatePaymentSummary();
+      });
+
+      // Quick tip percentage buttons
+      $('.quick-tip-btn').on('click', function() {
+        const percentage = parseFloat($(this).data('percentage'));
+        const totalWithService = parseFloat($("#payablePrice").val()) || 0;
+        const tipAmount = (totalWithService * percentage / 100).toFixed(2);
+        
+        $("#tipPercentage").val(percentage);
+        $("#tipAmount").val(tipAmount);
+        updatePaymentSummary();
+      });
+
+      // Tip splitting functionality
+      $("#splitTipCheckbox").on("change", function() {
+        if ($(this).is(":checked")) {
+          $("#tipSplitSection").show();
+          loadStaffForTipSplitting();
+        } else {
+          $("#tipSplitSection").hide();
+        }
+        updatePaymentSummary();
+      });
+
+      $("#splitEquallyBtn").on("click", function() {
+        const checkedStaff = $("#staffList input:checked");
+        if (checkedStaff.length === 0) {
+          notiflix.Report.warning('No Staff Selected', 'Please select staff members to split tip with', 'Ok');
+          return;
+        }
+        
+        const tipAmount = parseFloat($("#tipAmount").val()) || 0;
+        const equalShare = (tipAmount / checkedStaff.length).toFixed(2);
+        
+        checkedStaff.each(function() {
+          $(this).siblings(".staff-tip-amount").val(equalShare);
+        });
+        
+        updatePaymentSummary();
+      });
+
+      $("#clearTipSplitBtn").on("click", function() {
+        $("#staffList input[type='number']").val('');
+        updatePaymentSummary();
+      });
+
+      // Update payment summary when staff tip amounts change
+      $(document).on("input", ".staff-tip-amount", function() {
+        updatePaymentSummary();
+      });
+
+      // Handle order type change
+      $("#orderType").on("change", function() {
+        window.orderType = $(this).val();
+        $(this).calculateCart();
+      });
+
+      // Set default order type
+      window.orderType = "1";
+      window.packagingFee = 0;
+
+      function updatePaymentSummary() {
+        const subtotal = parseFloat($("#price").text().replace(/[^\d.-]/g, '')) || 0;
+        const serviceCharge = parseFloat($("#service_charge_amount").text().replace(/[^\d.-]/g, '')) || 0;
+        const tipAmount = parseFloat($("#tipAmount").val()) || 0;
+        const taxAmount = parseFloat($("#taxInfo").text()) || 0;
+        
+        const totalWithTip = subtotal + serviceCharge + tipAmount + (subtotal + serviceCharge) * taxAmount / 100;
+        
+        $("#total_with_service").text(getCurrencySymbol() + moneyFormat(totalWithTip.toFixed(2)));
+        $("#final_total").text(getCurrencySymbol() + moneyFormat(totalWithTip.toFixed(2)));
+        
+        // Update service charge display
+        if (serviceCharge > 0) {
+          $("#payment_service_charge").text(getCurrencySymbol() + moneyFormat(serviceCharge.toFixed(2))).parent().show();
+        } else {
+          $("#payment_service_charge").parent().hide();
+        }
+        
+        // Update tip display
+        if (tipAmount > 0) {
+          $("#payment_tip_amount").text(getCurrencySymbol() + moneyFormat(tipAmount.toFixed(2))).parent().show();
+          $("#tip_percentage_display").text($("#tipPercentage").val() + '%').parent().show();
+        } else {
+          $("#payment_tip_amount").parent().hide();
+          $("#tip_percentage_display").parent().hide();
+        }
+      }
+
+      function loadStaffForTipSplitting() {
+        $("#staffList").empty();
+        if (allUsers && allUsers.length > 0) {
+          allUsers.forEach(function(user) {
+            const staffItem = $(`
+              <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" id="staff_${user._id}" value="${user._id}">
+                <label class="form-check-label" for="staff_${user._id}">
+                  ${user.fullname}
+                </label>
+                <input type="number" class="form-control form-control-sm staff-tip-amount" 
+                       placeholder="Tip amount" step="0.01" min="0" style="width: 100px; display: inline-block; margin-left: 10px;">
+              </div>
+            `);
+            $("#staffList").append(staffItem);
+          });
+        }
+      }
       $("#confirmPayment").on("click", function () {
         if ($("#payment").val() == "") {
           notiflix.Report.warning(
@@ -2423,6 +3045,86 @@ function initializeApp() {
             .prop("selected", true);
         }
       });
+
+      // Display toggle event handlers
+      $("#toggleCustomerDisplay").on("click", function () {
+        ipcRenderer.send("toggle-customer-display");
+      });
+
+      $("#toggleKOTDisplay").on("click", function () {
+        ipcRenderer.send("toggle-kot-display");
+      });
+
+      // Update displays when cart changes
+      $.fn.updateCustomerDisplay = function () {
+        if (cart.length > 0) {
+          const orderData = {
+            orderNumber: Math.floor(Date.now() / 1000),
+            items: cart.map(item => ({
+              name: item.product_name,
+              quantity: item.quantity,
+              price: item.price + (item.modifiers ? item.modifiers.reduce((sum, mod) => sum + mod.price, 0) : 0)
+            })),
+            taxRate: settings && settings.charge_tax ? parseFloat(safeUnescape(settings.percentage)) / 100 : 0,
+            serviceChargeRate: settings && settings.charge_service_charge ? parseFloat(settings.service_charge) / 100 : 0,
+            discount: $("#inputDiscount").val() || 0,
+            status: 'pending'
+          };
+          ipcRenderer.send("update-customer-display", orderData);
+        } else {
+          // Send empty order data to clear display
+          ipcRenderer.send("update-customer-display", null);
+        }
+      };
+
+      // Update KOT display when orders are submitted
+      $.fn.updateKOTDisplay = function (orderData) {
+        const kotOrder = {
+          id: orderData._id || orderData.order,
+          number: orderData.order,
+          items: orderData.items.map(item => ({
+            name: item.product_name,
+            quantity: item.quantity,
+            notes: item.modifiers ? item.modifiers.map(m => m.name).join(', ') : ''
+          })),
+          type: 'dine-in', // Default, could be expanded based on order data
+          status: 'new',
+          timestamp: orderData.date || new Date().toISOString(),
+          storeName: safeUnescape(settings.store)
+        };
+        
+        // Send to KOT display
+        ipcRenderer.send("update-kot-display", [kotOrder]);
+      };
+
+      // Hook into cart changes to update displays
+      const originalRenderTable = $.fn.renderTable;
+      $.fn.renderTable = function(cartList) {
+        originalRenderTable.call(this, cartList);
+        // Update customer display when cart changes
+        $(this).updateCustomerDisplay();
+      };
+
+      // Hook into order submission to update KOT display
+      const originalSubmitDueOrder = $.fn.submitDueOrder;
+      $.fn.submitDueOrder = function(status) {
+        // Call original function
+        const result = originalSubmitDueOrder.call(this, status);
+
+        // If this is a new order (status 1 = paid), update KOT display
+        if (status === 1) {
+          const orderData = {
+            order: orderNumber,
+            items: cart,
+            date: currentTime,
+            _id: orderNumber
+          };
+          $(this).updateKOTDisplay(orderData);
+        }
+
+        return result;
+      };
+
     });
   }
 }
@@ -2456,13 +3158,13 @@ function testApiConnectivity() {
       console.error('❌ DEBUG: XHR response:', xhr.responseText);
       
       // Show user-friendly error message
-      if (xhr.status === 0) {
-        notiflix.Report.failure(
-          'Server Connection Error', 
-          'Cannot connect to the server. Please check if the server is running.', 
-          'Ok'
-        );
-      }
+      // if (xhr.status === 0) {
+      //   notiflix.Report.failure(
+      //     'Server Connection Error', 
+      //     'Cannot connect to the server. Please check if the server is running.', 
+      //     'Ok'
+      //   );
+      // }
     }
   });
 }
@@ -2489,6 +3191,66 @@ $("#rmv_img").on("click", function () {
 $.fn.print = function () {
   printJS({ printable: receipt, type: "raw-html" });
 };
+
+/**
+ * Print KOT (Kitchen Order Ticket)
+ */
+$.fn.printKOT = function (order) {
+  const kotHtml = generateKOT(order);
+  printJS({ printable: kotHtml, type: "raw-html" });
+};
+
+/**
+ * Generate KOT HTML
+ */
+function generateKOT(order) {
+  // Use language support for multilingual KOT generation
+  if (LanguageSupport && LanguageSupport.generateMultilingualKOT) {
+    const kotData = {
+      orderNumber: order.order || order._id,
+      tableNumber: order.table_number || 'N/A',
+      customerName: order.customer_name || 'Walk-in',
+      time: moment(order.date || order.order_time).format('HH:mm'),
+      priority: order.priority || 'normal',
+      storeName: safeUnescape(settings.store),
+      items: order.items.map(item => ({
+        product_name: item.product_name,
+        quantity: item.quantity,
+        modifiers: item.modifiers,
+        special_instructions: item.special_instructions || ''
+      }))
+    };
+    return LanguageSupport.generateMultilingualKOT(kotData);
+  }
+  
+  // Fallback to original KOT generation
+  const logo = path.join(img_path, safeUnescape(settings.img));
+  const items = order.items.map(item => {
+    const modifierText = item.modifiers && item.modifiers.length > 0 ? ` (${item.modifiers.map(m => m.name).join(', ')})` : '';
+    return `<tr><td>${item.product_name}${modifierText}</td><td>${item.quantity}</td><td>${item.special_instructions || ''}</td></tr>`;
+  }).join('');
+
+  return `<div style="font-size: 12px; width: 300px;">
+    <p style="text-align: center;">
+      ${checkFileExists(logo) ? `<img style='max-width: 50px' src='${logo}' /><br>` : ''}
+      <span style="font-size: 18px;">${safeUnescape(settings.store)}</span><br>
+      KITCHEN ORDER TICKET
+    </p>
+    <hr>
+    <p>Order #: ${order.order || order._id}</p>
+    <p>Table: ${order.table_number || 'N/A'}</p>
+    <p>Customer: ${order.customer_name || 'Walk-in'}</p>
+    <p>Time: ${moment(order.date || order.order_time).format('HH:mm')}</p>
+    <table style="width: 100%;">
+      <thead>
+        <tr><th>Item</th><th>Qty</th><th>Notes</th></tr>
+      </thead>
+      <tbody>${items}</tbody>
+    </table>
+    <hr>
+    <p style="text-align: center;">Priority: ${order.priority || 'Normal'}</p>
+  </div>`;
+}
 
 
 function loadSupplierCount() {
@@ -2545,6 +3307,28 @@ function loadTransactions() {
             );
         };
 
+        $.fn.reprintKOT = function (index) {
+            const order = allTransactions[index];
+
+            // Log the KOT reprint action
+            $.post(window.api + 'audit-logs/log', {
+                action: 'kot_reprint',
+                user: user.fullname,
+                details: {
+                    order_id: order._id || order.order,
+                    order_number: order.order,
+                    items_count: order.items.length,
+                    timestamp: moment().toISOString()
+                },
+                severity: 'info'
+            });
+
+            const kotHtml = generateKOT(order);
+            printJS({ printable: kotHtml, type: "raw-html" });
+
+            notiflix.Notify.success('KOT reprinted successfully');
+        };
+
         transactions.forEach((trans, index) => {
           sales += parseFloat(trans.total);
           transact++;
@@ -2591,7 +3375,11 @@ function loadTransactions() {
             : '<button onClick="$(this).viewTransaction(' +
             index +
             ')" class="btn btn-info"><i class="fa fa-search-plus"></i></button>' +
-            '<button onClick="$(this).shareInvoice(' + (trans._id || trans.order) + ')" class="btn btn-warning"><i class="fa fa-share-alt"></i></button></td>'
+            '<button onClick="$(this).reprintKOT(' +
+            index +
+            ')" class="btn btn-success"><i class="fa fa-print"></i> KOT</button>' +
+            '<button onClick="$(this).shareInvoice(' + (trans._id || trans.order) + ')" class="btn btn-warning"><i class="fa fa-share-alt"></i></button>' +
+            '<button onClick="$(this).returnTransaction(' + (trans._id || trans.order) + ')" class="btn btn-danger"><i class="fa fa-undo"></i> Return</button></td>'
           }</tr>
                     `;
 
@@ -2814,6 +3602,37 @@ $.fn.viewTransaction = function (index) {
                 </tr>`;
   }
 
+  // Calculate service charge and tip for transaction display
+  let serviceChargeRow = "";
+  let tipRow = "";
+  let tipSplitRows = "";
+  
+  if (allTransactions[index].service_charge && allTransactions[index].service_charge > 0) {
+    serviceChargeRow = `<tr>
+                <td>Service Charge (${allTransactions[index].service_charge_rate}%)</td>
+                <td>:</td>
+                <td class="text-right">${getCurrencySymbol()}${parseFloat(allTransactions[index].service_charge).toFixed(2)}</td>
+            </tr>`;
+  }
+  
+  if (allTransactions[index].tip_amount && allTransactions[index].tip_amount > 0) {
+    tipRow = `<tr>
+                <td>Tip (${allTransactions[index].tip_percentage}%)</td>
+                <td>:</td>
+                <td class="text-right">${getCurrencySymbol()}${parseFloat(allTransactions[index].tip_amount).toFixed(2)}</td>
+            </tr>`;
+  }
+  
+  if (allTransactions[index].split_tip_among_staff && allTransactions[index].tip_split_data) {
+    allTransactions[index].tip_split_data.forEach(function(tipData) {
+      tipSplitRows += `<tr>
+                <td>Tip - ${tipData.staff_name}</td>
+                <td>:</td>
+                <td class="text-right">${getCurrencySymbol()}${parseFloat(tipData.tip_amount).toFixed(2)}</td>
+            </tr>`;
+    });
+  }
+
   if (settings.charge_tax) {
     tax_row = `<tr>
                 <td>Vat(${safeUnescape(settings.percentage)})% </td>
@@ -2848,6 +3667,7 @@ $.fn.viewTransaction = function (index) {
       ? "Walk in Customer"
       : allTransactions[index].customer.name
     } <br>
+        ${allTransactions[index].delivery_partner ? `Delivery Partner : ${_.escape(allTransactions[index].delivery_partner)} <br>` : ''}
         Cashier : ${allTransactions[index].user} <br>
         Date : ${moment(allTransactions[index].date).format(
       "DD MMM YYYY HH:mm:ss",
@@ -2886,6 +3706,9 @@ $.fn.viewTransaction = function (index) {
     }</td>
         </tr>
         
+        ${serviceChargeRow}
+        ${tipRow}
+        ${tipSplitRows}
         ${tax_row}
     
         <tr>
@@ -2915,6 +3738,23 @@ $.fn.viewTransaction = function (index) {
   $("#viewTransaction").html(receipt);
 
   $("#orderModal").modal("show");
+};
+
+$.fn.returnTransaction = function (transactionId) {
+    // Initialize returns module if not already available
+    if (typeof window.ReturnsModule !== 'undefined') {
+        const returnsModule = new window.ReturnsModule();
+        returnsModule.openReturnModal(transactionId);
+    } else {
+        // Load the returns module dynamically if not loaded
+        const script = document.createElement('script');
+        script.src = 'assets/js/modules/returns.js';
+        script.onload = function() {
+            const returnsModule = new window.ReturnsModule();
+            returnsModule.openReturnModal(transactionId);
+        };
+        document.head.appendChild(script);
+    }
 };
 
 $("#status").on("change", function () {
