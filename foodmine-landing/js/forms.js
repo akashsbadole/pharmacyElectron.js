@@ -6,7 +6,7 @@
 // Configuration
 const CONFIG = {
     googleFormId: '1Rn0Bh2HgOtb7zRTNpbZJRr2pSbiaoS5jXeRJXvbGFQOX1lnrRk', // Replace with your Google Form ID
-    enquirySheetUrl: 'https://script.google.com/macros/s/AKfycbycaTL7DqADUwcHDujyFdRqSpeaUCIrzCx4F6-W7tikXmmT9kxwO_iLRTgsdNn2WzL7/exec' // Replace with your Google Apps Script URL
+    enquirySheetUrl: 'https://script.google.com/macros/s/AKfycbzNlKVx4WQOOxRjNaukds8LH9iu__Xw-qzQ-7eGO9YK4HfoN_sWfE73VbDbymCHNK7W/exec' // Replace with your Google Apps Script URL
 };
 
 // Initialize forms

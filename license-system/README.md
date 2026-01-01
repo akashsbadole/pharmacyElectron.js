@@ -1,228 +1,106 @@
-# FoodMine License System
+# License System CORS Fixes
 
-A comprehensive subscription-based license management system for the FoodMine POS application using Google Sheets as the backend database.
+This document explains the fixes applied to resolve CORS policy errors and network failures in the license system.
 
-## Overview
+## Issues Fixed
 
-This license system provides:
-- **Google Sheets-based license database** for easy management
-- **Cryptographically secure license keys** with hardware binding
-- **Grace period support** for internet connectivity issues
-- **Offline caching** for improved user experience
-- **Simple license generation portal** for administrators
-- **Desktop application integration** with automatic validation
+### 1. Google Apps Script CORS Error
+**Problem**: `ContentService.createTextOutput(...).setMimeType(...).setHeaders is not a function`
+**Solution**: Removed the invalid `setHeaders()` method chaining and properly structured the response.
 
-## System Architecture
+### 2. CORS Policy Error
+**Problem**: "Response to preflight request doesn't pass access control check"
+**Solution**: Added proper CORS handling in both the Google Apps Script and the license portal.
 
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   License       │    │   Google Apps    │    │   Desktop App   │
-│   Portal        │───▶│   Script API     │───▶│   (Electron)    │
-│   (HTML/JS)     │    │   (Google Sheets)│    │   License Check │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-```
+### 3. Network Failures
+**Problem**: "Failed to fetch" errors
+**Solution**: Added CORS proxy support and improved error handling.
 
-## Components
+## Files Modified
 
-### 1. Google Apps Script API (`license-api.gs`)
-- REST API endpoints for license validation and management
-- Connects to Google Sheets for data storage
-- Handles license generation, activation, and status checks
-- CORS-enabled for web and desktop app access
+### `license-api.gs`
+- Fixed method chaining on ContentService output
+- Properly structured response creation
+- Added proper CORS handling for preflight requests
 
-### 2. License Portal (`license-portal.html`)
-- Web-based interface for license management
-- Generate new licenses
-- Check license status
-- Admin panel for Google Sheet access
-- Simple, responsive design
+### `license-portal.html`
+- Added CORS proxy configuration options
+- Improved error handling for network requests
+- Added proxy support for local development
 
-### 3. Desktop License Manager (`assets/js/license-manager.js`)
-- Handles license validation in the desktop application
-- Hardware fingerprinting for device binding
-- Grace period management
-- Integration with application state
+### New Files
+- `cors-proxy.js` - Node.js CORS proxy server
+- `package.json` - Dependencies for the proxy server
 
-### 4. Main Process Integration (`start.js`)
-- License checking before application startup
-- License activation dialog
-- Periodic license validation
-- Graceful handling of license failures
+## Usage
 
-### 5. Settings UI Integration (`index.html` + `assets/js/app.js`)
-- License management interface in application settings
-- Real-time license status display
-- Manual license activation and management
+### Option 1: Direct Google Apps Script (Recommended for Production)
+1. Deploy your Google Apps Script as a web app
+2. Use the direct URL in the license portal
+3. No additional setup required
 
-## Setup Instructions
-
-### Step 1: Create Google Sheet
-
-1. Create a new Google Sheet
-2. Name it "FoodMine Licenses" (or any name you prefer)
-3. Set up the following columns in the first row:
-   - A: Sr.No
-   - B: License
-   - C: Email
-   - D: Activation Date
-   - E: Expiry Date
-   - F: Hardware ID
-   - G: Status
-   - H: subscription type
-
-4. **Important**: Rename the tab to "license" (lowercase) to match the API configuration
-
-### Step 2: Deploy Google Apps Script
-
-1. Go to [Google Apps Script](https://script.google.com/)
-2. Create a new project
-3. Copy the contents of `license-api.gs` into the script editor
-4. Update the `CONFIG.SHEET_ID` with your Google Sheet ID
-5. Deploy as Web App:
-   - Click "Deploy" → "New deployment"
-   - Set "Execute as" to "Me"
-   - Set "Who has access" to "Anyone"
-   - Copy the deployment URL
-
-### Step 3: Configure Application
-
-1. Update `license-api.gs` CONFIG section:
-   ```javascript
-   const CONFIG = {
-     SHEET_ID: 'YOUR_GOOGLE_SHEET_ID', // Replace with your sheet ID
-     SHEET_NAME: 'license', // Updated to match your tab name
-     API_KEY: 'YOUR_API_KEY' // Optional: Add API key for security
-   };
+### Option 2: CORS Proxy (Recommended for Local Development)
+1. Install dependencies:
+   ```bash
+   cd license-system
+   npm install
    ```
 
-2. Update `start.js` LICENSE_CONFIG section:
-   ```javascript
-   const LICENSE_CONFIG = {
-     API_URL: 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec',
-     GRACE_PERIOD_DAYS: 7,
-     STORAGE_KEY: 'foodmine_license'
-   };
+2. Start the proxy server:
+   ```bash
+   npm start
    ```
 
-3. Update `assets/js/license-manager.js` config:
-   ```javascript
-   const CONFIG = {
-     API_URL: 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec',
-     GRACE_PERIOD_DAYS: 7,
-     CHECK_INTERVAL: 24 * 60 * 60 * 1000,
-     STORAGE_KEY: 'foodmine_license'
-   };
-   ```
+3. In the license portal:
+   - Check "Use CORS Proxy for local development"
+   - Set proxy URL to `http://localhost:3001/api`
+   - Enter your Google Apps Script URL
 
-### Step 4: Test the System
+## Configuration
 
-1. Open the license portal (`license-portal.html`) in a browser
-2. Generate a test license
-3. Test license validation using the portal
-4. Test the desktop application license checking
+### Google Apps Script URL
+Format: `https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec`
 
-## API Endpoints
+### CORS Proxy URL
+Format: `http://localhost:3001/api`
 
-### License Validation
-```
-GET /?path=/validate&license_key=XXXXX&email=user@example.com
-```
-Returns license status, expiry date, and activation information.
+### Google Sheet ID
+Your Google Sheet ID from the URL: `https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/edit`
 
-### License Generation
-```
-POST /?path=/generate
-{
-  "email": "user@example.com",
-  "type": "basic",
-  "send_email": true
-}
-```
-Generates a new license key and stores it in Google Sheets.
+## Error Handling
 
-### License Activation
-```
-POST /?path=/activate
-{
-  "license_key": "XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXX",
-  "email": "user@example.com",
-  "hardware_id": "ABC123"
-}
-```
-Activates a license for a specific device.
+The system now provides detailed error messages for:
+- Network connectivity issues
+- Invalid API URLs
+- CORS policy violations
+- Google Apps Script errors
+- Timeout errors
 
-### License Status Check
-```
-GET /?path=/status&email=user@example.com
-```
-Returns all licenses for a specific email address.
+## Testing
 
-## License Key Format
-
-License keys are generated in the format:
-```
-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXX
-```
-
-Where:
-- Each X is a random alphanumeric character
-- The final XXX is a checksum for validation
-- Total length: 32 characters
-
-## Security Features
-
-1. **Hardware Binding**: Licenses are tied to specific devices
-2. **Grace Period**: 7 days of offline access after expiry
-3. **Cryptographic Validation**: Secure license key generation
-4. **Online/Offline Support**: Caches license status locally
-5. **Email Verification**: Prevents license sharing
-
-## License Types
-
-- **Basic**: 1-month subscription
-- **Pro**: 1-month subscription with advanced features
-- **Enterprise**: 1-month subscription with all features
+1. Use the "Test Connection" button in the license portal
+2. Check the API status indicator
+3. Monitor browser console for detailed error messages
 
 ## Troubleshooting
 
-### Common Issues
+### "Failed to fetch" Error
+- Check internet connection
+- Verify Google Apps Script URL is correct
+- Try using the CORS proxy for local development
 
-1. **CORS Errors**: Ensure the Google Apps Script is deployed correctly
-2. **License Not Found**: Check email and license key spelling
-3. **Hardware ID Mismatch**: License bound to different device
-4. **Grace Period Expired**: License needs renewal
+### CORS Policy Error
+- Enable CORS proxy in license portal
+- Ensure Google Apps Script is deployed correctly
+- Check browser console for specific CORS errors
 
-### Debug Mode
+### Invalid API Key
+- Verify API key in Google Apps Script configuration
+- Check that the key matches between client and server
 
-Enable debug logging in the desktop application:
-```javascript
-// In license-manager.js
-console.log('License check details:', licenseStatus);
-```
+## Security Notes
 
-## Security Best Practices
-
-1. **Use HTTPS**: Always serve the license portal over HTTPS
-2. **API Keys**: Consider adding API keys for additional security
-3. **Regular Backups**: Backup your Google Sheet regularly
-4. **Monitor Usage**: Track license usage and suspicious activity
-
-## Future Enhancements
-
-- **License Renewal**: Automatic renewal system
-- **Multi-Device Support**: Allow licenses on multiple devices
-- **Usage Analytics**: Track application usage metrics
-- **License Transfer**: Allow license transfers between devices
-- **Mobile App**: Mobile license management interface
-
-## Support
-
-For issues and questions:
-1. Check the troubleshooting section above
-2. Review the Google Apps Script logs
-3. Verify network connectivity
-4. Contact support with error details and logs
-
-## License
-
-This license system is part of the FoodMine POS application and follows the same licensing terms.
+- The CORS proxy allows all origins for development purposes
+- In production, consider restricting allowed origins
+- Always use HTTPS for production deployments
+- Consider implementing proper authentication

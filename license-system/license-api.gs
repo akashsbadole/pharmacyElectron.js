@@ -6,8 +6,8 @@
 // Configuration
 const CONFIG = {
   SHEET_ID: '1ehdDZifdS3eMPhmvHnP825zsxejEACG7iyf3fEiKlZw', // Replace with your Google Sheet ID
-  SHEET_NAME: 'license', // Updated to match your tab name
-  API_KEY: 'YOUR_API_KEY' // Optional: Add API key for security
+  SHEET_NAME: 'Licenses', // Updated to match your tab name
+  API_KEY: 'AKfycbycaTL7DqADUwcHDujyFdRqSpeaUCIrzCx4F6-W7tikXmmT9kxwO_iLRTgsdNn2WzL7' // Optional: Add API key for security
 };
 
 /**
@@ -39,9 +39,9 @@ function handleRequest(e) {
 
     // Handle preflight requests
     if (method === 'OPTIONS') {
-      return ContentService.createTextOutput(JSON.stringify({ status: 'ok' }))
-        .setMimeType(ContentService.MimeType.JSON)
-        .setHeaders(headers);
+      const output = ContentService.createTextOutput(JSON.stringify({ status: 'ok' }));
+      output.setMimeType(ContentService.MimeType.JSON);
+      return output;
     }
 
     // Validate API key if configured
@@ -69,16 +69,18 @@ function handleRequest(e) {
       response = { success: false, error: 'Invalid endpoint' };
     }
 
-    return ContentService.createTextOutput(JSON.stringify(response))
-      .setMimeType(ContentService.MimeType.JSON)
-      .setHeaders(headers);
+    const output = ContentService.createTextOutput(JSON.stringify(response));
+    output.setMimeType(ContentService.MimeType.JSON);
+    return output;
 
   } catch (error) {
-    return ContentService.createTextOutput(JSON.stringify({
+    const output = ContentService.createTextOutput(JSON.stringify({
       success: false,
       error: error.message,
       stack: error.stack
-    })).setMimeType(ContentService.MimeType.JSON);
+    }));
+    output.setMimeType(ContentService.MimeType.JSON);
+    return output;
   }
 }
 

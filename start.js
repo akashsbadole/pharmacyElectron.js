@@ -439,7 +439,7 @@ if (!isPackaged) {
 
 // License configuration
 const LICENSE_CONFIG = {
-    API_URL: 'https://script.google.com/macros/s/AKfycbycaTL7DqADUwcHDujyFdRqSpeaUCIrzCx4F6-W7tikXmmT9kxwO_iLRTgsdNn2WzL7/exec',
+    API_URL: 'https://script.google.com/macros/s/AKfycbzNlKVx4WQOOxRjNaukds8LH9iu__Xw-qzQ-7eGO9YK4HfoN_sWfE73VbDbymCHNK7W/exec',
     GRACE_PERIOD_DAYS: 7,
     STORAGE_KEY: 'foodmine_license'
 };

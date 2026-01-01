@@ -127,6 +127,21 @@
             background-color: #c82333;
         }
 
+        .btn-test {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .btn-test:hover {
+            background-color: #218838;
+        }
+
         .grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -162,6 +177,12 @@
             color: #0c5460;
             background-color: #d1ecf1;
             border-color: #bee5eb;
+        }
+
+        .alert-warning {
+            color: #856404;
+            background-color: #fff3cd;
+            border-color: #ffeaa7;
         }
 
         .license-result {
@@ -212,6 +233,51 @@
             color: var(--secondary-color);
             font-size: 0.9rem;
         }
+
+        .config-section {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .config-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .config-row label {
+            flex: 1;
+            font-weight: normal;
+            margin-bottom: 0;
+        }
+
+        .config-row input {
+            flex: 2;
+            margin-left: 10px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-online {
+            background-color: #28a745;
+        }
+
+        .status-offline {
+            background-color: #dc3545;
+        }
+
+        .status-unknown {
+            background-color: #6c757d;
+        }
     </style>
 </head>
 <body>
@@ -220,6 +286,39 @@
             <h1>FoodMine License Portal</h1>
             <p class="subtitle">Generate and manage licenses for your FoodMine POS system</p>
         </header>
+
+        <!-- Configuration Section -->
+        <div class="card">
+            <h2>API Configuration</h2>
+            <div class="config-section">
+                <div class="config-row">
+                    <label for="apiUrl">Google Apps Script URL:</label>
+                    <input type="text" id="apiUrl" placeholder="Enter your Google Apps Script URL">
+                </div>
+                <div class="config-row">
+                    <label for="proxyUrl">CORS Proxy URL (Optional):</label>
+                    <input type="text" id="proxyUrl" placeholder="http://localhost:3001/api">
+                </div>
+                <div class="config-row">
+                    <label>
+                        <input type="checkbox" id="useProxy" onchange="toggleProxy()">
+                        Use CORS Proxy for local development
+                    </label>
+                </div>
+                <div class="config-row">
+                    <label for="sheetId">Google Sheet ID:</label>
+                    <input type="text" id="sheetId" placeholder="Enter your Google Sheet ID">
+                </div>
+                <div class="config-row">
+                    <span id="apiStatus">
+                        <span class="status-indicator status-unknown"></span>
+                        <span>API Status: Unknown</span>
+                    </span>
+                    <button class="btn-test" id="testApiBtn" onclick="testApiConnection()">Test Connection</button>
+                </div>
+            </div>
+            <div id="configMessage" class="alert hidden"></div>
+        </div>
 
         <!-- License Generation Form -->
         <div class="card">
@@ -324,22 +423,172 @@
         </div>
 
         <footer>
-            <p>&copy; 2024 FoodMine POS System. All rights reserved.</p>
+            <p>© 2024 FoodMine POS System. All rights reserved.</p>
             <p>For support, contact your administrator.</p>
         </footer>
     </div>
 
     <script>
-        // Configuration - Update these with your actual values
+        // Configuration management
         const CONFIG = {
-            // Replace with your deployed Google Apps Script URL
-            API_URL: 'https://script.google.com/macros/s/1ehdDZifdS3eMPhmvHnP825zsxejEACG7iyf3fEiKlZw/exec',
-            SHEET_ID: '1ehdDZifdS3eMPhmvHnP825zsxejEACG7iyf3fEiKlZw'
+            API_URL: localStorage.getItem('license_api_url') || 'https://script.google.com/macros/s/AKfycbzNlKVx4WQOOxRjNaukds8LH9iu__Xw-qzQ-7eGO9YK4HfoN_sWfE73VbDbymCHNK7W/exec',
+            SHEET_ID: localStorage.getItem('license_sheet_id') || '1ehdDZifdS3eMPhmvHnP825zsxejEACG7iyf3fEiKlZw',
+            USE_PROXY: localStorage.getItem('use_proxy') === 'true',
+            PROXY_URL: localStorage.getItem('proxy_url') || 'http://localhost:3001/api'
         };
+        //https://script.google.com/macros/s/AKfycbzNlKVx4WQOOxRjNaukds8LH9iu__Xw-qzQ-7eGO9YK4HfoN_sWfE73VbDbymCHNK7W/exec
+        // Initialize configuration
+        function initConfig() {
+            document.getElementById('apiUrl').value = CONFIG.API_URL;
+            document.getElementById('sheetId').value = CONFIG.SHEET_ID;
+            document.getElementById('proxyUrl').value = CONFIG.PROXY_URL;
+            document.getElementById('useProxy').checked = CONFIG.USE_PROXY;
+            
+            // Show/hide proxy row based on checkbox
+            const proxyRow = document.querySelector('.config-row:nth-child(2)');
+            if (proxyRow) {
+                proxyRow.style.display = CONFIG.USE_PROXY ? 'flex' : 'none';
+            }
+            
+            updateApiEndpoint();
+            updateSheetLink();
+            checkApiStatus();
+        }
 
-        // Update UI with configuration
-        document.getElementById('sheetLink').href = `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/edit`;
-        document.getElementById('apiEndpoint').textContent = `${CONFIG.API_URL}?path=/validate&license_key=YOUR_KEY`;
+        // Save configuration
+        function saveConfig() {
+            const apiUrl = document.getElementById('apiUrl').value.trim();
+            const sheetId = document.getElementById('sheetId').value.trim();
+            const proxyUrl = document.getElementById('proxyUrl').value.trim();
+            const useProxy = document.getElementById('useProxy').checked;
+            
+            if (!apiUrl) {
+                showMessage('Please enter a valid API URL.', 'warning');
+                return false;
+            }
+
+            CONFIG.API_URL = apiUrl;
+            CONFIG.SHEET_ID = sheetId;
+            CONFIG.USE_PROXY = useProxy;
+            CONFIG.PROXY_URL = proxyUrl;
+            
+            localStorage.setItem('license_api_url', apiUrl);
+            localStorage.setItem('license_sheet_id', sheetId);
+            localStorage.setItem('use_proxy', useProxy);
+            localStorage.setItem('proxy_url', proxyUrl);
+            
+            updateApiEndpoint();
+            updateSheetLink();
+            showMessage('Configuration saved successfully!', 'success');
+            return true;
+        }
+
+        // Toggle proxy settings
+        function toggleProxy() {
+            const useProxy = document.getElementById('useProxy').checked;
+            const proxyRow = document.querySelector('.config-row:nth-child(2)');
+            if (proxyRow) {
+                proxyRow.style.display = useProxy ? 'flex' : 'none';
+            }
+            saveConfig();
+        }
+
+        // Update UI elements
+        function updateApiEndpoint() {
+            const baseUrl = CONFIG.USE_PROXY ? CONFIG.PROXY_URL : CONFIG.API_URL;
+            document.getElementById('apiEndpoint').textContent = `${baseUrl}?path=/validate&license_key=YOUR_KEY`;
+        }
+
+        function updateSheetLink() {
+            document.getElementById('sheetLink').href = `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/edit`;
+        }
+
+        // Get proper API URL with proxy support
+        function getApiUrl(path) {
+            if (CONFIG.USE_PROXY) {
+                // For proxy, we need to encode the full Google Apps Script URL
+                const encodedScriptUrl = encodeURIComponent(CONFIG.API_URL);
+                return `${CONFIG.PROXY_URL}/${encodedScriptUrl}?path=${path}`;
+            }
+            return `${CONFIG.API_URL}?path=${path}`;
+        }
+
+        // API connectivity test
+        async function testApiConnection() {
+            if (!saveConfig()) {
+                return;
+            }
+
+            const statusSpan = document.getElementById('apiStatus');
+            const indicator = statusSpan.querySelector('.status-indicator');
+            const text = statusSpan.querySelector('span:last-child');
+            
+            indicator.className = 'status-indicator status-unknown';
+            text.textContent = 'API Status: Testing...';
+
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+                const url = getApiUrl('/status&email=test@example.com');
+                const response = await fetch(url, {
+                    method: 'GET',
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+
+                if (response.ok) {
+                    indicator.className = 'status-indicator status-online';
+                    text.textContent = 'API Status: Online';
+                    showMessage('API connection successful!', 'success');
+                } else {
+                    indicator.className = 'status-indicator status-offline';
+                    text.textContent = 'API Status: Offline';
+                    showMessage('API is reachable but returned an error. Please check your Google Apps Script deployment.', 'danger');
+                }
+            } catch (error) {
+                indicator.className = 'status-indicator status-offline';
+                text.textContent = 'API Status: Offline';
+                
+                if (error.name === 'AbortError') {
+                    showMessage('API connection timed out. Please check your network connection and API URL.', 'danger');
+                } else {
+                    showMessage(`API connection failed: ${error.message}. Please verify your API URL and network connection.`, 'danger');
+                }
+            }
+        }
+
+        // Check API status on load
+        async function checkApiStatus() {
+            try {
+                const url = getApiUrl('/status&email=test@example.com');
+                const response = await fetch(url, {
+                    method: 'GET',
+                    signal: AbortSignal.timeout(5000)
+                });
+
+                const statusSpan = document.getElementById('apiStatus');
+                const indicator = statusSpan.querySelector('.status-indicator');
+                const text = statusSpan.querySelector('span:last-child');
+                
+                if (response.ok) {
+                    indicator.className = 'status-indicator status-online';
+                    text.textContent = 'API Status: Online';
+                } else {
+                    indicator.className = 'status-indicator status-offline';
+                    text.textContent = 'API Status: Offline';
+                }
+            } catch (error) {
+                // Don't show error on initial load, just set status to offline
+                const statusSpan = document.getElementById('apiStatus');
+                const indicator = statusSpan.querySelector('.status-indicator');
+                const text = statusSpan.querySelector('span:last-child');
+                
+                indicator.className = 'status-indicator status-offline';
+                text.textContent = 'API Status: Offline';
+            }
+        }
 
         // Form handlers
         document.getElementById('licenseForm').addEventListener('submit', generateLicense);
@@ -351,6 +600,10 @@
         async function generateLicense(e) {
             e.preventDefault();
             
+            if (!saveConfig()) {
+                return;
+            }
+
             const email = document.getElementById('email').value;
             const subscriptionType = document.getElementById('subscriptionType').value;
             const sendEmail = document.getElementById('sendEmail').checked;
@@ -369,7 +622,8 @@
             spinner.style.display = 'inline-block';
 
             try {
-                const response = await fetch(`${CONFIG.API_URL}?path=/generate`, {
+                const url = getApiUrl('/generate');
+                const response = await fetch(url, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -381,17 +635,25 @@
                     })
                 });
 
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
                 const data = await response.json();
 
                 if (data.success) {
                     showLicenseResult(data);
                     showMessage('License generated successfully!', 'success');
                 } else {
-                    showMessage(data.error || 'Failed to generate license.', 'danger');
+                    showMessage(data.error || 'Failed to generate license. Please check your API configuration.', 'danger');
                 }
             } catch (error) {
-                showMessage('Network error. Please try again.', 'danger');
-                console.error('Error:', error);
+                console.error('Error generating license:', error);
+                if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                    showMessage('Network error. Please check your API URL and internet connection, then click "Test Connection" to verify.', 'danger');
+                } else {
+                    showMessage(`Error: ${error.message}. Please verify your API configuration.`, 'danger');
+                }
             } finally {
                 btn.classList.remove('loading');
                 text.style.display = 'inline-block';
@@ -403,6 +665,10 @@
         async function checkLicenseStatus(e) {
             e.preventDefault();
             
+            if (!saveConfig()) {
+                return;
+            }
+
             const email = document.getElementById('checkEmail').value;
             const licenseKey = document.getElementById('checkLicenseKey').value;
 
@@ -415,23 +681,27 @@
             }
 
             try {
-                let url = CONFIG.API_URL;
+                let url;
                 if (email) {
-                    url += `?path=/status&email=${encodeURIComponent(email)}`;
+                    url = getApiUrl(`/status&email=${encodeURIComponent(email)}`);
                 } else if (licenseKey) {
-                    url += `?path=/validate&license_key=${encodeURIComponent(licenseKey)}`;
+                    url = getApiUrl(`/validate&license_key=${encodeURIComponent(licenseKey)}`);
                 }
 
                 const response = await fetch(url);
-                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
 
+                const data = await response.json();
                 showStatusResult(data);
             } catch (error) {
+                console.error('Error checking license status:', error);
                 showStatusResult({
                     success: false,
-                    message: 'Network error. Please try again.'
+                    message: `Network error: ${error.message}. Please check your API configuration and internet connection.`
                 });
-                console.error('Error:', error);
             }
         }
 
@@ -500,6 +770,8 @@
             const licenseKey = document.getElementById('resultLicenseKey').textContent;
             navigator.clipboard.writeText(licenseKey).then(() => {
                 showMessage('License key copied to clipboard!', 'success');
+            }).catch(err => {
+                showMessage('Failed to copy to clipboard. Please manually select and copy the license key.', 'warning');
             });
         }
 
@@ -511,6 +783,9 @@
             const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             return re.test(email);
         }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', initConfig);
     </script>
 </body>
 </html>

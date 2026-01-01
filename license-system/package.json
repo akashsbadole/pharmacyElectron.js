@@ -1,0 +1,21 @@
+{
+  "name": "license-cors-proxy",
+  "version": "1.0.0",
+  "description": "CORS proxy server for license system development",
+  "main": "cors-proxy.js",
+  "scripts": {
+    "start": "node cors-proxy.js",
+    "dev": "nodemon cors-proxy.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": ["cors", "proxy", "license", "development"],
+  "author": "Your Name",
+  "license": "MIT"
+}

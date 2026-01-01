@@ -8,7 +8,7 @@ const CONFIG = {
     paypalClientId: 'YOUR_PAYPAL_CLIENT_ID', // Replace with your PayPal client ID
     razorpayKeyId: 'YOUR_RAZORPAY_KEY_ID',   // Replace with your Razorpay key ID
     currency: 'INR',
-    apiBaseUrl: 'https://script.google.com/macros/s/AKfycbycaTL7DqADUwcHDujyFdRqSpeaUCIrzCx4F6-W7tikXmmT9kxwO_iLRTgsdNn2WzL7/exec' // Replace with your Google Apps Script URL
+    apiBaseUrl: 'https://script.google.com/macros/s/AKfycbzNlKVx4WQOOxRjNaukds8LH9iu__Xw-qzQ-7eGO9YK4HfoN_sWfE73VbDbymCHNK7W/exec' // Replace with your Google Apps Script URL
 };
 
 // Plan pricing configuration
