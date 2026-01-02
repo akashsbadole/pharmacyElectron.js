@@ -2042,15 +2042,26 @@ function initializeApp() {
       });
 
       $("#transactions").on("click", function () {
-        loadTransactions();
-        loadUserList();
+        // Check if already in transactions view - if so, switch back to POS
+        if ($("#transactions_view").is(':visible')) {
+          // Show POS view, hide transactions view
+          $("#pos_view").show();
+          $("#transactions_view").hide();
+        } else {
+          loadTransactions();
+          loadUserList();
 
-        // Show transactions view, hide POS view
-        $("#pos_view").hide();
-        $("#transactions_view").show();
+          // Show transactions view, hide POS view
+          $("#pos_view").hide();
+          $("#transactions_view").show();
+        }
       });
 
       $("#pointofsale").on("click", function () {
+        console.log('DEBUG: Point of Sale button clicked');
+        console.log('DEBUG: pos_view visible:', $("#pos_view").is(':visible'));
+        console.log('DEBUG: transactions_view visible:', $("#transactions_view").is(':visible'));
+
         // Show POS view, hide transactions view
         $("#pos_view").show();
         $("#transactions_view").hide();
@@ -2907,15 +2918,28 @@ function loadTransactions() {
                 'Yes, Share',
                 'Cancel',
                 function() {
+                    const requestData = {
+                        transactionId: id,
+                        method: 'email',
+                        recipient: 'placeholder@example.com'
+                    };
+                    console.log('DEBUG: Client sending share request:', JSON.stringify(requestData, null, 2));
                     $.ajax({
                         url: window.api + 'transactions/share',
                         type: 'POST',
-                        data: JSON.stringify({ transactionId: id }),
+                        data: JSON.stringify(requestData),
                         contentType: 'application/json',
-                        success: function() {
+                        success: function(response) {
+                            console.log('DEBUG: Share request successful:', response);
                             notiflix.Report.success('Sent!', 'Invoice shared successfully.', 'Ok');
                         },
-                        error: function(xhr) {
+                        error: function(xhr, status, error) {
+                             console.log('DEBUG: Share request failed:', {
+                                 status: xhr.status,
+                                 statusText: xhr.statusText,
+                                 responseText: xhr.responseText,
+                                 error: error
+                             });
                              notiflix.Report.failure('Error', 'Failed to share invoice.', 'Ok');
                         }
                     });

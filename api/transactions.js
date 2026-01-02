@@ -528,6 +528,7 @@ app.get("/history/customer/:customerId", function (req, res) {
  * POST endpoint: Share invoice (E-Invoicing stub).
  */
 app.post("/share", function (req, res) {
+    console.log('DEBUG: /share endpoint called with body:', JSON.stringify(req.body, null, 2));
     const { transactionId, method, recipient } = req.body;
     console.log(`Sharing invoice ${transactionId} via ${method} to ${recipient}`);
     
