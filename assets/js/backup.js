@@ -1,5 +1,5 @@
 /**
- * Backup and Restore functionality for foodMine
+ * Backup and Restore functionality for garmentMine
  * Handles database backup creation, restoration, and file management
  */
 

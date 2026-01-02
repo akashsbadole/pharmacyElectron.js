@@ -335,7 +335,7 @@ class InventoryModule {
       <div class="module-container inventory-module" data-module="inventory">
         <div class="module-header">
           <h1 class="module-title">Menu Management</h1>
-          <p class="module-subtitle">Manage menu items, stock levels, and food categories</p>
+          <p class="module-subtitle">Manage menu items, stock levels, and Garmet/gift categories</p>
         </div>
         
         ${this.renderFilters()}

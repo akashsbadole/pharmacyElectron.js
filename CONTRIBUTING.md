@@ -22,7 +22,7 @@ The Restaurant POS System includes several key modules that may need contributio
 
 ## Issues
 
-Before contributing, check the [issue tracker](https://github.com/akash/Pharmingo/issues) for existing issues. If your issue or feature request is not already documented, feel free to open a new issue.
+Before contributing, check the [issue tracker](https://github.com/akash/garmentpos/issues) for existing issues. If your issue or feature request is not already documented, feel free to open a new issue.
 
 ### Issue Labels
 - `enhancement`: New features or improvements
@@ -36,7 +36,7 @@ Before contributing, check the [issue tracker](https://github.com/akash/Pharming
 
 1. Clone your fork of the repository:
    ```bash
-   git clone https://github.com/akash/Pharmingo.git
+   git clone https://github.com/akash/garmentpos.git
    cd restaurant-pos
    ```
 

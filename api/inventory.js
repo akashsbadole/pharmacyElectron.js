@@ -375,7 +375,7 @@ app.put("/product", function (req, res) {
                 sku: req.body.sku || (req.body.barcode ? parseInt(validator.escape(req.body.barcode)) : null),
                 name: validator.escape(req.body.name || ""),
                 price: validator.escape(req.body.price || ""),
-                cost: validator.escape(req.body.cost || req.body.price || ""), // Food cost for margin analysis
+                cost: validator.escape(req.body.cost || req.body.price || ""), // garment cost for margin analysis
                 category: validator.escape(req.body.category || ""),
                 quantity: quantity == "" ? 0 : quantity,
                 stock: req.body.stock === "on" ? 0 : 1,

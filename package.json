@@ -1,16 +1,16 @@
 {
-  "name": "pharmingo",
-  "productName": "Pharmingo",
+  "name": "garmentpos",
+  "productName": "garmentpos",
   "version": "1.5.1",
-  "description": "Easy Point of Sale for Pharmacies",
+  "description": "Easy Point of Sale for garment",
   "author": "Akash Badole",
-  "website": "https://akash.com/pharmingo",
+  "website": "https://devbitpos.com/garmentpos",
   "credits": "electronjs.org",
   "license": "MIT",
   "private": true,
   "main": "start.js",
   "build": {
-    "appId": "com.akash.pharmingo",
+    "appId": "com.devbitpos.garmentpos",
     "directories": {
       "buildResources": "assets"
     }
@@ -59,7 +59,7 @@
   "scripts": {
     "electron": "cross-env NODE_ENV=dev nodemon --exec \"\"electron .\"\"",
     "electron-build": "electron-builder",
-    "package-win": "electron-packager . Pharmingo --overwrite --asar=false --platform=win32 --arch=x64 --icon=assets/images/icon.ico --prune=true --out=release-builds --version-string.ProductName=\"Pharmingo\"",
+    "package-win": "electron-packager . garmentpos --overwrite --asar=false --platform=win32 --arch=x64 --icon=assets/images/icon.ico --prune=true --out=release-builds --version-string.ProductName=\"garmentpos\"",
     "start": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",

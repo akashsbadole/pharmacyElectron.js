@@ -1,5 +1,5 @@
 /**
- * foodMine Main Application Controller
+ * garmentMine Main Application Controller
  * Modern tab-based interface with centralized state management
  */
 
@@ -416,7 +416,7 @@ class ViewManager {
   updateContentTitle(moduleId) {
     const contentTitle = document.getElementById('content-title');
     if (contentTitle) {
-      contentTitle.textContent = this.moduleTitles[moduleId] || 'foodMine';
+      contentTitle.textContent = this.moduleTitles[moduleId] || 'garmentMine';
     }
   }
 
@@ -935,9 +935,9 @@ async function loadRecentActivity() {
 }
 
 // Main App Controller
-class foodMineApp {
+class garmentMineApp {
   constructor() {
-    console.log('=== INITIALIZING foodMine APP ===');
+    console.log('=== INITIALIZING garmentMine APP ===');
     this.state = new AppState();
     this.modules = new Map();
     this.eventHandlers = new Map();
@@ -951,7 +951,7 @@ class foodMineApp {
     console.log('Initializing modules...');
     this.initializeModuleInstances();
 
-    console.log('=== foodMine APP CONSTRUCTION COMPLETE ===');
+    console.log('=== garmentMine APP CONSTRUCTION COMPLETE ===');
   }
 
   // Initialize the application
@@ -969,10 +969,10 @@ class foodMineApp {
       // Set up global event handlers
       this.setupGlobalEventHandlers();
 
-      console.log('foodMine app initialized successfully');
+      console.log('garmentMine app initialized successfully');
 
     } catch (error) {
-      console.error('Failed to initialize foodMine app:', error);
+      console.error('Failed to initialize garmentMine app:', error);
       this.state.setState({ error: error.message }, 'app');
     }
   }
@@ -1327,14 +1327,14 @@ window.appActions = {
 
 // Initialize app when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('Initializing foodMine app...');
-  window.pharmaApp = new foodMineApp();
+  console.log('Initializing garmentMine app...');
+  window.pharmaApp = new garmentMineApp();
 });
 
 // Export for use in other modules and Node.js
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
-    foodMineApp,
+    garmentMineApp,
     AppState,
     ViewManager,
     navigationActions,

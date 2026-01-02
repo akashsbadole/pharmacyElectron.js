@@ -64,11 +64,11 @@
       "total": 8,
       "details": [
         "✅ File exists: ./package.json",
-        "✅ Package name correctly set to \"pharmingo\"",
-        "✅ Product name correctly set to \"Pharmingo\"",
+        "✅ Package name correctly set to \"garmentpos\"",
+        "✅ Product name correctly set to \"garmentpos\"",
         "✅ File exists: ./index.html",
-        "✅ UI Element found: Pharmingo",
-        "✅ UI Element found: Food Management System",
+        "✅ UI Element found: garmentpos",
+        "✅ UI Element found: garment Management System",
         "✅ File exists: ./renderer.js",
         "✅ Function found: backup.js"
       ]

@@ -2166,7 +2166,7 @@ class AnalyticsModule {
                             <div class="analysis-card">
                                 <h3>📊 Cost Analysis</h3>
                                 <div class="financial-metrics">
-                                    <p>Food Cost %: ${(data.cost_analysis?.food_cost_percentage || 0).toFixed(1)}%</p>
+                                    <p>garment Cost %: ${(data.cost_analysis?.garment_cost_percentage || 0).toFixed(1)}%</p>
                                     <p>Labor Cost %: ${(data.cost_analysis?.labor_cost_estimate / data.revenue_analytics?.total_revenue * 100 || 0).toFixed(1)}%</p>
                                     <p>Operating Expenses %: ${(data.cost_analysis?.operating_expenses_estimate / data.revenue_analytics?.total_revenue * 100 || 0).toFixed(1)}%</p>
                                 </div>

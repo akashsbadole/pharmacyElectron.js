@@ -378,8 +378,8 @@ module.exports = InventorySchemaMigration;
 
 // CLI usage
 if (require.main === module) {
-    const appData = process.env.APPDATA || 'C:\\Users\\akash\\AppData\\Roaming\\pharmingo';
-    const appName = process.env.APPNAME || 'pharmingo';
+    const appData = process.env.APPDATA || 'C:\\Users\\akash\\AppData\\Roaming\\garmentpos';
+    const appName = process.env.APPNAME || 'garmentpos';
     
     const migration = new InventorySchemaMigration(appData, appName);
     

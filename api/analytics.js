@@ -1302,7 +1302,7 @@ async function getFinancialAnalytics(startDate, endDate) {
             // Cost analysis
             financialAnalytics.cost_analysis = {
                 total_cogs: totalCOGS,
-                food_cost_percentage: totalRevenue > 0 ? (totalCOGS / totalRevenue * 100) : 0,
+                garment_cost_percentage: totalRevenue > 0 ? (totalCOGS / totalRevenue * 100) : 0,
                 labor_cost_estimate: totalRevenue * 0.3, // Estimate 30% for labor
                 operating_expenses_estimate: totalRevenue * 0.15, // Estimate 15% for operations
                 total_operating_costs: (totalCOGS + (totalRevenue * 0.3) + (totalRevenue * 0.15))
