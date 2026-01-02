@@ -45,17 +45,15 @@ app.get("/dashboard", function (req, res) {
     Promise.all([
         getSalesAnalytics(startDate, endDate),
         getMenuPerformanceAnalytics(startDate, endDate),
-        getKitchenAnalytics(startDate, endDate),
         getTableAnalytics(startDate, endDate),
         getComboAnalytics(startDate, endDate),
         getCustomerAnalytics(startDate, endDate),
         getFinancialAnalytics(startDate, endDate),
         getOperationalAnalytics(startDate, endDate)
-    ]).then(([sales, menu, kitchen, tables, combos, customers, financial, operational]) => {
+    ]).then(([sales, menu, tables, combos, customers, financial, operational]) => {
         res.send({
             sales,
             menu_performance: menu,
-            kitchen,
             table_analytics: tables,
             combo_performance: combos,
             customer_analytics: customers,
@@ -113,23 +111,6 @@ app.get("/menu-performance", function (req, res) {
         });
 });
 
-/**
- * GET endpoint: Get kitchen performance analytics
- */
-app.get("/kitchen-performance", function (req, res) {
-    const startDate = req.query.start_date ? new Date(req.query.start_date) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const endDate = req.query.end_date ? new Date(req.query.end_date) : new Date();
-    
-    getKitchenAnalytics(startDate, endDate)
-        .then(analytics => res.send(analytics))
-        .catch(error => {
-            console.error("Kitchen performance analytics error:", error);
-            res.status(500).json({
-                error: "Internal Server Error",
-                message: "Failed to generate kitchen performance analytics"
-            });
-        });
-});
 
 /**
  * GET endpoint: Get table analytics

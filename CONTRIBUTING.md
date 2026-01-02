@@ -1,6 +1,6 @@
-# Contributing to Restaurant POS System
+# Contributing to RetailMine Grocery/Retail POS System
 
-Thank you for considering contributing to the Restaurant POS System! We welcome your help and appreciate your interest in improving this comprehensive restaurant management solution.
+Thank you for considering contributing to the RetailMine Grocery/Retail POS System! We welcome your help and appreciate your interest in improving this comprehensive retail management solution.
 
 ## Getting Started
 
@@ -10,15 +10,15 @@ Thank you for considering contributing to the Restaurant POS System! We welcome 
 
 ## Development Focus Areas
 
-The Restaurant POS System includes several key modules that may need contributions:
+The RetailMine Grocery/Retail POS System includes several key modules that may need contributions:
 
 - **POS Module**: Point of sale transaction processing
-- **Kitchen Display System**: Real-time order management for kitchen staff
-- **Table Management**: Restaurant table layout and service tracking
-- **Recipe Management**: Ingredient tracking and cost calculation
-- **Combo Meal Builder**: Advanced pricing and menu bundling
+- **Inventory Management**: Retail stock tracking and management
+- **Customer Management**: Customer profiles and purchase history
+- **Supplier Management**: Vendor and purchase order management
 - **Analytics Dashboard**: Business intelligence and reporting
 - **API Endpoints**: RESTful APIs for all modules
+- **Loyalty Programs**: Customer loyalty and discount management
 
 ## Issues
 
@@ -28,7 +28,7 @@ Before contributing, check the [issue tracker](https://github.com/akash/Pharming
 - `enhancement`: New features or improvements
 - `bug`: Bug fixes
 - `documentation`: Documentation updates
-- `restaurant-feature`: Restaurant-specific functionality
+- `retail-feature`: Retail-specific functionality
 - `api`: API-related changes
 - `ui/ux`: User interface improvements
 
@@ -37,7 +37,7 @@ Before contributing, check the [issue tracker](https://github.com/akash/Pharming
 1. Clone your fork of the repository:
    ```bash
    git clone https://github.com/akash/Pharmingo.git
-   cd restaurant-pos
+   cd retail-pos
    ```
 
 2. Install dependencies:
@@ -62,7 +62,7 @@ Before contributing, check the [issue tracker](https://github.com/akash/Pharming
 ## Development Workflow
 
 ### Branch Naming Convention
-- `feature/restaurant-[feature-name]`: New restaurant features
+- `feature/retail-[feature-name]`: New retail features
 - `bugfix/[issue-number]-[description]`: Bug fixes
 - `docs/[section]-updates`: Documentation updates
 - `refactor/[module]-improvements`: Code refactoring
@@ -78,7 +78,7 @@ Before contributing, check the [issue tracker](https://github.com/akash/Pharming
 
 1. Create a new branch for your contribution:
    ```bash
-   git checkout -b feature/restaurant-table-reservations
+   git checkout -b feature/retail-inventory-tracking
    ```
 
 2. Make your changes and test thoroughly:
@@ -100,19 +100,19 @@ Before contributing, check the [issue tracker](https://github.com/akash/Pharming
 
 4. Commit your changes with a descriptive commit message:
    ```bash
-   git commit -m "feat: Add table reservation system
+   git commit -m "feat: Add inventory tracking system
 
-   - Implement table reservation API endpoints
-   - Add reservation conflict detection
-   - Update table management UI
-   - Add reservation tests
+   - Implement inventory tracking API endpoints
+   - Add stock level monitoring
+   - Update inventory management UI
+   - Add inventory tests
 
    Closes #123"
    ```
 
 5. Push your changes to your fork:
    ```bash
-   git push origin feature/restaurant-table-reservations
+   git push origin feature/retail-inventory-tracking
    ```
 
 6. Open a pull request against the `main` branch with:
@@ -160,7 +160,7 @@ Before contributing, check the [issue tracker](https://github.com/akash/Pharming
 
 ## Feature Development Guidelines
 
-### Adding New Restaurant Features
+### Adding New Retail Features
 
 1. **Planning Phase**
    - Create detailed feature specification
@@ -194,11 +194,11 @@ Before contributing, check the [issue tracker](https://github.com/akash/Pharming
 - Support multiple payment methods
 - Handle order modifications gracefully
 
-#### Kitchen Display System
-- Optimize for touch interfaces
-- Implement real-time updates
-- Support multiple kitchen stations
-- Handle high-frequency updates
+#### Inventory Management System
+- Implement stock tracking and management
+- Support batch and expiry date tracking
+- Handle supplier integration
+- Ensure inventory accuracy
 
 #### Analytics Module
 - Ensure data accuracy and consistency
@@ -263,5 +263,5 @@ Contributors will be recognized in:
 - GitHub repository contributors list
 - Project documentation credits
 
-Thank you for your contribution to making the Restaurant POS System better!
+Thank you for your contribution to making the RetailMine Grocery/Retail POS System better!
 ```

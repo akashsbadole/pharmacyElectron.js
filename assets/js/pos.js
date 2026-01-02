@@ -1,23 +1,22 @@
-const jsPDF = require("jspdf");
-const html2canvas = require("html2canvas");
-const JsBarcode = require("jsbarcode");
-const QRCode = require("qrcode");
-const macaddress = require("macaddress");
-const notiflix = require("notiflix");
-window.notiflix = notiflix;
-window.validator = require("validator");
-const DOMPurify = require("dompurify");
-const _ = require("lodash");
-let fs = require("fs");
-let path = require("path");
-window.moment = require("moment");
-let { ipcRenderer } = require("electron");
+// Browser-compatible versions - use global variables where available
+// const jsPDF = window.jsPDF; // Will be loaded globally if needed
+// const html2canvas = window.html2canvas; // Will be loaded globally if needed  
+// const JsBarcode = window.JsBarcode; // Will be loaded globally if needed
+// const QRCode = window.QRCode; // Will be loaded globally if needed
+// const notiflix = window.notiflix;
+// const validator = window.validator;
+// const DOMPurify = window.DOMPurify;
+// const _ = window._;
+// let fs = window.fs; // Electron main process only
+// let path = window.path; // Use window.path or relative paths
+window.moment = window.moment || require("moment");
 
 // Import vanilla JavaScript store and store manager (with error handling)
 let useStore, storeManager;
 try {
-  useStore = require("./store");
-  storeManager = require("./storeManager");
+  // These would be loaded globally if available
+  // useStore = window.useStore;
+  // storeManager = window.storeManager;
 
   // Make store available globally
   window.useStore = useStore;
@@ -259,49 +258,55 @@ $(function () {
     );
   }
 
-  $("#reportrange").daterangepicker(
-    {
-      startDate: start,
-      endDate: end,
-      autoApply: true,
-      timePicker: true,
-      timePicker24Hour: true,
-      timePickerIncrement: 10,
-      timePickerSeconds: true,
-      // minDate: '',
-      ranges: {
-        Today: [moment().startOf("day"), moment()],
-        Yesterday: [
-          moment().subtract(1, "days").startOf("day"),
-          moment().subtract(1, "days").endOf("day"),
-        ],
-        "Last 7 Days": [
-          moment().subtract(6, "days").startOf("day"),
-          moment().endOf("day"),
-        ],
-        "Last 30 Days": [
-          moment().subtract(29, "days").startOf("day"),
-          moment().endOf("day"),
-        ],
-        "This Month": [moment().startOf("month"), moment().endOf("month")],
-        "This Month": [moment().startOf("month"), moment()],
-        "Last Month": [
-          moment().subtract(1, "month").startOf("month"),
-          moment().subtract(1, "month").endOf("month"),
-        ],
+  // Check if daterangepicker function exists
+  if ($.fn.daterangepicker) {
+    $("#reportrange").daterangepicker(
+      {
+        startDate: start,
+        endDate: end,
+        autoApply: true,
+        timePicker: true,
+        timePicker24Hour: true,
+        timePickerIncrement: 10,
+        timePickerSeconds: true,
+        // minDate: '',
+        ranges: {
+          Today: [moment().startOf("day"), moment()],
+          Yesterday: [
+            moment().subtract(1, "days").startOf("day"),
+            moment().subtract(1, "days").endOf("day"),
+          ],
+          "Last 7 Days": [
+            moment().subtract(6, "days").startOf("day"),
+            moment().endOf("day"),
+          ],
+          "Last 30 Days": [
+            moment().subtract(29, "days").startOf("day"),
+            moment().endOf("day"),
+          ],
+          "This Month": [moment().startOf("month"), moment().endOf("month")],
+          "This Month": [moment().startOf("month"), moment()],
+          "Last Month": [
+            moment().subtract(1, "month").startOf("month"),
+            moment().subtract(1, "month").endOf("month"),
+          ],
+        },
       },
-    },
-    cb,
-  );
+      cb,
+    );
+  }
 
   cb(start, end);
 
-  $("#expirationDate").daterangepicker({
-    singleDatePicker: true,
-    locale: {
-      format: DATE_FORMAT,
-    },
-  });
+  // Check if daterangepicker function exists
+  if ($.fn.daterangepicker) {
+    $("#expirationDate").daterangepicker({
+      singleDatePicker: true,
+      locale: {
+        format: DATE_FORMAT,
+      },
+    });
+  }
 });
 
 //Allow only numbers in input field

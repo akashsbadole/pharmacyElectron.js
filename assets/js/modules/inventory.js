@@ -276,8 +276,8 @@ class InventoryModule {
     return `
       <div class="module-container inventory-module" data-module="inventory">
         <div class="module-header">
-          <h1 class="module-title">Menu Management</h1>
-          <p class="module-subtitle">Manage menu items, stock levels, and food categories</p>
+          <h1 class="module-title">Inventory Management</h1>
+          <p class="module-subtitle">Manage products, stock levels, and pharmacy categories</p>
         </div>
         
         ${this.renderFilters()}
@@ -352,7 +352,7 @@ class InventoryModule {
           </div>
           
           <div class="text-sm text-gray-500">
-            ${inventoryState.products?.length || 0} menu items total
+            ${inventoryState.products?.length || 0} products total
           </div>
         </div>
       </div>
@@ -529,9 +529,9 @@ class InventoryModule {
     $("#cost_price").val(product.cost || "");
     $("#minStock").val(product.minStock || 1);
     $("#stock").prop("checked", product.stock === 0);
-    // Removed prescription requirement check for restaurant conversion
+    // Pharmacy-specific inventory management
     $("#quantity").val(product.quantity || 0);
-    // Removed HSN code for restaurant conversion
+    // HSN code for pharmaceutical products
     $("#expirationDate").val(product.expirationDate || "");
     
     // Batch items

@@ -1,6 +1,6 @@
 /**
- * Analytics Module - Restaurant Analytics Dashboard
- * Provides comprehensive business intelligence and reporting
+ * Analytics Module - Retail POS Analytics Dashboard
+ * Provides comprehensive business intelligence and reporting for retail operations
  */
 
 class AnalyticsModule {
@@ -1434,7 +1434,7 @@ class AnalyticsModule {
     renderHeader() {
         return `
             <div class="module-header">
-                <h1 class="module-title">📊 Restaurant Analytics</h1>
+                <h1 class="module-title">📊 Retail Analytics</h1>
                 <p class="module-subtitle">Comprehensive business intelligence and performance insights</p>
                 
                 <div class="analytics-controls">
@@ -1465,10 +1465,10 @@ class AnalyticsModule {
         const views = [
             { id: 'dashboard', label: 'Dashboard', icon: '📈' },
             { id: 'sales', label: 'Sales Analytics', icon: '💰' },
-            { id: 'menu', label: 'Menu Performance', icon: '🍽️' },
-            { id: 'menu-engineering', label: 'Menu Engineering', icon: '📊' },
-            { id: 'kitchen', label: 'Kitchen Analytics', icon: '👨‍🍳' },
-            { id: 'tables', label: 'Table Analytics', icon: '🪑' },
+            { id: 'menu', label: 'Product Performance', icon: '📦' },
+            { id: 'menu-engineering', label: 'Product Analytics', icon: '📊' },
+            { id: 'inventory', label: 'Inventory Analytics', icon: '📦' },
+            { id: 'suppliers', label: 'Supplier Analytics', icon: '🚚' },
             { id: 'combos', label: 'Combo Analytics', icon: '🍔' },
             { id: 'customers', label: 'Customer Insights', icon: '👥' },
             { id: 'financial', label: 'Financial Reports', icon: '💳' },
@@ -1500,10 +1500,10 @@ class AnalyticsModule {
                 return this.renderMenuView();
             case 'menu-engineering':
                 return this.renderMenuEngineeringView();
-            case 'kitchen':
-                return this.renderKitchenView();
-            case 'tables':
-                return this.renderTablesView();
+            case 'inventory':
+                return this.renderInventoryView();
+            case 'suppliers':
+                return this.renderSuppliersView();
             case 'combos':
                 return this.renderCombosView();
             case 'customers':
@@ -1561,7 +1561,7 @@ class AnalyticsModule {
                         <div class="metric-card">
                             <div class="metric-icon">⏱️</div>
                             <div class="metric-content">
-                                <h3>Kitchen Efficiency</h3>
+                                <h3>Pharmacy Efficiency</h3>
                                 <div class="metric-value">${(data.kitchen?.efficiency_metrics?.order_completion_rate || 0).toFixed(1)}%</div>
                                 <div class="metric-change positive">On-time delivery</div>
                             </div>
@@ -1787,18 +1787,18 @@ class AnalyticsModule {
         `;
     }
 
-    renderKitchenView() {
+    renderPharmacyView() {
         const data = this.analyticsData.kitchen || {};
         
         return `
             <div class="analytics-content">
-                <div class="kitchen-analytics">
+                <div="pharmacy-analytics">
                     <div class="section-header">
                         <h2>👨‍🍳 Kitchen Performance Analytics</h2>
                         <p>Kitchen efficiency and operational metrics</p>
                     </div>
                     
-                    <div class="kitchen-metrics-grid">
+                    <div class="pharmacy-metrics-grid">
                         <div class="metric-box">
                             <h4>Total Orders</h4>
                             <div class="metric-amount">${data.total_orders || 0}</div>
@@ -1820,19 +1820,19 @@ class AnalyticsModule {
                         </div>
                     </div>
                     
-                    <div class="kitchen-charts">
+                    <div class="pharmacy-charts">
                         <div class="chart-section">
                             <h3>Station Performance</h3>
                             <canvas id="station-performance-chart" width="600" height="300"></canvas>
                         </div>
                         
                         <div class="chart-section">
-                            <h3>Hourly Order Volume</h3>
-                            <canvas id="kitchen-hourly-chart" width="600" height="300"></canvas>
+                            <h3>Hourly Sales Volume</h3>
+                            <canvas id="pharmacy-hourly-chart" width="600" height="300"></canvas>
                         </div>
                     </div>
                     
-                    <div class="kitchen-analysis">
+                    <div class="pharmacy-analysis">
                         <div class="analysis-grid">
                             <div class="analysis-card">
                                 <h3>🏆 Top Performing Stations</h3>
@@ -2116,7 +2116,7 @@ class AnalyticsModule {
                             <div class="analysis-card">
                                 <h3>📊 Cost Analysis</h3>
                                 <div class="financial-metrics">
-                                    <p>Food Cost %: ${(data.cost_analysis?.food_cost_percentage || 0).toFixed(1)}%</p>
+                                    <p>Product Cost %: ${(data.cost_analysis?.product_cost_percentage || 0).toFixed(1)}%</p>
                                     <p>Labor Cost %: ${(data.cost_analysis?.labor_cost_estimate / data.revenue_analytics?.total_revenue * 100 || 0).toFixed(1)}%</p>
                                     <p>Operating Expenses %: ${(data.cost_analysis?.operating_expenses_estimate / data.revenue_analytics?.total_revenue * 100 || 0).toFixed(1)}%</p>
                                 </div>
@@ -2371,8 +2371,8 @@ class AnalyticsModule {
             insights.push(`Best selling item: ${topItem.name} (${topItem.sales} units)`);
         }
         
-        if (data.kitchen?.on_time_delivery_rate > 90) {
-            insights.push(`Excellent on-time delivery: ${data.kitchen.on_time_delivery_rate.toFixed(1)}%`);
+        if (data.pharmacy?.on_time_delivery_rate > 90) {
+            insights.push(`Excellent prescription processing: ${data.pharmacy.on_time_delivery_rate.toFixed(1)}%`);
         }
         
         return insights.length > 0 ? insights.map(insight => `<div class="insight-item">${insight}</div>`).join('') : '<div class="insight-item">No significant insights available</div>';
@@ -2385,8 +2385,8 @@ class AnalyticsModule {
             recommendations.push(`Consider removing ${data.menu_performance.menu_engineering.dogs.length} underperforming menu items`);
         }
         
-        if (data.kitchen?.average_prep_time > 20) {
-            recommendations.push('Optimize kitchen workflow to reduce prep time');
+        if (data.pharmacy?.average_prep_time > 20) {
+            recommendations.push('Optimize pharmacy workflow to reduce processing time');
         }
         
         if (data.sales?.peak_hours?.length > 0) {

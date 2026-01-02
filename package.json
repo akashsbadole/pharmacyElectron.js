@@ -1,16 +1,16 @@
 {
-  "name": "pharmingo",
-  "productName": "Pharmingo",
+  "name": "retailpos",
+  "productName": "Retail POS",
   "version": "1.5.1",
-  "description": "Easy Point of Sale for Pharmacies",
+  "description": "Easy Point of Sale for Retail & Grocery Stores",
   "author": "Akash Badole",
-  "website": "https://akash.com/pharmingo",
+  "website": "https://akash.com/retailpos",
   "credits": "electronjs.org",
   "license": "MIT",
   "private": true,
   "main": "start.js",
   "build": {
-    "appId": "com.akash.pharmingo",
+    "appId": "com.akash.retailpos",
     "directories": {
       "buildResources": "assets"
     }
@@ -57,9 +57,9 @@
     "xmlhttprequest": "^1.8.0"
   },
   "scripts": {
-    "electron": "cross-env NODE_ENV=dev nodemon --exec \"\"electron .\"\"",
+    "electron": "cross-env NODE_ENV=dev nodemon --exec \"electron .\"",
     "electron-build": "electron-builder",
-    "package-win": "electron-packager . Pharmingo --overwrite --asar=false --platform=win32 --arch=x64 --icon=assets/images/icon.ico --prune=true --out=release-builds --version-string.ProductName=\"Pharmingo\"",
+    "package-win": "electron-packager . \"Retail POS\" --overwrite --asar=false --platform=win32 --arch=x64 --icon=assets/images/icon.ico --prune=true --out=release-builds --version-string.ProductName=\"Retail POS\"",
     "start": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",

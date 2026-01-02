@@ -1,0 +1,354 @@
+# ========================================
+# ELECTRON.JS PHARMACY POS - .GITIGNORE
+# ========================================
+# Comprehensive .gitignore for Electron.js pharmacy POS application
+# This file excludes all unnecessary files from version control
+
+# =================
+# NODE.JS DEPENDENCIES
+# =================
+# Dependencies installed via npm/yarn
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+
+# Package lock files (keep one, remove the other)
+# Uncomment the line for your package manager preference
+# package-lock.json    # Keep if using npm exclusively
+# yarn.lock          # Keep if using yarn exclusively
+
+# =================
+# ELECTRON BUILD ARTIFACTS
+# =================
+# Electron build and distribution files
+out/
+dist/
+build/
+release/
+*.exe
+*.msi
+*.deb
+*.rpm
+*.dmg
+*.AppImage
+*.snap
+*.zip
+*.tar.gz
+
+# Electron specific build folders
+app-update.yml
+app-update.local.json
+
+# =================
+# ENVIRONMENT & CONFIGURATION
+# =================
+# Environment-specific configuration files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+
+# Application configuration (if sensitive)
+app.config.js
+config.local.js
+config.local.json
+
+# Database configuration
+database.json
+db.config.js
+
+# =================
+# DATABASE & CACHE FILES
+# =================
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+*.sql
+*.mdb
+*.accdb
+
+# Cache directories
+.cache/
+.temp/
+tmp/
+temp/
+
+# Application data directories
+data/
+storage/
+backups/
+db-backups/
+database-backups/
+
+# =================
+# LOG FILES
+# =================
+# Application logs
+logs/
+*.log
+error.log
+access.log
+app.log
+debug.log
+info.log
+warn.log
+
+# Log files in specific directories
+api/logs/
+logs/api/
+logs/app/
+logs/electron/
+
+# =================
+# IDE & EDITOR FILES
+# =================
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# IntelliJ/WebStorm
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# =================
+# OS GENERATED FILES
+# =================
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# =================
+# APPLICATION SPECIFIC
+# =================
+# Uploaded files and media
+uploads/
+public/uploads/
+media/
+assets/uploads/
+
+# Generated reports and exports
+reports/
+exports/
+*.pdf
+*.xlsx
+*.csv
+
+# Test coverage and reports
+coverage/
+.nyc_output/
+test-results/
+*.lcov
+
+# =================
+# TEST FILES & DEVELOPMENT
+# =================
+# Test files and fixtures
+test-data/
+fixtures/
+mocks/
+*.test.js.snap
+
+# Jest configuration override
+jest.config.local.ts
+jest.config.local.js
+
+# ESLint cache
+.eslintcache
+
+# =================
+# MIGRATION & SCRIPTS
+# =================
+# Migration scripts and reports (keep source, ignore generated)
+migration_scripts/*.local.*
+migration_reports/
+
+# Build and deployment scripts
+deployment-scripts/
+deploy-*
+
+# =================
+# THIRD-PARTY TOOLS
+# =================
+# Browser automation
+.mochawesome-report/
+automation-report/
+selenium-debug.log
+
+# Static analysis results
+static_analysis_results.json
+sonarqube/
+
+# Performance profiling
+*.prof
+*.profile
+profiling/
+
+# =================
+# ELECTRON SPECIFIC
+# =================
+# Electron Builder cache
+builder-cache/
+electron-builder-cache/
+
+# User data directories (platform-specific)
+user-data/
+app-data/
+
+# Browser extensions cache
+extensions-cache/
+
+# =================
+# SECURITY & SENSITIVE
+# =================
+# SSL certificates and keys
+*.pem
+*.key
+*.crt
+*.cert
+*.p12
+*.pfx
+ssl/
+certs/
+
+# API keys and tokens
+api-keys.json
+tokens.json
+secrets.json
+
+# JWT secrets and keys
+jwt-secret.key
+private-key.pem
+
+# =================
+# MONITORING & ANALYTICS
+# =================
+# Application metrics
+metrics/
+analytics-data/
+user-behavior.log
+
+# Performance monitoring
+performance-logs/
+newrelic_agent.log
+
+# =================
+# DEVELOPMENT TOOLS
+# =================
+# Hot reload and development servers
+.hot-reload/
+vite.config.*.local.js
+webpack.config.*.local.js
+
+# Local development databases
+dev-database.*
+test-database.*
+
+# Local development servers
+.serve/
+live-reload/
+
+# =================
+# PHARMACY POS SPECIFIC
+# =================
+# Transaction data and receipts (keep structure, ignore data)
+transactions/temp/
+receipts/temp/
+invoices/temp/
+
+# Inventory data exports
+inventory-exports/
+product-imports/temp/
+
+# Customer data backups
+customer-backups/
+sensitive-data/
+
+# Prescription data (highly sensitive)
+prescriptions/
+patient-data/
+
+# =================
+# ADDITIONAL PATTERNS
+# =================
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*.orig
+*.save
+
+# Compiled files
+*.compiled.js
+*.min.js
+*.bundle.js
+
+# Generated documentation
+docs/generated/
+*.generated.md
+
+# Package manager files
+.pnpm-store/
+.pnpm-debug.log
+
+# =================
+# CUSTOM PROJECT PATTERNS
+# =================
+# Project-specific ignores can be added here
+# Example: custom backup directories, specific log patterns, etc.
+
+# Local development flags
+.dev-flag
+.local-config
+development-mode/
+
+# Runtime generated files
+runtime-cache/
+compiled-templates/

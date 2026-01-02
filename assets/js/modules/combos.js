@@ -579,8 +579,8 @@ class CombosModule {
     return `
       <div class="module-container combos-module" data-module="combos">
         <div class="module-header">
-          <h1 class="module-title">Combo Meal Builder</h1>
-          <p class="module-subtitle">Create and manage combo meal packages with drag-and-drop interface</p>
+          <h1 class="module-title">Prescriptions</h1>
+          <p class="module-subtitle">Manage prescription verification and processing</p>
         </div>
         
         ${this.renderFilters()}
@@ -668,7 +668,7 @@ class CombosModule {
           </div>
           
           <div class="text-sm text-gray-500">
-            ${combosState.combos?.length || 0} combo meals total
+            ${combosState.combos?.length || 0} prescriptions total
           </div>
         </div>
       </div>
@@ -682,7 +682,7 @@ class CombosModule {
       return `
         <div class="loading">
           <div class="spinner"></div>
-          <div class="mt-2">Loading combo meals...</div>
+          <div class="mt-2">Loading prescriptions...</div>
         </div>
       `;
     }
@@ -690,8 +690,8 @@ class CombosModule {
     if (!combos || combos.length === 0) {
       return `
         <div class="text-center py-8 text-gray-500">
-          <i class="fa fa-combo text-4xl mb-4"></i>
-          <div>No combo meals found</div>
+          <i class="fa fa-prescription text-4xl mb-4"></i>
+          <div>No prescriptions found</div>
           <button class="btn btn-success mt-4" onclick="window.pharmaApp.getModule('combos').showCreateComboModal()">
             Create Your First Combo
           </button>
@@ -818,8 +818,8 @@ class CombosModule {
       <div class="combo-builder mt-8">
         <div class="card">
           <div class="card-header">
-            <h3>Combo Builder</h3>
-            <p>Drag menu items to components to build your combo meal</p>
+            <h3>Prescription Management</h3>
+            <p>Process and manage pharmacy prescriptions</p>
           </div>
           <div class="card-body">
             <div class="builder-layout">
@@ -919,7 +919,7 @@ class CombosModule {
         <div class="component-drop-zone" data-component-index="${index}">
           <div class="drop-hint">
             <i class="fa fa-arrow-down"></i>
-            Drag menu items here
+            Add prescription details here
           </div>
           <div class="component-items-list" data-component-index="${index}">
             ${this.renderComponentMenuItems(index)}
@@ -1096,8 +1096,8 @@ class CombosModule {
           <input type="text" class="form-input" id="wizardComboName" placeholder="Enter combo name">
         </div>
         <div class="form-group">
-          <label>Description:</label>
-          <textarea class="form-input" id="wizardComboDescription" placeholder="Describe your combo meal"></textarea>
+          <label>Notes:</label>
+          <textarea class="form-input" id="wizardComboDescription" placeholder="Add prescription notes"></textarea>
         </div>
         <div class="form-group">
           <label>Category:</label>
@@ -1117,8 +1117,8 @@ class CombosModule {
   renderWizardStep2() {
     return `
       <div class="wizard-step">
-        <h4>Select Components</h4>
-        <p>Choose what goes into your combo meal:</p>
+        <h4>Prescription Details</h4>
+        <p>Enter prescription information:</p>
         <div class="component-selector">
           <div class="component-option" onclick="window.pharmaApp.getModule('combos').addWizardComponent('main')">
             <i class="fa fa-utensils"></i>
@@ -1396,7 +1396,7 @@ class CombosModule {
                   <span class="component-quantity">${comp.quantity}x</span>
                 </div>
                 <div class="component-options">
-                  ${comp.menu_item_ids?.length || 0} menu item options
+                  ${comp.menu_item_ids?.length || 0} prescription items
                 </div>
               </div>
             `).join('') || '<p>No components defined</p>'}

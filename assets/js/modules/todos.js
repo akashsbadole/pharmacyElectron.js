@@ -98,13 +98,26 @@ class TodoModule {
 
     // Modal handlers
     document.addEventListener('click', (e) => {
-      if (e.target.matches('#newTodoBtn')) {
+      if (e.target.matches('#newTodoBtn') || e.target.matches('#newTodoModal')) {
         this.showCreateTodoModal();
+      } else if (e.target.matches('#todosModal')) {
+        this.handleNavigateToTodos();
       } else if (e.target.matches('.todo-view-btn')) {
         const todoId = e.target.closest('.todo-item').dataset.todoId;
         this.showTodoDetails(todoId);
+      } else if (e.target.matches('#editFromDetailsBtn')) {
+        const todoId = document.getElementById('detailTodoTitle').dataset.todoId;
+        if (todoId) {
+          this.handleEditTodo(todoId);
+        }
       }
     });
+
+    // Edit form submission
+    const editTodoForm = document.getElementById('editTodoForm');
+    if (editTodoForm) {
+      editTodoForm.addEventListener('submit', (e) => this.handleUpdateTodo(e));
+    }
   }
 
   async loadTodos() {
@@ -185,6 +198,12 @@ class TodoModule {
     // Show edit modal
     const editModal = new bootstrap.Modal(document.getElementById('editTodoModal'));
     editModal.show();
+  }
+
+  handleNavigateToTodos() {
+    if (window.pharmaApp) {
+      window.pharmaApp.switchToModule('todos');
+    }
   }
 
   async handleUpdateTodo(e) {

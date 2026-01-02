@@ -23,7 +23,7 @@ function loadSupplierList() {
     $("#supplier_list").empty();
 
     // Check if DataTable exists before destroying
-    if ($.fn.DataTable.isDataTable('#supplierList')) {
+    if ($.fn.DataTable && $.fn.DataTable.isDataTable('#supplierList')) {
         $("#supplierList").DataTable().destroy();
     }
 
@@ -43,13 +43,15 @@ function loadSupplierList() {
     });
 
     $("#supplier_list").html(supplier_list);
-    $("#supplierList").DataTable({
-        autoWidth: false,
-        info: true,
-        JQueryUI: true,
-        ordering: true,
-        paging: false,
-    });
+    if ($.fn.DataTable) {
+        $("#supplierList").DataTable({
+            autoWidth: false,
+            info: true,
+            JQueryUI: true,
+            ordering: true,
+            paging: false,
+        });
+    }
 }
 
 // Load suppliers into dropdowns

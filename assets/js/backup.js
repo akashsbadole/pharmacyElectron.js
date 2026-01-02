@@ -80,19 +80,30 @@ class BackupManager {
         try {
             const response = await fetch(window.api + 'settings/get');
             const data = await response.json();
-            const set = data.settings || {};
+            
+            // Handle different possible response structures
+            let settings = {};
+            if (data && data.settings) {
+                settings = data.settings;
+            } else if (data && typeof data === 'object' && !Array.isArray(data)) {
+                // If the response is an object but doesn't have a 'settings' property,
+                // it might be the settings object itself
+                settings = data;
+            }
 
-            $('#backupFrequency').val(set.backup_frequency || 'off');
-            $('#backupTime').val(set.backup_time || '00:00');
-            $('#enableEncryption').prop('checked', !!set.enable_encryption);
+            $('#backupFrequency').val(settings.backup_frequency || 'off');
+            $('#backupTime').val(settings.backup_time || '00:00');
+            $('#enableEncryption').prop('checked', !!settings.enable_encryption);
 
-            if (set.enable_encryption) {
+            if (settings.enable_encryption) {
                 $('#encryptionStatus').show();
             } else {
                 $('#encryptionStatus').hide();
             }
         } catch (error) {
             console.error('Error loading security settings:', error);
+            console.error('Response status:', response ? response.status : 'unknown');
+            console.error('Response text:', response ? await response.text() : 'unknown');
         }
     }
 

@@ -94,10 +94,10 @@ express.use("/api", require("./api/transactions"));
 express.use("/api/integration", require("./api/integration"));
 express.use("/api/notifications", require("./api/notifications"));
 express.use("/api/audit-logs", require("./api/audit_logs"));
-express.use("/api/recipes", require("./api/recipes"));
-express.use("/api/kitchen", require("./api/kitchen"));
+
 express.use("/api/tables", require("./api/tables"));
 express.use("/api/combos", require("./api/combos"));
+express.use("/api/todos", require("./api/todos"));
 
 global.io = io;
 
@@ -128,10 +128,10 @@ server.listen(PORT, () => {
         require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "customers.db"),
         require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "categories.db"),
         require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "settings.db"),
-        require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "recipes.db"), // Added for recipe management
-        require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "kitchen_orders.db"), // Added for kitchen display system
-        require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "tables.db"), // Added for table management
-        require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "combos.db"), // Added for combo meal builder
+
+        require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "reports.db"), // Added for reports
+        require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "prescriptions.db"), // Added for prescriptions
+        require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "todos.db"), // Added for todo management
         // require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "prescriptions.db"), // Removed for restaurant conversion
         require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "purchase_orders.db"),
         require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "contact.db"),

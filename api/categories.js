@@ -31,7 +31,7 @@ categoryDB.ensureIndex({ fieldName: "_id", unique: true });
  * @returns {void}
  */
 app.get("/", function (req, res) {
-    res.send("Category API");
+    res.send("Categories API - Product Categories for Retail Store");
 });
 
 /**

@@ -442,12 +442,12 @@ class POSModule {
       <div class="combo-selector mb-6">
         <div class="card">
           <div class="card-body">
-            <label class="form-label">Combo Meals</label>
+            <label class="form-label">Product Bundles</label>
             <button class="btn btn-success w-full" 
                     onclick="window.pharmaApp.getModule('pos').showComboSelector()"
                     ${availableCombos.length === 0 ? 'disabled' : ''}>
-              <i class="fa fa-utensils"></i> 
-              Select Combo (${availableCombos.length} available)
+              <i class="fa fa-box"></i> 
+              Select Bundle (${availableCombos.length} available)
             </button>
           </div>
         </div>
@@ -764,10 +764,10 @@ class POSModule {
     return `
       <div class="combo-card border rounded-lg p-4 cursor-pointer hover:shadow-lg transition-shadow" 
            onclick="window.pharmaApp.getModule('pos').selectCombo('${combo._id}')">
-        <div class="combo-image mb-3">
+            <div class="combo-image mb-3">
           ${combo.image_url ? 
             `<img src="${combo.image_url}" alt="${combo.combo_name}" style="width: 100%; height: 120px; object-fit: cover; border-radius: 4px;">` :
-            '<div class="bg-gray-200 h-30 rounded flex items-center justify-center"><i class="fa fa-utensils text-gray-400"></i></div>'
+            '<div class="bg-gray-200 h-30 rounded flex items-center justify-center"><i class="fa fa-box text-gray-400"></i></div>'
           }
         </div>
         
@@ -777,7 +777,7 @@ class POSModule {
           
           <div class="combo-components mb-3">
             <div class="text-xs text-gray-500">
-              <i class="fa fa-layer-group"></i> ${combo.components?.length || 0} components
+              <i class="fa fa-cubes"></i> ${combo.components?.length || 0} items
             </div>
             <div class="flex flex-wrap gap-1 mt-1">
               ${(combo.components || []).slice(0, 3).map(comp => 

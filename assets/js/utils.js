@@ -91,7 +91,12 @@ const filterFile = (req, file, callback) => {
 const setContentSecurityPolicy = () => {
   let scriptHash = getFileHash(path.join(__dirname,"../dist","js","bundle.min.js"))
   let styleHash = getFileHash(path.join(__dirname,"../dist","css","bundle.min.css"));
-  let content = `default-src 'self'; img-src 'self' data:;script-src 'self' 'unsafe-eval' 'unsafe-inline' sha256-${scriptHash}; style-src 'self' 'unsafe-inline' sha256-${styleHash};font-src 'self';base-uri 'self'; form-action 'self'; ;connect-src 'self' http://localhost:${PORT};`;
+  
+  // Calculate hashes for vendor files
+  let jqueryHash = getFileHash(path.join(__dirname,"vendor","jquery-2.2.4.min.js"));
+  let chartHash = getFileHash(path.join(__dirname,"vendor","chart.min.js"));
+  
+  let content = `default-src 'self'; img-src 'self' data:;script-src 'self' 'unsafe-eval' 'unsafe-inline' sha256-${scriptHash} sha256-${jqueryHash} sha256-${chartHash}; style-src 'self' 'unsafe-inline' sha256-${styleHash};font-src 'self';base-uri 'self'; form-action 'self'; connect-src 'self' http://localhost:${PORT};`;
   let metaTag = document.createElement("meta");
   metaTag.setAttribute("http-equiv", "Content-Security-Policy");
   metaTag.setAttribute("content", content);

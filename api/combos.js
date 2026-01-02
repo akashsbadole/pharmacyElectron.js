@@ -34,7 +34,7 @@ combosDB.ensureIndex({ fieldName: "is_active" });
  * GET endpoint: Get the welcome message for the Combos API.
  */
 app.get("/", function (req, res) {
-    res.send("Combos API - Combo Meal Builder System");
+    res.send("Product Bundles API - Retail Product Bundle System");
 });
 
 /**

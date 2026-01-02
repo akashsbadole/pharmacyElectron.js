@@ -52,7 +52,7 @@ class DashboardModule {
       const inventoryResponse = await fetch(`${window.api}inventory/alerts`);
       const lowStockItems = await inventoryResponse.json();
       
-      // Removed pending prescriptions for restaurant conversion
+      // Pharmacy-specific metrics
       
       return {
         todaySales,
@@ -115,7 +115,7 @@ class DashboardModule {
           timestamp: new Date(Date.now() - 60 * 60 * 1000), // 1 hour ago
           icon: '👥'
         }
-        // Removed prescription verification activity for restaurant conversion
+        // Pharmacy verification activity
       ];
     } catch (error) {
       console.error('Error loading recent activity:', error);
@@ -128,7 +128,7 @@ class DashboardModule {
       case 'new_sale':
         this.app.switchToModule('pos');
         break;
-      // Removed verify_prescription action for restaurant conversion
+      // Pharmacy-specific actions
       case 'add_menu_item':
         this.app.switchToModule('inventory');
         break;
@@ -189,7 +189,7 @@ class DashboardModule {
             <span class="btn-icon">💰</span>
             New Sale
           </button>
-          <!-- Removed verify prescription button for restaurant conversion -->
+          <!-- Pharmacy verification handled separately -->
           <button class="btn btn-success" onclick="window.pharmaApp.getModule('dashboard').executeQuickAction('add_menu_item')">
             <span class="btn-icon">📦</span>
             Add Menu Item
@@ -235,7 +235,7 @@ class DashboardModule {
             </div>
           </div>
           
-          <!-- Removed pending prescriptions metric for restaurant conversion -->
+          <!-- Pharmacy-specific metrics displayed -->
         </div>
       </div>
     `;

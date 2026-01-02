@@ -1,5 +1,5 @@
-const utils = require("./utils");
-const QRCode = require("qrcode");
+// Browser-compatible utils - use global utils object
+// const QRCode = require("qrcode"); // We'll handle QR code generation differently
 
 /** CheckOut Functions **/
 $(document).ready(function () {
@@ -14,7 +14,7 @@ $(document).ready(function () {
       $("#refNumber").val($("#refNumber").val() + "" + value);
     } else {
       paymentAmount = paymentAmount + "" + value;
-      $("#paymentText").val(utils.moneyFormat(paymentAmount));
+      $("#paymentText").val(window.moneyFormat ? window.moneyFormat(paymentAmount) : paymentAmount);
       $("#payment").val(paymentAmount);
       $(this).calculateChange();
     }
@@ -25,7 +25,7 @@ $(document).ready(function () {
    */
   $.fn.digits = function () {
     let paymentAmount = $("#payment").val();
-    $("#paymentText").val(utils.moneyFormat(paymentAmount));
+    $("#paymentText").val(window.moneyFormat ? window.moneyFormat(paymentAmount) : paymentAmount);
     $("#payment").val(paymentAmount + ".");
     $(this).calculateChange();
   };
@@ -38,7 +38,7 @@ $(document).ready(function () {
     var payment = $("#payment").val().replace(",", "");
     var change = payablePrice - payment;
     if (change <= 0) {
-      $("#change").text(utils.moneyFormat(Math.abs(change.toFixed(2))));
+      $("#change").text(window.moneyFormat ? window.moneyFormat(Math.abs(change.toFixed(2))) : Math.abs(change.toFixed(2)));
       $("#confirmPayment").show();
     } else {
       $("#change").text("0");
@@ -60,7 +60,7 @@ $(document).ready(function () {
       {
         $("#payment").val((i, val) => val.slice(0, -1));
       //re-format displayed amount after deletion 
-      $("#paymentText").val((i, val) => utils.moneyFormat($("#payment").val()));
+      $("#paymentText").val((i, val) => window.moneyFormat ? window.moneyFormat($("#payment").val()) : $("#payment").val());
       }
       $(this).calculateChange()
     }; break;
