@@ -16,7 +16,11 @@ class POSModule {
     this.giftWrappingOptions = [];
     this.giftBundles = [];
     this.selectedGiftServices = {};
-    
+
+    // Sound and feedback settings
+    this.soundEnabled = true;
+    this.scanSuccessCount = 0;
+
     // Enhanced Visual Grid Integration
     this.visualGridEnabled = true;
     this.currentViewMode = 'visual'; // 'visual' or 'traditional'
@@ -290,8 +294,8 @@ class POSModule {
     
     try {
       if (window.notiflix) window.notiflix.Block.standard('#dueModal .modal-content', 'Holding Sale...');
-      
-      const response = await fetch(`${window.api}new`, {
+
+      const response = await fetch(`${window.api}transactions/new`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -328,54 +332,62 @@ class POSModule {
   async completeSale(paymentData) {
     try {
       this.app.state.updateModule('pos', { paymentStatus: 'processing' });
-      
-      const response = await fetch(`${window.api}new`, {
+
+      const response = await fetch(`${window.api}transactions/new`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(paymentData)
       });
-      
+
       const result = await response.json();
-      
+
       // Award loyalty points if customer is selected
       if (paymentData.customer && paymentData.customer._id && this.pointsToEarn > 0) {
         await this.awardLoyaltyPoints(paymentData.customer._id, this.pointsToEarn, 'Purchase', paymentData.total);
       }
-      
+
       // Clear cart and reset state
-      this.app.state.updateModule('pos', { 
-        cart: [], 
+      this.app.state.updateModule('pos', {
+        cart: [],
         currentSale: result,
         paymentStatus: 'completed'
       });
-      
+
       // Refresh dashboard data
       const dashboard = this.app.getModule('dashboard');
       if (dashboard) {
         dashboard.loadDashboardData();
       }
-      
+
+      // Auto-save receipt after successful transaction
+      try {
+        await this.autoSaveReceipt(result);
+      } catch (receiptError) {
+        console.warn('Receipt auto-save failed, but transaction was successful:', receiptError);
+        // Don't fail the transaction for receipt save errors
+      }
+
       // Show success message with loyalty info
-      const loyaltyMessage = this.pointsToEarn > 0 ? 
+      const loyaltyMessage = this.pointsToEarn > 0 ?
         `Transaction completed! You earned ${this.pointsToEarn} loyalty points.` :
         'Transaction completed successfully!';
-        
+
       if (window.notiflix) {
         window.notiflix.Report.success('Sale Completed', loyaltyMessage, 'Ok');
       }
-      
+
       return result;
-      
+
     } catch (error) {
       console.error('Error completing sale:', error);
       this.app.state.updateModule('pos', { paymentStatus: 'error' });
-      
+
       if (window.notiflix) {
         window.notiflix.Report.failure('Sale Failed', 'Failed to complete transaction', 'Ok');
       }
-      
+
       throw error;
     }
   }
@@ -570,17 +582,64 @@ class POSModule {
     return `
       <div class="barcode-scanner mb-6">
         <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+              <i class="fa fa-barcode"></i> Barcode Scanner
+            </h5>
+            <div class="scanner-controls d-flex gap-2">
+              <button class="btn btn-sm ${this.soundEnabled ? 'btn-success' : 'btn-secondary'}"
+                      onclick="window.pharmaApp.getModule('pos').toggleSound()"
+                      title="${this.soundEnabled ? 'Disable sound notifications' : 'Enable sound notifications'}">
+                <i class="fa ${this.soundEnabled ? 'fa-volume-up' : 'fa-volume-off'}"></i>
+              </button>
+              <button class="btn btn-sm btn-info"
+                      onclick="window.pharmaApp.getModule('pos').showScannerHelp()"
+                      title="Scanner help and tips">
+                <i class="fa fa-question-circle"></i>
+              </button>
+            </div>
+          </div>
           <div class="card-body">
-            <label class="form-label">Scan Barcode</label>
             <form id="barcodeForm" onsubmit="window.pharmaApp.getModule('pos').handleBarcodeSubmit(event)">
               <div class="input-group">
-                <input type="text" id="barcodeInput" class="form-input" 
-                       placeholder="Scan barcode or type number" autofocus>
-                <button type="submit" class="btn btn-primary">
-                  <i class="glyphicon glyphicon-ok"></i>
-                </button>
+                <div class="input-group-prepend">
+                  <span class="input-group-text">
+                    <i class="fa fa-barcode"></i>
+                  </span>
+                </div>
+                <input type="text" id="barcodeInput" class="form-control form-control-lg"
+                       placeholder="Scan barcode or type number" autofocus
+                       autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                <div class="input-group-append">
+                  <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="fa fa-search"></i>
+                    <span class="d-none d-sm-inline ml-1">Scan</span>
+                  </button>
+                </div>
               </div>
             </form>
+
+            <!-- Enhanced feedback display -->
+            <div id="barcodeFeedback" class="barcode-feedback mt-3" style="display: none;">
+              <!-- Dynamic feedback content will be inserted here -->
+            </div>
+
+            <!-- Scan statistics (hidden by default, can be shown in help) -->
+            <div class="scan-stats mt-2 text-muted small" id="scanStats" style="display: none;">
+              <i class="fa fa-chart-bar"></i> Today's scans: <span id="scanCount">${this.scanSuccessCount}</span>
+            </div>
+
+            <!-- Quick actions -->
+            <div class="mt-3 d-flex flex-wrap gap-2">
+              <button class="btn btn-outline-secondary btn-sm"
+                      onclick="window.pharmaApp.getModule('pos').clearBarcodeInput()">
+                <i class="fa fa-times"></i> Clear
+              </button>
+              <button class="btn btn-outline-info btn-sm"
+                      onclick="window.pharmaApp.getModule('pos').showRecentScans()">
+                <i class="fa fa-history"></i> Recent
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -974,32 +1033,53 @@ class POSModule {
     `;
   }
   
-  // Event handlers
+  // Enhanced event handlers with improved barcode scanning
   async handleBarcodeSubmit(event) {
     event.preventDefault();
-    const barcode = document.getElementById('barcodeInput').value.trim();
-    
+    const barcodeInput = document.getElementById('barcodeInput');
+    const barcode = barcodeInput.value.trim();
+
     if (barcode) {
       this.showBarcodeFeedback('scanning', 'Scanning barcode...');
-      
-      const product = await this.searchProduct(barcode);
-      
-      if (product) {
-        if (product.is_variant && product.needs_variant_selection) {
-          // Show variant selection modal
-          this.showVariantSelectionModal(product);
-          this.showBarcodeFeedback('success', 'Variant found - select specific variant');
+
+      try {
+        const product = await this.searchProduct(barcode);
+
+        if (product) {
+          if (product.is_variant && product.needs_variant_selection) {
+            // Show variant selection modal
+            this.showVariantSelectionModal(product);
+            this.showBarcodeFeedback('success', 'Variant found - select specific variant', {
+              productId: product._id,
+              productName: product.product_name || product.name,
+              barcode: barcode
+            });
+          } else {
+            // Direct product add to cart
+            this.addToCart(product);
+            this.showBarcodeFeedback('success', `Product added to cart`, {
+              productId: product._id,
+              productName: product.name,
+              barcode: barcode
+            });
+            barcodeInput.value = '';
+            barcodeInput.focus(); // Keep focus for continuous scanning
+          }
         } else {
-          // Direct product add to cart
-          this.addToCart(product);
-          this.showBarcodeFeedback('success', `${product.name} added to cart`);
-          document.getElementById('barcodeInput').value = '';
+          this.showBarcodeFeedback('error', 'Product not found', {
+            barcode: barcode
+          });
+          if (window.notiflix) {
+            window.notiflix.Report.warning('Not Found', 'Product or variant not found', 'Ok');
+          }
+          // Don't clear input on error - allow user to correct
         }
-      } else {
-        this.showBarcodeFeedback('error', 'Product not found');
-        if (window.notiflix) {
-          window.notiflix.Report.warning('Not Found', 'Product or variant not found', 'Ok');
-        }
+      } catch (error) {
+        console.error('Barcode scan error:', error);
+        this.showBarcodeFeedback('error', 'Scan failed - please try again', {
+          barcode: barcode,
+          error: error.message
+        });
       }
     }
   }
@@ -2279,39 +2359,365 @@ class POSModule {
    * Enhanced Barcode Scanning Methods
    */
 
-  showBarcodeFeedback(status, message) {
+  // Sound notification methods
+  playScanSound(type = 'success') {
+    if (!this.soundEnabled) return;
+
+    try {
+      // Create audio context if not exists
+      if (!this.audioContext && window.AudioContext) {
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+
+      if (this.audioContext) {
+        const oscillator = this.audioContext.createOscillator();
+        const gainNode = this.audioContext.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(this.audioContext.destination);
+
+        // Configure sound based on type
+        switch (type) {
+          case 'success':
+            oscillator.frequency.setValueAtTime(800, this.audioContext.currentTime);
+            oscillator.frequency.setValueAtTime(1000, this.audioContext.currentTime + 0.1);
+            gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
+            oscillator.start();
+            oscillator.stop(this.audioContext.currentTime + 0.3);
+            break;
+
+          case 'error':
+            oscillator.frequency.setValueAtTime(300, this.audioContext.currentTime);
+            oscillator.frequency.setValueAtTime(200, this.audioContext.currentTime + 0.1);
+            gainNode.gain.setValueAtTime(0.2, this.audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.5);
+            oscillator.start();
+            oscillator.stop(this.audioContext.currentTime + 0.5);
+            break;
+
+          case 'warning':
+            oscillator.frequency.setValueAtTime(600, this.audioContext.currentTime);
+            oscillator.frequency.setValueAtTime(500, this.audioContext.currentTime + 0.1);
+            gainNode.gain.setValueAtTime(0.25, this.audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.4);
+            oscillator.start();
+            oscillator.stop(this.audioContext.currentTime + 0.4);
+            break;
+        }
+      } else {
+        // Fallback to simple beep using console (for browsers without AudioContext support)
+        console.log(`%c🔊 BEEP (${type})`, 'font-size: 20px; color: green;');
+      }
+    } catch (error) {
+      console.warn('Audio playback failed:', error);
+      // Fallback: visual feedback only
+    }
+  }
+
+  // Enhanced barcode feedback with sound and visual improvements
+  showBarcodeFeedback(status, message, extraData = {}) {
     const feedbackElement = document.getElementById('barcodeFeedback') || this.createFeedbackElement();
-    
+
     // Clear previous classes
     feedbackElement.className = 'barcode-feedback';
-    
+
+    // Play sound notification
+    this.playScanSound(status);
+
+    // Add vibration feedback for mobile devices (if supported)
+    if ('vibrate' in navigator && this.mobileView) {
+      switch (status) {
+        case 'success':
+          navigator.vibrate(100);
+          break;
+        case 'error':
+          navigator.vibrate([100, 50, 100]);
+          break;
+        case 'warning':
+          navigator.vibrate(200);
+          break;
+      }
+    }
+
     // Add status-specific classes and content
     switch (status) {
       case 'scanning':
         feedbackElement.classList.add('scanning');
-        feedbackElement.innerHTML = `<i class="fa fa-spinner fa-spin"></i> ${message}`;
+        feedbackElement.innerHTML = `
+          <div class="flex items-center gap-2">
+            <i class="fa fa-spinner fa-spin text-blue-500"></i>
+            <span>${message}</span>
+          </div>
+        `;
         break;
+
       case 'success':
+        this.scanSuccessCount++;
         feedbackElement.classList.add('success');
-        feedbackElement.innerHTML = `<i class="fa fa-check"></i> ${message}`;
+        feedbackElement.innerHTML = `
+          <div class="flex items-center gap-2">
+            <i class="fa fa-check-circle text-green-500"></i>
+            <span>${message}</span>
+            ${extraData.productName ? `<small class="text-gray-600">(${extraData.productName})</small>` : ''}
+          </div>
+        `;
+        // Auto-hide success messages after 2 seconds
+        setTimeout(() => {
+          feedbackElement.style.display = 'none';
+        }, 2000);
+        break;
+
+      case 'error':
+        feedbackElement.classList.add('error');
+        feedbackElement.innerHTML = `
+          <div class="flex items-center gap-2">
+            <i class="fa fa-times-circle text-red-500"></i>
+            <span>${message}</span>
+          </div>
+        `;
+        // Keep error messages visible longer
+        setTimeout(() => {
+          feedbackElement.style.display = 'none';
+        }, 4000);
+        break;
+
+      case 'warning':
+        feedbackElement.classList.add('warning');
+        feedbackElement.innerHTML = `
+          <div class="flex items-center gap-2">
+            <i class="fa fa-exclamation-triangle text-yellow-500"></i>
+            <span>${message}</span>
+          </div>
+        `;
+        // Medium duration for warnings
         setTimeout(() => {
           feedbackElement.style.display = 'none';
         }, 3000);
         break;
-      case 'error':
-        feedbackElement.classList.add('error');
-        feedbackElement.innerHTML = `<i class="fa fa-times"></i> ${message}`;
-        setTimeout(() => {
-          feedbackElement.style.display = 'none';
-        }, 5000);
-        break;
-      case 'warning':
-        feedbackElement.classList.add('warning');
-        feedbackElement.innerHTML = `<i class="fa fa-exclamation-triangle"></i> ${message}`;
-        break;
     }
-    
+
     feedbackElement.style.display = 'block';
+
+    // Add to scan history for debugging/analytics
+    this.logScanEvent(status, message, extraData);
+  }
+
+  // Log scan events for analytics
+  logScanEvent(status, message, extraData = {}) {
+    const scanEvent = {
+      timestamp: new Date().toISOString(),
+      status: status,
+      message: message,
+      productId: extraData.productId,
+      productName: extraData.productName,
+      barcode: extraData.barcode,
+      session: this.scanSuccessCount
+    };
+
+    // Store in local storage for debugging (can be sent to server later)
+    const scanHistory = JSON.parse(localStorage.getItem('barcodeScanHistory') || '[]');
+    scanHistory.push(scanEvent);
+
+    // Keep only last 100 scans
+    if (scanHistory.length > 100) {
+      scanHistory.shift();
+    }
+
+    localStorage.setItem('barcodeScanHistory', JSON.stringify(scanHistory));
+  }
+
+  // Scanner control methods
+  toggleSound() {
+    this.soundEnabled = !this.soundEnabled;
+    this.render(); // Re-render to update button state
+
+    if (window.notiflix) {
+      const status = this.soundEnabled ? 'enabled' : 'disabled';
+      window.notiflix.Notify.info('Sound Notifications', `Sound notifications ${status}`);
+    }
+  }
+
+  showScannerHelp() {
+    const helpModal = `
+      <div class="scanner-help-modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+           id="scannerHelpModal">
+        <div class="bg-white rounded-lg p-6 max-w-lg w-full mx-4">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold">
+              <i class="fa fa-barcode text-blue-600"></i> Scanner Help & Tips
+            </h3>
+            <button onclick="window.pharmaApp.getModule('pos').hideScannerHelp()" class="text-gray-500">
+              <i class="fa fa-times"></i>
+            </button>
+          </div>
+
+          <div class="help-content space-y-4">
+            <div>
+              <h5 class="font-medium text-gray-800 mb-2">
+                <i class="fa fa-lightbulb text-yellow-500"></i> Scanning Tips
+              </h5>
+              <ul class="text-sm text-gray-600 space-y-1 ml-4">
+                <li>• Ensure good lighting for better scan accuracy</li>
+                <li>• Hold the scanner steady and at appropriate distance</li>
+                <li>• Clean the scanner window regularly</li>
+                <li>• Check scanner settings for optimal performance</li>
+              </ul>
+            </div>
+
+            <div>
+              <h5 class="font-medium text-gray-800 mb-2">
+                <i class="fa fa-volume-up text-green-500"></i> Sound Feedback
+              </h5>
+              <ul class="text-sm text-gray-600 space-y-1 ml-4">
+                <li>• <strong>Success:</strong> High beep + green checkmark</li>
+                <li>• <strong>Error:</strong> Low beep sequence + red X</li>
+                <li>• <strong>Warning:</strong> Medium beep + yellow warning</li>
+                <li>• Toggle sound on/off with the volume button</li>
+              </ul>
+            </div>
+
+            <div>
+              <h5 class="font-medium text-gray-800 mb-2">
+                <i class="fa fa-chart-bar text-blue-500"></i> Session Statistics
+              </h5>
+              <div class="bg-gray-50 p-3 rounded">
+                <div class="text-sm">
+                  <div>Successful scans today: <strong>${this.scanSuccessCount}</strong></div>
+                  <div class="mt-1">
+                    <small class="text-gray-500">Session started: ${new Date().toLocaleDateString()}</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h5 class="font-medium text-gray-800 mb-2">
+                <i class="fa fa-keyboard text-purple-500"></i> Keyboard Shortcuts
+              </h5>
+              <ul class="text-sm text-gray-600 space-y-1 ml-4">
+                <li>• <kbd class="px-1 py-0.5 bg-gray-200 rounded text-xs">Enter</kbd> Process barcode</li>
+                <li>• <kbd class="px-1 py-0.5 bg-gray-200 rounded text-xs">F2</kbd> Clear input</li>
+                <li>• <kbd class="px-1 py-0.5 bg-gray-200 rounded text-xs">F3</kbd> Focus scanner</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-3 mt-6">
+            <button class="btn btn-secondary" onclick="window.pharmaApp.getModule('pos').hideScannerHelp()">
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', helpModal);
+  }
+
+  hideScannerHelp() {
+    const modal = document.getElementById('scannerHelpModal');
+    if (modal) {
+      modal.remove();
+    }
+  }
+
+  clearBarcodeInput() {
+    const barcodeInput = document.getElementById('barcodeInput');
+    if (barcodeInput) {
+      barcodeInput.value = '';
+      barcodeInput.focus();
+    }
+    this.showBarcodeFeedback('info', 'Input cleared');
+  }
+
+  showRecentScans() {
+    const scanHistory = JSON.parse(localStorage.getItem('barcodeScanHistory') || '[]');
+    const recentScans = scanHistory.slice(-10).reverse(); // Last 10 scans, most recent first
+
+    if (recentScans.length === 0) {
+      if (window.notiflix) {
+        window.notiflix.Notify.info('No Recent Scans', 'No scan history found');
+      }
+      return;
+    }
+
+    const historyModal = `
+      <div class="scan-history-modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+           id="scanHistoryModal">
+        <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold">
+              <i class="fa fa-history text-blue-600"></i> Recent Scan History
+            </h3>
+            <button onclick="window.pharmaApp.getModule('pos').hideRecentScans()" class="text-gray-500">
+              <i class="fa fa-times"></i>
+            </button>
+          </div>
+
+          <div class="scan-history-list">
+            ${recentScans.map((scan, index) => `
+              <div class="scan-item flex items-center justify-between p-3 border-b border-gray-100
+                          ${scan.status === 'success' ? 'bg-green-50' : scan.status === 'error' ? 'bg-red-50' : 'bg-gray-50'}">
+                <div class="flex items-center gap-3">
+                  <div class="status-icon">
+                    ${scan.status === 'success' ?
+                      '<i class="fa fa-check-circle text-green-500"></i>' :
+                      scan.status === 'error' ?
+                      '<i class="fa fa-times-circle text-red-500"></i>' :
+                      '<i class="fa fa-info-circle text-blue-500"></i>'
+                    }
+                  </div>
+                  <div>
+                    <div class="font-medium text-sm">${scan.productName || 'Unknown Product'}</div>
+                    <div class="text-xs text-gray-500">
+                      ${new Date(scan.timestamp).toLocaleTimeString()} • ${scan.barcode || 'N/A'}
+                    </div>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <div class="text-xs text-gray-500 capitalize">${scan.status}</div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+
+          <div class="flex justify-between items-center mt-4 pt-3 border-t">
+            <div class="text-sm text-gray-600">
+              Showing last ${recentScans.length} scans
+            </div>
+            <div class="flex gap-2">
+              <button class="btn btn-sm btn-outline-danger"
+                      onclick="window.pharmaApp.getModule('pos').clearScanHistory()">
+                <i class="fa fa-trash"></i> Clear History
+              </button>
+              <button class="btn btn-secondary" onclick="window.pharmaApp.getModule('pos').hideRecentScans()">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', historyModal);
+  }
+
+  hideRecentScans() {
+    const modal = document.getElementById('scanHistoryModal');
+    if (modal) {
+      modal.remove();
+    }
+  }
+
+  clearScanHistory() {
+    if (confirm('Are you sure you want to clear all scan history?')) {
+      localStorage.removeItem('barcodeScanHistory');
+      this.hideRecentScans();
+      if (window.notiflix) {
+        window.notiflix.Notify.success('History Cleared', 'Scan history has been cleared');
+      }
+    }
   }
 
   createFeedbackElement() {
@@ -2705,51 +3111,204 @@ class POSModule {
 
   async shareWhatsApp(transactionId) {
     try {
-        const response = await fetch(`${window.api}${transactionId}`);
+        const response = await fetch(`${window.api}transactions/${transactionId}`);
         const tx = await response.json();
         const settings = this.app.state.getModuleState('app').settings || {};
-        
+
         let message = `*Invoice from ${settings.store || 'garmentMine'}*\n`;
         message += `Inv #: ${tx.order}\n`;
         message += `Date: ${new Date(tx.date).toLocaleDateString()}\n`;
         message += `--------------------------\n`;
         tx.items.forEach(item => {
-            message += `${item.product_name} x ${item.quantity}: $${(item.price * item.quantity).toFixed(2)}\n`;
+            message += `${item.product_name} x ${item.quantity}: ${(item.price * item.quantity).toFixed(2)}\n`;
         });
         message += `--------------------------\n`;
-        message += `*Total: $${parseFloat(tx.total).toFixed(2)}*\n`;
+        message += `*Total: ${parseFloat(tx.total).toFixed(2)}*\n`;
         message += `Payment: ${tx.payment_type || 'Paid'}\n`;
         message += `\nThank you for your business!`;
 
         const encodedMsg = encodeURIComponent(message);
         const phone = tx.customer?.phone || "";
-        window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodedMsg}`, '_blank');
+
+        // Use Electron shell.openExternal for proper Electron compatibility
+        if (window.electronAPI && window.electronAPI.openExternal) {
+            await window.electronAPI.openExternal(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodedMsg}`);
+        } else if (typeof require !== 'undefined') {
+            // Fallback for direct Electron context
+            const { shell } = require('electron');
+            await shell.openExternal(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodedMsg}`);
+        } else {
+            // Fallback for web context (though this won't work in Electron)
+            window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodedMsg}`, '_blank');
+        }
+
+        if (window.notiflix) {
+            window.notiflix.Notify.success('WhatsApp', 'Invoice shared via WhatsApp');
+        }
     } catch (e) {
         console.error("WhatsApp share failed", e);
+        if (window.notiflix) {
+            window.notiflix.Notify.failure('WhatsApp Share Failed', 'Failed to open WhatsApp');
+        }
     }
   }
 
   async shareEmail(transactionId) {
     try {
-        const response = await fetch(`${window.api}${transactionId}`);
+        const response = await fetch(`${window.api}transactions/${transactionId}`);
         const tx = await response.json();
         const settings = this.app.state.getModuleState('app').settings || {};
-        
-        const subject = `Invoice ${tx.order} from ${settings.store || 'garmentMine'}`;
-        let body = `Hello ${tx.customer?.name || 'Customer'},\n\n`;
-        body += `Please find the details of your invoice ${tx.order}:\n\n`;
-        tx.items.forEach(item => {
-            body += `${item.product_name} x ${item.quantity}: ${(item.price * item.quantity).toFixed(2)}\n`;
-        });
-        body += `\nTotal Amount: ${parseFloat(tx.total).toFixed(2)}\n`;
-        body += `Payment Mode: ${tx.payment_type || 'Paid'}\n\n`;
-        body += `Thank you,\n${settings.store || 'garmentMine'}`;
 
-        const mailto = `mailto:${tx.customer?.email || ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-        window.location.href = mailto;
+        // Check if real email backend is enabled, otherwise use mailto
+        const emailConfig = settings.email_sharing || {};
+
+        if (emailConfig.enabled && emailConfig.smtp_host) {
+            // Use real backend email sending
+            const subject = `Invoice ${tx.order} from ${settings.store || 'garmentMine'}`;
+            let htmlBody = `<html><body>`;
+            htmlBody += `<h2>Invoice ${tx.order}</h2>`;
+            htmlBody += `<p>Hello ${tx.customer?.name || 'Customer'},</p>`;
+            htmlBody += `<p>Please find the details of your invoice:</p>`;
+            htmlBody += `<table border="1" cellpadding="5" style="border-collapse: collapse;">`;
+            htmlBody += `<tr><th>Item</th><th>Quantity</th><th>Price</th><th>Total</th></tr>`;
+            tx.items.forEach(item => {
+                const itemTotal = item.quantity * parseFloat(item.price);
+                htmlBody += `<tr>`;
+                htmlBody += `<td>${item.product_name}</td>`;
+                htmlBody += `<td>${item.quantity}</td>`;
+                htmlBody += `<td>${parseFloat(item.price).toFixed(2)}</td>`;
+                htmlBody += `<td>${itemTotal.toFixed(2)}</td>`;
+                htmlBody += `</tr>`;
+            });
+            htmlBody += `</table>`;
+            htmlBody += `<p><strong>Total Amount: ${parseFloat(tx.total).toFixed(2)}</strong></p>`;
+            htmlBody += `<p><strong>Payment Mode:</strong> ${tx.payment_type || 'Paid'}</p>`;
+            htmlBody += `<p>Thank you for your business!</p>`;
+            htmlBody += `<p>Best regards,<br>${settings.store || 'garmentMine'}</p>`;
+            htmlBody += `</body></html>`;
+
+            // Send via backend API
+            const emailResponse = await fetch(`${window.api}share/email`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    subject: subject,
+                    body: htmlBody,
+                    to: tx.customer?.email || '',
+                    from: emailConfig.from_email || emailConfig.smtp_username
+                })
+            });
+
+            const result = await emailResponse.json();
+
+            if (result.success) {
+                if (window.notiflix) {
+                    window.notiflix.Notify.success('Email Sent', 'Invoice sent successfully via email');
+                }
+            } else {
+                throw new Error(result.error || 'Email sending failed');
+            }
+        } else {
+            // Fallback to mailto link
+            const subject = `Invoice ${tx.order} from ${settings.store || 'garmentMine'}`;
+            let body = `Hello ${tx.customer?.name || 'Customer'},\n\n`;
+            body += `Please find the details of your invoice ${tx.order}:\n\n`;
+            tx.items.forEach(item => {
+                body += `${item.product_name} x ${item.quantity}: ${(item.price * item.quantity).toFixed(2)}\n`;
+            });
+            body += `\nTotal Amount: ${parseFloat(tx.total).toFixed(2)}\n`;
+            body += `Payment Mode: ${tx.payment_type || 'Paid'}\n\n`;
+            body += `Thank you,\n${settings.store || 'garmentMine'}`;
+
+            const mailto = `mailto:${tx.customer?.email || ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+            // Use Electron shell.openExternal for proper compatibility
+            if (window.electronAPI && window.electronAPI.openExternal) {
+                await window.electronAPI.openExternal(mailto);
+            } else if (typeof require !== 'undefined') {
+                const { shell } = require('electron');
+                await shell.openExternal(mailto);
+            } else {
+                window.location.href = mailto;
+            }
+
+            if (window.notiflix) {
+                window.notiflix.Notify.info('Email Client', 'Opening email client to send invoice');
+            }
+        }
     } catch (e) {
         console.error("Email share failed", e);
+        if (window.notiflix) {
+            window.notiflix.Notify.failure('Email Share Failed', e.message || 'Failed to send email');
+        }
     }
+  }
+
+  /**
+   * RECEIPT AUTO-SAVE METHODS
+   */
+
+  async autoSaveReceipt(transactionResult) {
+    try {
+      // Initialize ReceiptManager if not already done
+      if (!window.ReceiptManager) {
+        console.warn('ReceiptManager not available, skipping auto-save');
+        return;
+      }
+
+      // Generate receipt HTML for saving
+      const receiptHtml = this.generateReceiptHTML(transactionResult);
+
+      // Call ReceiptManager to auto-save
+      await window.ReceiptManager.autoSaveReceipt(transactionResult, receiptHtml);
+
+    } catch (error) {
+      console.error('Error in auto-save receipt:', error);
+      // Don't throw - this shouldn't block the transaction
+    }
+  }
+
+  generateReceiptHTML(transactionResult) {
+    const date = transactionResult.date ? new Date(transactionResult.date).toLocaleDateString() : new Date().toLocaleDateString();
+    const time = transactionResult.date ? new Date(transactionResult.date).toLocaleTimeString() : new Date().toLocaleTimeString();
+
+    return `
+      <div style="font-family: monospace; max-width: 300px; margin: 0 auto; padding: 10px;">
+        <div style="text-align: center; border-bottom: 1px solid #000; padding-bottom: 10px; margin-bottom: 10px;">
+          <h2 style="margin: 0; font-size: 18px;">RECEIPT</h2>
+          <p style="margin: 5px 0;">Transaction #${transactionResult.order || transactionResult._id}</p>
+          <p style="margin: 5px 0;">${date} ${time}</p>
+        </div>
+
+        <div style="margin-bottom: 10px;">
+          ${transactionResult.customer && transactionResult.customer.name ?
+            `<p><strong>Customer:</strong> ${transactionResult.customer.name}</p>` : ''
+          }
+        </div>
+
+        <div style="border-bottom: 1px solid #000; margin-bottom: 10px;">
+          ${transactionResult.items.map(item => `
+            <div style="display: flex; justify-content: space-between; padding: 2px 0;">
+              <span>${item.product_name}</span>
+              <span>${item.quantity} x ${parseFloat(item.price).toFixed(2)}</span>
+            </div>
+          `).join('')}
+        </div>
+
+        <div style="text-align: right; margin-bottom: 10px;">
+          <p><strong>Total: ${parseFloat(transactionResult.total || 0).toFixed(2)}</strong></p>
+          ${transactionResult.payment_type ? `<p>Payment: ${transactionResult.payment_type}</p>` : ''}
+          ${transactionResult.paid ? `<p>Paid: ${parseFloat(transactionResult.paid).toFixed(2)}</p>` : ''}
+          ${transactionResult.change ? `<p>Change: ${parseFloat(transactionResult.change).toFixed(2)}</p>` : ''}
+        </div>
+
+        <div style="text-align: center; font-size: 12px; color: #666;">
+          <p>Thank you for your business!</p>
+        </div>
+      </div>
+    `;
   }
 
   /**

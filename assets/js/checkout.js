@@ -1,19 +1,19 @@
 // Browser-compatible utils loading
-let utils;
+let checkoutUtils;
 if (typeof require !== 'undefined') {
     try {
-        utils = require("./utils");
+        checkoutUtils = require("./utils");
     } catch (e) {
         console.warn('Node.js utils not available, using browser fallback');
-        utils = window.utils;
+        checkoutUtils = window.utils;
     }
 } else {
-    utils = window.utils;
+    checkoutUtils = window.utils;
 }
 
 // Fallback if utils is still not available
-if (!utils) {
-    utils = {
+if (!checkoutUtils) {
+    checkoutUtils = {
         moneyFormat: (amount) => new Intl.NumberFormat('en-IN').format(amount),
         getStockStatus: (current, minimum) => {
             current = Number(current);
@@ -38,7 +38,7 @@ $(document).ready(function () {
       $("#refNumber").val($("#refNumber").val() + "" + value);
     } else {
       paymentAmount = paymentAmount + "" + value;
-      $("#paymentText").val(utils.moneyFormat(paymentAmount));
+      $("#paymentText").val(checkoutUtils.moneyFormat(paymentAmount));
       $("#payment").val(paymentAmount);
       $(this).calculateChange();
     }
@@ -49,7 +49,7 @@ $(document).ready(function () {
    */
   $.fn.digits = function () {
     let paymentAmount = $("#payment").val();
-    $("#paymentText").val(utils.moneyFormat(paymentAmount));
+    $("#paymentText").val(checkoutUtils.moneyFormat(paymentAmount));
     $("#payment").val(paymentAmount + ".");
     $(this).calculateChange();
   };
@@ -62,7 +62,7 @@ $(document).ready(function () {
     var payment = $("#payment").val().replace(",", "");
     var change = payablePrice - payment;
     if (change <= 0) {
-      $("#change").text(utils.moneyFormat(Math.abs(change.toFixed(2))));
+      $("#change").text(checkoutUtils.moneyFormat(Math.abs(change.toFixed(2))));
       $("#confirmPayment").show();
     } else {
       $("#change").text("0");
@@ -75,7 +75,7 @@ $(document).ready(function () {
     const isdue = $(this).data("isdue");
     switch(key)
     {
-    case "del" : { 
+    case "del" : {
       if(isdue)
       {
         $('#refNumber').val((i, val) => val.slice(0, -1));
@@ -83,8 +83,8 @@ $(document).ready(function () {
       else
       {
         $("#payment").val((i, val) => val.slice(0, -1));
-      //re-format displayed amount after deletion 
-      $("#paymentText").val((i, val) => utils.moneyFormat($("#payment").val()));
+      //re-format displayed amount after deletion
+      $("#paymentText").val((i, val) => checkoutUtils.moneyFormat($("#payment").val()));
       }
       $(this).calculateChange()
     }; break;
@@ -99,7 +99,7 @@ $(document).ready(function () {
         $('#payment,#paymentText').val('');
         $(this).calculateChange();
       }
-       
+
     };break;
 
   case "point": {
@@ -109,6 +109,14 @@ $(document).ready(function () {
    default: $(this).keypadBtnPressed(key, isdue); break;
   }
 });
+
+  // Handle direct input on payment field
+  $("#paymentText").on("input", function() {
+    let inputVal = $(this).val().replace(/,/g, '').replace(/[^\d.]/g, ''); // remove commas and non-numeric except .
+    let numVal = parseFloat(inputVal) || 0;
+    $("#payment").val(numVal);
+    $(this).calculateChange();
+  });
 
   /** Switch Views for Payment Options **/
   var $list = $(".list-group-item").on("click", function () {

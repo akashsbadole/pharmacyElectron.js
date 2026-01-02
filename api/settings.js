@@ -158,7 +158,18 @@ app.post("/post", function (req, res) {
             upi_merchant_name: validator.escape(req.body.upi_merchant_name || ""),
             backup_frequency: validator.escape(req.body.backup_frequency || "off"),
             backup_time: validator.escape(req.body.backup_time || "00:00"),
-            enable_encryption: req.body.enable_encryption === 'on' || req.body.enable_encryption === true
+            enable_encryption: req.body.enable_encryption === 'on' || req.body.enable_encryption === true,
+            receipt_auto_save: {
+                enabled: req.body.receipt_auto_save_enabled === 'on' || req.body.receipt_auto_save_enabled === true,
+                save_pdf: req.body.receipt_save_pdf === 'on' || req.body.receipt_save_pdf === true,
+                save_image: req.body.receipt_save_image === 'on' || req.body.receipt_save_image === true,
+                folder_structure: validator.escape(req.body.receipt_folder_structure || "receipts/{YYYY}/{MM}/{DD}"),
+                filename_pattern: validator.escape(req.body.receipt_filename_pattern || "receipt-{transaction_id}"),
+                image_format: validator.escape(req.body.receipt_image_format || "png"),
+                image_quality: parseFloat(req.body.receipt_image_quality || "0.95"),
+                pdf_format: validator.escape(req.body.receipt_pdf_format || "a4"),
+                include_timestamp: req.body.receipt_include_timestamp === 'on' || req.body.receipt_include_timestamp === true
+            }
         },
     };
 
@@ -194,6 +205,79 @@ app.post("/post", function (req, res) {
             },
         );
     }
+});
+
+/**
+ * POST endpoint: Test SMTP email configuration
+ */
+app.post("/test-smtp", function (req, res) {
+    const nodemailer = require('nodemailer');
+
+    // Get SMTP settings from database
+    settingsDB.findOne({ _id: 1 }, function (err, docs) {
+        if (err) {
+            console.error('Error fetching settings:', err);
+            return res.status(500).json({ success: false, error: 'Failed to fetch settings' });
+        }
+
+        const settings = docs?.settings || {};
+        const emailConfig = settings.email_sharing || {};
+
+        if (!emailConfig.enabled) {
+            return res.status(400).json({ success: false, error: 'Email sharing is not enabled' });
+        }
+
+        if (!emailConfig.smtp_host || !emailConfig.smtp_username || !emailConfig.smtp_password) {
+            return res.status(400).json({ success: false, error: 'SMTP configuration incomplete' });
+        }
+
+        // Create transporter
+        const transporter = nodemailer.createTransporter({
+            host: emailConfig.smtp_host,
+            port: emailConfig.smtp_port || 587,
+            secure: emailConfig.smtp_secure || false,
+            auth: {
+                user: emailConfig.smtp_username,
+                pass: emailConfig.smtp_password
+            }
+        });
+
+        // Test email options
+        const testEmail = req.body.test_email || emailConfig.from_email;
+        const mailOptions = {
+            from: `"${emailConfig.from_name || 'Test'}" <${emailConfig.from_email}>`,
+            to: testEmail,
+            subject: 'SMTP Test Email - PharmaMine',
+            html: `
+                <h2>SMTP Configuration Test</h2>
+                <p>This is a test email to verify your SMTP configuration in PharmaMine.</p>
+                <p><strong>Test Time:</strong> ${new Date().toLocaleString()}</p>
+                <p>If you received this email, your SMTP settings are configured correctly!</p>
+                <hr>
+                <p><small>This is an automated test email from PharmaMine POS system.</small></p>
+            `
+        };
+
+        // Send test email
+        transporter.sendMail(mailOptions, function (error, info) {
+            if (error) {
+                console.error('SMTP test failed:', error);
+                return res.status(500).json({
+                    success: false,
+                    error: 'SMTP test failed',
+                    details: error.message
+                });
+            }
+
+            console.log('SMTP test successful:', info.messageId);
+            res.json({
+                success: true,
+                message: 'SMTP test successful',
+                messageId: info.messageId,
+                testEmail: testEmail
+            });
+        });
+    });
 });
 
 });

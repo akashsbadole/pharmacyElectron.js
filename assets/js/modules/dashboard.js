@@ -51,18 +51,14 @@ class DashboardModule {
       // Fetch low stock items
       const inventoryResponse = await fetch(`${window.api}inventory/alerts`);
       const lowStockItems = await inventoryResponse.json();
-      
-      // Removed pending prescriptions for restaurant conversion
-      
+            
       return {
         todaySales,
         transactions,
         lowStock: lowStockItems.length,
-        // Removed pendingPrescriptions for restaurant conversion
         salesChange: 0, // TODO: Calculate change from previous day
         transactionChange: 0,
         stockChange: 0,
-        // Removed prescriptionChange for restaurant conversion
         salesData: salesData.slice(0, 10) // Last 10 transactions
       };
       
@@ -72,11 +68,9 @@ class DashboardModule {
         todaySales: 0,
         transactions: 0,
         lowStock: 0,
-        // Removed pendingPrescriptions for restaurant conversion
         salesChange: 0,
         transactionChange: 0,
         stockChange: 0,
-        // Removed prescriptionChange for restaurant conversion
         salesData: []
       };
     }
@@ -235,7 +229,6 @@ class DashboardModule {
             </div>
           </div>
           
-          <!-- Removed pending prescriptions metric for restaurant conversion -->
         </div>
       </div>
     `;

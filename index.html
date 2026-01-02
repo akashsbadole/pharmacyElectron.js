@@ -310,7 +310,6 @@
                         <li><a href="#sales-tab" data-toggle="tab">Sales Report</a></li>
                         <li><a href="#inventory-tab" data-toggle="tab">Inventory Turnover</a></li>
                         <li><a href="#staff-tab" data-toggle="tab">Staff Activity</a></li>
-                        <li><a href="#prescriptions-tab" data-toggle="tab">Prescriptions</a></li>
                         <li><a href="#compliance-tab" data-toggle="tab">Compliance</a></li>
                     </ul>
                     <div class="tab-content">
@@ -521,173 +520,6 @@
                                                 </thead>
                                                 <tbody id="staff_activity_data"></tbody>
                                             </table>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Prescriptions Tab -->
-                        <div class="tab-pane" id="prescriptions-tab">
-                            <div class="row">
-                                <div class="col-md-12 bg-white">
-                                    <div class="card-box">
-                                        <div class="card-title">
-                                            <h4>Prescription Management</h4>
-                                        </div>
-                                        <div class="card-body">
-                                            <div class="row m-b-20">
-                                                <div class="col-md-3">
-                                                    <div class="widget-box">
-                                                        <div class="widget-header">
-                                                            <h5 class="widget-title">Pending Prescriptions</h5>
-                                                        </div>
-                                                        <div class="widget-body">
-                                                            <h3 id="pendingPrescriptions">0</h3>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-3">
-                                                    <div class="widget-box">
-                                                        <div class="widget-header">
-                                                            <h5 class="widget-title">Verified Today</h5>
-                                                        </div>
-                                                        <div class="widget-body">
-                                                            <h3 id="verifiedPrescriptions">0</h3>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-3">
-                                                    <div class="widget-box">
-                                                        <div class="widget-header">
-                                                            <h5 class="widget-title">Controlled Substances</h5>
-                                                        </div>
-                                                        <div class="widget-body">
-                                                            <h3 id="controlledSubstances">0</h3>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-3">
-                                                    <div class="widget-box">
-                                                        <div class="widget-header">
-                                                            <h5 class="widget-title">Expiring Soon</h5>
-                                                        </div>
-                                                        <div class="widget-body">
-                                                            <h3 id="expiringPrescriptions">0</h3>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="row">
-                                                <div class="col-md-12">
-                                                    <button id="newPrescriptionBtn" class="btn btn-primary m-b-10">
-                                                        <i class="fa fa-plus"></i> New Prescription
-                                                    </button>
-                                                    <div class="table-responsive">
-                                                        <table class="table table-striped table-bordered" id="prescriptionsTable">
-                                                            <thead>
-                                                                <tr>
-                                                                    <th>Date</th>
-                                                                    <th>Patient</th>
-                                                                    <th>Doctor</th>
-                                                                    <th>Medication</th>
-                                                                    <th>Quantity</th>
-                                                                    <th>Status</th>
-                                                                    <th>Action</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody id="prescriptions_list">
-                                                                <!-- Prescriptions will be loaded here -->
-                                                            </tbody>
-                                                        </table>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Compliance Tab -->
-                        <div class="tab-pane" id="compliance-tab">
-                            <div class="row">
-                                <div class="col-md-12 bg-white">
-                                    <div class="card-box">
-                                        <div class="card-title">
-                                            <h4>Regulatory Compliance</h4>
-                                        </div>
-                                        <div class="card-body">
-                                            <div class="row m-b-20">
-                                                <div class="col-md-3">
-                                                    <div class="widget-box">
-                                                        <div class="widget-header">
-                                                            <h5 class="widget-title">Audit Logs</h5>
-                                                        </div>
-                                                        <div class="widget-body">
-                                                            <h3 id="auditLogsCount">0</h3>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-3">
-                                                    <div class="widget-box">
-                                                        <div class="widget-header">
-                                                            <h5 class="widget-title">Controlled Substances</h5>
-                                                        </div>
-                                                        <div class="widget-body">
-                                                            <h3 id="controlledSubstancesCount">0</h3>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-3">
-                                                    <div class="widget-box">
-                                                        <div class="widget-header">
-                                                            <h5 class="widget-title">Expired Products</h5>
-                                                        </div>
-                                                        <div class="widget-body">
-                                                            <h3 id="expiredProductsCount">0</h3>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-3">
-                                                    <div class="widget-box">
-                                                        <div class="widget-header">
-                                                            <h5 class="widget-title">License Status</h5>
-                                                        </div>
-                                                        <div class="widget-body">
-                                                            <h3 id="licenseStatus">Active</h3>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="row">
-                                                <div class="col-md-6">
-                                                    <div class="card-box">
-                                                        <div class="card-title"><h4>Controlled Substances Report</h4></div>
-                                                        <div class="card-body">
-                                                            <div class="table-responsive">
-                                                                <table class="table table-hover" id="controlledSubstancesTable">
-                                                                    <thead><tr><th>Medication</th><th>Schedule</th><th>Quantity</th><th>Prescriptions</th></tr></thead>
-                                                                    <tbody id="controlled_substances_data"></tbody>
-                                                                </table>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-6">
-                                                     <div class="card-box">
-                                                        <div class="card-title"><h4>Compliance Alerts</h4></div>
-                                                        <div class="card-body">
-                                                            <div class="table-responsive">
-                                                                <table class="table table-hover" id="complianceAlertsTable">
-                                                                    <thead><tr><th>Alert Type</th><th>Description</th><th>Date</th><th>Status</th></tr></thead>
-                                                                    <tbody id="compliance_alerts_data"></tbody>
-                                                                </table>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -921,7 +753,7 @@
                                         <span class="input-group-addon" id="basic-addon3">Payment <span
                                                 id="payment_curr"></span> </span>
                                         <input type="text" placeholder="0.0" class="form-control" id="paymentText"
-                                            aria-describedby="basic-addon3" readonly>
+                                            aria-describedby="basic-addon3">
                                         <input type="hidden" class="form-control" id="payment"
                                             aria-describedby="basic-addon3">
                                     </div>
@@ -1499,7 +1331,7 @@
                 <div class="modal-dialog modal-sm">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <button class="btn btn-sm btn-success" onclick="$(this).print()">Print</button> <br> <button
+                            <button class="btn btn-sm btn-success" id="printOrderBtn">Print</button> <br> <button
                                 type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
                         </div>
                         <div class="modal-body" id="viewTransaction">
@@ -1897,74 +1729,7 @@
                     </div>
                 </div>
             </div>
-            <!-- Prescription Check Modal -->
-            <div id="prescriptionCheckModal" class="modal fade bs-example-modal-lg" tabindex="-1" role="dialog"
-                aria-labelledby="prescriptionCheckModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-                            <h4 class="modal-title" id="prescriptionCheckModalLabel">Prescription Verification</h4>
-                        </div>
-                        <div class="modal-body">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="patientName">Patient Name</label>
-                                        <input type="text" class="form-control" id="patientName" readonly>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="doctorName">Doctor Name</label>
-                                        <input type="text" class="form-control" id="doctorName" readonly>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="prescriptionDate">Prescription Date</label>
-                                        <input type="text" class="form-control" id="prescriptionDate" readonly>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="medicationName">Medication</label>
-                                        <input type="text" class="form-control" id="medicationName" readonly>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="prescriptionQuantity">Quantity</label>
-                                        <input type="text" class="form-control" id="prescriptionQuantity" readonly>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="prescriptionStatus">Status</label>
-                                        <select class="form-control" id="prescriptionStatus">
-                                            <option value="pending">Pending</option>
-                                            <option value="verified">Verified</option>
-                                            <option value="rejected">Rejected</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <div class="form-group">
-                                        <label for="prescriptionNotes">Notes</label>
-                                        <textarea class="form-control" id="prescriptionNotes" rows="3"></textarea>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <div class="alert alert-info">
-                                        <strong>Verification Required:</strong> Check patient ID, prescription validity, and dosage limits.
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                            <button type="button" id="verifyPrescriptionBtn" class="btn btn-success">Verify</button>
-                            <button type="button" id="rejectPrescriptionBtn" class="btn btn-danger">Reject</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+
             <div id="customerDetailsModal" class="modal fade bs-example-modal-lg" tabindex="-1" role="dialog"
                 aria-labelledby="myLargeModalLabel" aria-hidden="true">
                 <div class="modal-dialog modal-lg">
@@ -1978,8 +1743,6 @@
                                 <li role="presentation" class="active"><a href="#customerInfoTab"
                                         aria-controls="customerInfoTab" role="tab" data-toggle="tab">Customer Info</a>
                                 </li>
-                                <li role="presentation"><a href="#prescriptionsTab" aria-controls="prescriptionsTab"
-                                        role="tab" data-toggle="tab">Prescriptions</a></li>
                                 <li role="presentation"><a href="#purchaseHistoryTab" aria-controls="purchaseHistoryTab"
                                         role="tab" data-toggle="tab">Purchase History</a></li>
                             </ul>
@@ -1996,30 +1759,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div role="tabpanel" class="tab-pane" id="prescriptionsTab">
-                                    <div class="row">
-                                        <div class="col-md-12">
-                                            <h4>Prescription History</h4>
-                                            <div class="table-responsive">
-                                                <table class="table table-striped" id="customerPrescriptionsTable" style="width:100%">
-                                                    <thead>
-                                                        <tr>
-                                                            <th>Date</th>
-                                                            <th>Prescription #</th>
-                                                            <th>Doctor</th>
-                                                            <th>Medication</th>
-                                                            <th>Quantity</th>
-                                                            <th>Status</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody id="customerPrescriptionsList">
-                                                        <!-- Prescription history will be loaded here -->
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+
                                 <div role="tabpanel" class="tab-pane" id="purchaseHistoryTab">
                                     <div class="row">
                                         <div class="col-md-12">
@@ -2391,11 +2131,14 @@
     <script src="assets/plugins/bootstrap/bootstrap.min.js"></script>
     <script src="assets/plugins/daterangepicker/daterangepicker.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/print-js/1.6.0/print.min.js"></script>
     <script src="assets/js/inventory.js"></script>
     <script src="assets/js/pos.js"></script>
     <script src="assets/js/upi.js"></script>
+    <script src="assets/js/checkout.js"></script>
     <script src="assets/js/modules/barcode-dashboard.js"></script>
     <script src="assets/js/modules/inventory_matrix_ui.js"></script>
+    <script src="assets/js/modules/receipt-manager.js"></script>
     <script src="assets/js/app.js"></script>
 
 </body>

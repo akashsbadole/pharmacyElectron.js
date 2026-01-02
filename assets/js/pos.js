@@ -1711,7 +1711,7 @@ function initializeApp() {
         };
 
         $.ajax({
-          url: window.api + "new",
+          url: window.api + "transactions/new",
           type: method,
           data: JSON.stringify(data),
           contentType: "application/json; charset=utf-8",
@@ -1761,7 +1761,7 @@ function initializeApp() {
         $("#payment,#paymentText").val("");
       };
 
-      $.get(window.api + "on-hold")
+      $.get(window.api + "transactions/on-hold")
         .done(function (data) {
           holdOrderList = data;
           holdOrderlocation.empty();
@@ -1774,7 +1774,7 @@ function initializeApp() {
         });
 
       $.fn.getHoldOrders = function () {
-        $.get(window.api + "on-hold")
+        $.get(window.api + "transactions/on-hold")
           .done(function (data) {
             holdOrderList = data;
             clearInterval(dotInterval);
@@ -1934,7 +1934,7 @@ function initializeApp() {
           diagOptions.cancelButtonText,
           () => {
             $.ajax({
-              url: window.api + "delete",
+              url: window.api + "transactions/delete",
               type: "POST",
               data: JSON.stringify(data),
               contentType: "application/json; charset=utf-8",
@@ -1960,7 +1960,7 @@ function initializeApp() {
       };
 
       $.fn.getCustomerOrders = function () {
-        $.get(window.api + "customer-orders")
+        $.get(window.api + "transactions/customer-orders")
           .done(function (data) {
             //clearInterval(dotInterval);
             customerOrderList = data;
@@ -2892,7 +2892,7 @@ function loadTransactions() {
   let transaction_list = "";
   let query = `by-date?start=${start_date}&end=${end_date}&user=${by_user}&status=${by_status}&till=${by_till}`;
 
-  $.get(window.api + query)
+  $.get(window.api + "transactions/" + query)
     .done(function (transactions) {
       if (transactions.length > 0) {
         $("#transaction_list").empty();

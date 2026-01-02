@@ -1456,7 +1456,7 @@ app.post("/import/csv", function (req, res) {
 
 /**
  * GET endpoint: Get CSV import template
- * 
+ *
  * @param {Object} req request object.
  * @param {Object} res response object.
  * @returns {void}
@@ -1509,4 +1509,125 @@ app.get("/import/template", function (req, res) {
             message: "Failed to generate import template"
         });
     }
+});
+
+/**
+ * GET endpoint: Generate printable barcode sheet for all products
+ *
+ * @param {Object} req request object.
+ * @param {Object} res response object.
+ * @returns {void}
+ */
+app.get("/barcodes/print", function (req, res) {
+    inventoryDB.find({}, function (err, products) {
+        if (err) {
+            console.error('Barcode generation error:', err);
+            return res.status(500).json({
+                error: "Database Error",
+                message: "Failed to retrieve products for barcode generation"
+            });
+        }
+
+        if (!products || products.length === 0) {
+            return res.status(404).json({
+                error: "No products found",
+                message: "No products available for barcode generation"
+            });
+        }
+
+        // Generate HTML page with barcodes
+        let html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Barcodes</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .barcode-container {
+            display: inline-block;
+            text-align: center;
+            margin: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .barcode-label {
+            margin-top: 5px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .barcode-price {
+            margin-top: 2px;
+            font-size: 10px;
+            color: #666;
+        }
+        @media print {
+            body {
+                margin: 0;
+            }
+            .barcode-container {
+                page-break-inside: avoid;
+                margin: 5px;
+                padding: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Product Barcodes</h1>
+    <p>Generated on ${new Date().toLocaleDateString()}</p>
+    <div id="barcodes">`;
+
+        products.forEach(product => {
+            const barcodeValue = product.barcode || product._id;
+            const price = parseFloat(product.price).toFixed(2);
+            html += `
+        <div class="barcode-container">
+            <svg id="barcode-${product._id}"></svg>
+            <div class="barcode-label">${product.name}</div>
+            <div class="barcode-price">${price}</div>
+        </div>`;
+        });
+
+        html += `
+    </div>
+
+    <script>
+        // Generate barcodes
+        window.addEventListener('load', function() {`;
+
+        products.forEach(product => {
+            const barcodeValue = product.barcode || product._id;
+            html += `
+            JsBarcode("#barcode-${product._id}", "${barcodeValue}", {
+                width: 2,
+                height: 40,
+                fontSize: 14,
+                textMargin: 0,
+                margin: 0
+            });`;
+        });
+
+        html += `
+        });
+
+        // Auto-print when loaded
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                window.print();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>`;
+
+        res.setHeader('Content-Type', 'text/html');
+        res.send(html);
+    });
 });

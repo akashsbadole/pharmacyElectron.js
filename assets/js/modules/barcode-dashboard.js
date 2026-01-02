@@ -152,25 +152,30 @@ class BarcodeDashboard {
             <h3 class="card-title">Quick Actions</h3>
           </div>
           <div class="card-body">
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
               <button class="btn btn-primary btn-block" onclick="window.pharmaApp.getModule('pos').showBarcodeScanner()">
                 <i class="fa fa-barcode"></i><br>
                 <span>Scan Barcode</span>
               </button>
-              
+
               <button class="btn btn-success btn-block" onclick="window.pharmaApp.getModule('inventory').showBulkBarcodeGenerator()">
                 <i class="fa fa-plus"></i><br>
                 <span>Generate Barcodes</span>
               </button>
-              
+
               <button class="btn btn-info btn-block" onclick="window.pharmaApp.getModule('barcode-dashboard').showBarcodeValidator()">
                 <i class="fa fa-check-circle"></i><br>
                 <span>Validate Barcode</span>
               </button>
-              
+
               <button class="btn btn-warning btn-block" onclick="window.pharmaApp.getModule('barcode-dashboard').showBarcodeReports()">
                 <i class="fa fa-chart-bar"></i><br>
                 <span>View Reports</span>
+              </button>
+
+              <button class="btn btn-secondary btn-block" onclick="window.pharmaApp.getModule('barcode-dashboard').printAllBarcodes()">
+                <i class="fa fa-print"></i><br>
+                <span>Print All Barcodes</span>
               </button>
             </div>
           </div>
@@ -551,6 +556,11 @@ class BarcodeDashboard {
   async refreshGenerationHistory() {
     await this.loadGenerationHistory();
     this.render();
+  }
+
+  printAllBarcodes() {
+    // Open the print barcode page in a new window/tab
+    window.open(`${window.api}barcodes/print`, '_blank');
   }
 
   getTimeAgo(timestamp) {

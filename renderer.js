@@ -62,29 +62,72 @@ setTimeout(() => {
     }
 }, 500);
 
-// Test API connectivity
+// Test API connectivity with retry logic
 function testAPIConnection() {
     if (window.api && window.api !== "http://localhost:undefined/api/") {
         console.log('Testing API connectivity to:', window.api);
-        fetch(window.api + 'users/check/')
-            .then(response => {
-                if (response.ok) {
-                    console.log('✅ API connection successful');
-                } else {
-                    console.log('⚠️ API connection failed with status:', response.status);
-                }
-            })
-            .catch(error => {
-                console.error('❌ API connection failed:', error);
-            });
+        
+        // Test multiple endpoints to ensure they're working
+        const testEndpoints = [
+            'users/check/',
+            'inventory/products',
+            'transactions/all'
+        ];
+        
+        let testsCompleted = 0;
+        let testsPassed = 0;
+        
+        testEndpoints.forEach(endpoint => {
+            fetch(window.api + endpoint)
+                .then(response => {
+                    testsCompleted++;
+                    if (response.ok) {
+                        testsPassed++;
+                        console.log(`✅ ${endpoint} - OK`);
+                    } else {
+                        console.log(`⚠️ ${endpoint} - Failed with status:`, response.status);
+                    }
+                    
+                    // After all tests are done
+                    if (testsCompleted === testEndpoints.length) {
+                        if (testsPassed === testEndpoints.length) {
+                            console.log('✅ All API endpoints are working correctly');
+                        } else {
+                            console.log(`⚠️ ${testsPassed}/${testsCompleted} API endpoints are working`);
+                        }
+                    }
+                })
+                .catch(error => {
+                    testsCompleted++;
+                    console.error(`❌ ${endpoint} - Connection failed:`, error);
+                    
+                    // After all tests are done
+                    if (testsCompleted === testEndpoints.length) {
+                        console.log(`⚠️ ${testsPassed}/${testsCompleted} API endpoints are working`);
+                    }
+                });
+        });
     } else {
         console.log('API not configured yet, skipping connectivity test');
     }
 }
 
-// Test API when configured
+// Test API when configured with retry logic
 window.addEventListener('api-configured', () => {
-    setTimeout(testAPIConnection, 500);
+    let retryCount = 0;
+    const maxRetries = 10;
+    
+    const attemptTest = () => {
+        testAPIConnection();
+        
+        // If some endpoints failed, retry after a delay
+        if (retryCount < maxRetries) {
+            retryCount++;
+            setTimeout(attemptTest, 1000); // Retry after 1 second
+        }
+    };
+    
+    setTimeout(attemptTest, 1000); // Start with 1 second delay
 });
 
 // Load application modules

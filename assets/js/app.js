@@ -678,7 +678,7 @@ const posActions = {
     dispatch({ type: 'POS_SET_LOADING', payload: { loading: true } });
 
     try {
-      const response = await fetch(window.api + 'new', {
+      const response = await fetch(window.api + 'transactions/new', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
