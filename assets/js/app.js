@@ -38,7 +38,7 @@ class EventEmitter {
 }
 
 // Browser-compatible Store implementation using localStorage
-class Store {
+class AppStore {
   constructor() {
     this.storage = window.localStorage;
   }
@@ -123,64 +123,6 @@ class AppState extends EventEmitter {
         loading: false
       },
 
-      recipes: {
-        recipes: [],
-        categories: [],
-        menuItems: [],
-        selectedRecipe: null,
-        selectedRecipes: [],
-        filters: {},
-        loading: false
-      },
-
-      kitchen: {
-        orders: [],
-        filteredOrders: [],
-        stations: {},
-        metrics: {},
-        currentStation: 'all',
-        loading: false,
-        lastUpdated: null,
-        soundEnabled: true
-      },
-
-      tables: {
-        tables: [],
-        tableOrders: [],
-        metrics: {},
-        currentView: 'layout',
-        layoutMode: false,
-        selectedTable: null,
-        selectedTableData: null,
-        loading: false,
-        lastUpdated: null,
-        soundEnabled: true
-      },
-
-      combos: {
-        combos: [],
-        categories: [],
-        menuItems: [],
-        currentCombo: null,
-        selectedCombos: [],
-        filteredCombos: [],
-        filters: {},
-        analytics: {},
-        loading: false
-      },
-
-      analytics: {
-        currentView: 'dashboard',
-        dateRange: {
-          start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-          end: new Date()
-        },
-        data: {},
-        loading: false,
-        refreshInterval: null
-      },
-
-      // Removed prescriptions module for restaurant conversion
 
       pos: {
         currentSale: {},
@@ -200,8 +142,6 @@ class AppState extends EventEmitter {
         loading: false,
         alertCount: 0
       },
-
-      // Removed prescriptions module for restaurant conversion
 
       customers: {
         list: [],
@@ -233,7 +173,7 @@ class AppState extends EventEmitter {
     };
 
     // Initialize storage (localStorage)
-    this.storage = (window.localStorage && typeof window.localStorage !== 'undefined') ? new Store() : null;
+    this.storage = (window.localStorage && typeof window.localStorage !== 'undefined') ? new AppStore() : null;
     this.loadPersistedState();
   }
 
@@ -356,8 +296,8 @@ class ViewManager {
   constructor() {
     console.log('=== INITIALIZING VIEWMANAGER ===');
 
-    // Check for module containers in DOM (prescriptions removed for restaurant conversion)
-    const moduleIds = ['dashboard', 'pos', 'inventory', 'recipes', 'kitchen', 'tables', 'combos', 'analytics', 'customers', 'suppliers', 'reports', 'settings'];
+    // Check for module containers in DOM (Garments modules only)
+    const moduleIds = ['dashboard', 'pos', 'inventory', 'customers', 'suppliers', 'reports', 'settings'];
 
     this.modules = new Map();
     moduleIds.forEach(id => {
@@ -374,12 +314,6 @@ class ViewManager {
       'dashboard': 'Dashboard',
       'pos': 'Point of Sale',
       'inventory': 'Inventory Management',
-      'recipes': 'Recipe Management',
-      'kitchen': 'Kitchen Display System',
-      'tables': 'Table Management',
-      'combos': 'Combo Meal Builder',
-      'analytics': 'Restaurant Analytics',
-      // 'prescriptions': 'Prescription Management', // Removed for restaurant conversion
       'customers': 'Customer Management',
       'suppliers': 'Supplier Management',
       'reports': 'Reports & Analytics',
@@ -773,52 +707,6 @@ const posActions = {
   }
 };
 
-// Kitchen actions
-const kitchenActions = {
-  loadOrders: () => async (dispatch) => {
-    dispatch({ type: 'KITCHEN_SET_LOADING', payload: { loading: true } });
-
-    try {
-      const response = await fetch(window.api + 'kitchen/orders');
-      const orders = await response.json();
-
-      dispatch({
-        type: 'KITCHEN_SET_ORDERS',
-        payload: { orders }
-      });
-
-    } catch (error) {
-      dispatch({
-        type: 'APP_SET_ERROR',
-        payload: { error: error.message }
-      });
-    } finally {
-      dispatch({ type: 'KITCHEN_SET_LOADING', payload: { loading: false } });
-    }
-  },
-
-  updateOrderStatus: (orderId, status, itemId = null) => async (dispatch) => {
-    try {
-      const response = await fetch(`${window.api}kitchen/orders/${orderId}/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ status, item_id: itemId })
-      });
-
-      if (response.ok) {
-        dispatch(kitchenActions.loadOrders()); // Refresh orders
-      }
-
-    } catch (error) {
-      dispatch({
-        type: 'APP_SET_ERROR',
-        payload: { error: error.message }
-      });
-    }
-  }
-};
 
 // Inventory actions
 const inventoryActions = {
@@ -972,17 +860,15 @@ async function fetchDashboardMetrics() {
     const inventoryResponse = await fetch(`${window.api}inventory/alerts`);
     const lowStockItems = await inventoryResponse.json();
 
-    // Removed pending prescriptions fetch for restaurant conversion
-
     return {
       todaySales,
       transactions,
       lowStock: lowStockItems.length,
-      // Removed pendingPrescriptions for restaurant conversion
+      pendingPrescriptions: 0, // Garments-specific metric
       salesChange: 0, // TODO: Calculate change from previous day
       transactionChange: 0,
       stockChange: 0,
-      // Removed prescriptionChange for restaurant conversion
+      prescriptionChange: 0, // Garments-specific metric
       salesData: salesData.slice(0, 10) // Last 10 transactions
     };
 
@@ -992,11 +878,11 @@ async function fetchDashboardMetrics() {
       todaySales: 0,
       transactions: 0,
       lowStock: 0,
-      // Removed pendingPrescriptions for restaurant conversion
+      pendingPrescriptions: 0, // Garments-specific metric
       salesChange: 0,
       transactionChange: 0,
       stockChange: 0,
-      // Removed prescriptionChange for restaurant conversion
+      prescriptionChange: 0, // Garments-specific metric
       salesData: []
     };
   }
@@ -1035,7 +921,12 @@ async function loadRecentActivity() {
         timestamp: new Date(Date.now() - 60 * 60 * 1000), // 1 hour ago
         icon: '👥'
       },
-      // Removed prescription verification activity for restaurant conversion
+      {
+        type: 'prescription_verified',
+        message: 'Prescription verified - Dr. Smith',
+        timestamp: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
+        icon: '📋'
+      }
     ];
   } catch (error) {
     console.error('Error loading recent activity:', error);
@@ -1246,10 +1137,6 @@ class foodMineApp {
       DashboardModule: !!window.DashboardModule,
       POSModule: !!window.POSModule,
       InventoryModule: !!window.InventoryModule,
-      RecipesModule: !!window.RecipesModule,
-      KitchenModule: !!window.KitchenModule,
-      TablesModule: !!window.TablesModule,
-      CombosModule: !!window.CombosModule,
       CustomersModule: !!window.CustomersModule,
       SuppliersModule: !!window.SuppliersModule,
       ReportsModule: !!window.ReportsModule,
@@ -1261,12 +1148,6 @@ class foodMineApp {
       ['dashboard', window.DashboardModule],
       ['pos', window.POSModule],
       ['inventory', window.InventoryModule],
-      ['recipes', window.RecipesModule],
-      ['kitchen', window.KitchenModule],
-      ['tables', window.TablesModule],
-      ['combos', window.CombosModule],
-      ['analytics', window.AnalyticsModule],
-      // ['prescriptions', window.PrescriptionsModule], // Removed for restaurant conversion
       ['customers', window.CustomersModule],
       ['suppliers', window.SuppliersModule],
       ['reports', window.ReportsModule],
@@ -1429,19 +1310,6 @@ class foodMineApp {
         }
         break;
 
-      case 'KITCHEN_SET_LOADING':
-        this.state.updateModule('kitchen', {
-          loading: action.payload.loading
-        });
-        break;
-
-      case 'KITCHEN_SET_ORDERS':
-        this.state.updateModule('kitchen', {
-          orders: action.payload.orders,
-          filteredOrders: action.payload.orders
-        });
-        break;
-
       default:
         console.warn('Unknown action type:', action.type);
     }
@@ -1454,31 +1322,7 @@ window.appActions = {
   app: appActions,
   dashboard: dashboardActions,
   pos: posActions,
-  inventory: inventoryActions,
-  kitchen: kitchenActions,
-  combos: {
-    loadCombos: () => async (dispatch) => {
-      dispatch({ type: 'COMBOS_SET_LOADING', payload: { loading: true } });
-      try {
-        const response = await fetch(window.api + 'combos/combos');
-        const combos = await response.json();
-        dispatch({ type: 'COMBOS_SET_COMBOS', payload: { combos } });
-      } catch (error) {
-        dispatch({ type: 'APP_SET_ERROR', payload: { error: error.message } });
-      } finally {
-        dispatch({ type: 'COMBOS_SET_LOADING', payload: { loading: false } });
-      }
-    },
-    loadMenuItems: () => async (dispatch) => {
-      try {
-        const response = await fetch(window.api + 'inventory/products');
-        const menuItems = await response.json();
-        dispatch({ type: 'COMBOS_SET_MENU_ITEMS', payload: { menuItems } });
-      } catch (error) {
-        console.error('Error loading menu items:', error);
-      }
-    }
-  }
+  inventory: inventoryActions
 };
 
 // Initialize app when DOM is ready
@@ -1497,7 +1341,6 @@ if (typeof module !== 'undefined' && module.exports) {
     appActions,
     dashboardActions,
     posActions,
-    inventoryActions,
-    kitchenActions
+    inventoryActions
   };
 }

@@ -80,6 +80,7 @@ express.get('/config', function(req, res) {
 });
 
 express.use("/api/inventory", require("./api/inventory"));
+express.use("/api/inventory-matrix", require("./api/inventory_matrix"));
 express.use("/api/customers", require("./api/customers"));
 express.use("/api/categories", require("./api/categories"));
 express.use("/api/settings", require("./api/settings"));
@@ -94,10 +95,9 @@ express.use("/api", require("./api/transactions"));
 express.use("/api/integration", require("./api/integration"));
 express.use("/api/notifications", require("./api/notifications"));
 express.use("/api/audit-logs", require("./api/audit_logs"));
-express.use("/api/recipes", require("./api/recipes"));
-express.use("/api/kitchen", require("./api/kitchen"));
-express.use("/api/tables", require("./api/tables"));
-express.use("/api/combos", require("./api/combos"));
+express.use("/api/analytics", require("./api/analytics"));
+express.use("/api/advanced_analytics", require("./api/advanced_analytics"));
+// Restaurant APIs removed for Garments focus
 
 global.io = io;
 
@@ -121,6 +121,7 @@ server.listen(PORT, () => {
     // Set up periodic cleanup of temporary database files
     const dbPaths = [
         require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "inventory.db"),
+        require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "inventory_matrix.db"),
         require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "session_logs.db"),
         require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "users.db"),
         require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "transactions.db"),
@@ -128,14 +129,12 @@ server.listen(PORT, () => {
         require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "customers.db"),
         require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "categories.db"),
         require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "settings.db"),
-        require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "recipes.db"), // Added for recipe management
-        require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "kitchen_orders.db"), // Added for kitchen display system
-        require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "tables.db"), // Added for table management
-        require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "combos.db"), // Added for combo meal builder
         // require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "prescriptions.db"), // Removed for restaurant conversion
         require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "purchase_orders.db"),
         require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "contact.db"),
-        require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "audit_logs.db")
+        require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "audit_logs.db"),
+        require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "analytics.db"),
+        require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "advanced_analytics.db")
     ];
     
     // Run cleanup every 10 minutes (increased from 5)

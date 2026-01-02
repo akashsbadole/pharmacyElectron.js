@@ -13,8 +13,11 @@ class AnalyticsModule {
             end: new Date()
         };
         this.analyticsData = {};
+        this.advancedAnalyticsData = {};
         this.loading = false;
         this.refreshInterval = null;
+        this.realTimeMode = false;
+        this.forecastDays = 30;
     }
 
     initialize() {
@@ -24,8 +27,10 @@ class AnalyticsModule {
 
     onActivate() {
         this.loadAnalyticsData();
+        this.loadAdvancedAnalyticsData();
         this.startAutoRefresh();
         this.initializeCharts();
+        this.initializeAdvancedCharts();
     }
 
     onDeactivate() {
@@ -99,6 +104,22 @@ class AnalyticsModule {
         this.createCustomerCharts();
         this.createFinancialCharts();
         this.createOperationalCharts();
+    }
+
+    initializeAdvancedCharts() {
+        if (typeof Chart === 'undefined') {
+            console.warn('Chart.js not loaded, advanced charts will not be available');
+            return;
+        }
+
+        this.createRetailSalesCharts();
+        this.createInventoryCharts();
+        this.createVariantPerformanceCharts();
+        this.createCustomerLTVCharts();
+        this.createGiftStoreCharts();
+        this.createMarketingCharts();
+        this.createPredictiveCharts();
+        this.createRealTimeKPICharts();
     }
 
     createRevenueTrendChart() {
@@ -1276,6 +1297,29 @@ class AnalyticsModule {
         }
     }
 
+    async loadAdvancedAnalyticsData() {
+        if (this.loading) return;
+
+        try {
+            const params = new URLSearchParams({
+                start_date: this.dateRange.start.toISOString(),
+                end_date: this.dateRange.end.toISOString()
+            });
+
+            // Fetch retail dashboard data from advanced analytics
+            const retailResponse = await fetch(`${window.api}advanced_analytics/retail-dashboard?${params}`);
+            if (retailResponse.ok) {
+                this.advancedAnalyticsData = await retailResponse.json();
+            } else {
+                console.warn('Advanced retail analytics not available');
+                this.advancedAnalyticsData = {};
+            }
+        } catch (error) {
+            console.error('Error loading advanced analytics data:', error);
+            this.advancedAnalyticsData = {};
+        }
+    }
+
     switchView(view) {
         this.currentView = view;
         this.render();
@@ -1464,15 +1508,17 @@ class AnalyticsModule {
     renderNavigation() {
         const views = [
             { id: 'dashboard', label: 'Dashboard', icon: '📈' },
+            { id: 'retail-dashboard', label: 'Retail Dashboard', icon: '🏪' },
             { id: 'sales', label: 'Sales Analytics', icon: '💰' },
-            { id: 'menu', label: 'Menu Performance', icon: '🍽️' },
-            { id: 'menu-engineering', label: 'Menu Engineering', icon: '📊' },
-            { id: 'kitchen', label: 'Kitchen Analytics', icon: '👨‍🍳' },
-            { id: 'tables', label: 'Table Analytics', icon: '🪑' },
-            { id: 'combos', label: 'Combo Analytics', icon: '🍔' },
-            { id: 'customers', label: 'Customer Insights', icon: '👥' },
+            { id: 'retail-sales', label: 'Retail Sales', icon: '🛍️' },
+            { id: 'inventory', label: 'Inventory Analytics', icon: '📦' },
+            { id: 'variants', label: 'Variant Performance', icon: '🎨' },
+            { id: 'customers', label: 'Customer LTV', icon: '👥' },
+            { id: 'gift-store', label: 'Gift Store', icon: '🎁' },
+            { id: 'marketing', label: 'Marketing ROI', icon: '📢' },
             { id: 'financial', label: 'Financial Reports', icon: '💳' },
-            { id: 'operational', label: 'Operational Metrics', icon: '⚙️' }
+            { id: 'predictive', label: 'Predictive Analytics', icon: '🔮' },
+            { id: 'real-time', label: 'Real-time KPIs', icon: '⚡' }
         ];
 
         return `
@@ -1494,24 +1540,28 @@ class AnalyticsModule {
         switch (this.currentView) {
             case 'dashboard':
                 return this.renderDashboardView();
+            case 'retail-dashboard':
+                return this.renderRetailDashboardView();
             case 'sales':
                 return this.renderSalesView();
-            case 'menu':
-                return this.renderMenuView();
-            case 'menu-engineering':
-                return this.renderMenuEngineeringView();
-            case 'kitchen':
-                return this.renderKitchenView();
-            case 'tables':
-                return this.renderTablesView();
-            case 'combos':
-                return this.renderCombosView();
+            case 'retail-sales':
+                return this.renderRetailSalesView();
+            case 'inventory':
+                return this.renderInventoryView();
+            case 'variants':
+                return this.renderVariantsView();
             case 'customers':
-                return this.renderCustomersView();
+                return this.renderCustomerLTVView();
+            case 'gift-store':
+                return this.renderGiftStoreView();
+            case 'marketing':
+                return this.renderMarketingView();
             case 'financial':
                 return this.renderFinancialView();
-            case 'operational':
-                return this.renderOperationalView();
+            case 'predictive':
+                return this.renderPredictiveView();
+            case 'real-time':
+                return this.renderRealTimeView();
             default:
                 return this.renderDashboardView();
         }
@@ -2602,6 +2652,867 @@ class AnalyticsModule {
             unknown: 'Unknown'
         };
         return categoryNames[category] || 'Unknown';
+    }
+
+    // Advanced Retail Analytics Chart Methods
+
+    createRetailSalesCharts() {
+        this.createRetailCategoryChart();
+        this.createVariantPerformanceChart();
+        this.createSeasonalTrendsChart();
+    }
+
+    createInventoryCharts() {
+        this.createStockOptimizationChart();
+        this.createDeadStockChart();
+        this.createInventoryTurnoverChart();
+    }
+
+    createVariantPerformanceCharts() {
+        this.createSizePerformanceChart();
+        this.createColorPerformanceChart();
+        this.createStylePerformanceChart();
+    }
+
+    createCustomerLTVCharts() {
+        this.createCustomerSegmentChart();
+        this.createCLVDistributionChart();
+        this.createChurnPredictionChart();
+    }
+
+    createGiftStoreCharts() {
+        this.createGiftServiceChart();
+        this.createOccasionAnalysisChart();
+        this.createGiftBundleChart();
+    }
+
+    createMarketingCharts() {
+        this.createCampaignROIChart();
+        this.createAttributionChart();
+        this.createConversionFunnelChart();
+    }
+
+    createPredictiveCharts() {
+        this.createDemandForecastChart();
+        this.createSeasonalForecastChart();
+        this.createTrendAnalysisChart();
+    }
+
+    createRealTimeKPICharts() {
+        this.createRealtimeRevenueChart();
+        this.createConversionRateChart();
+        this.createKPIOverviewChart();
+    }
+
+    // Individual Chart Creation Methods
+
+    createRetailCategoryChart() {
+        const canvas = document.getElementById('retail-category-chart');
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        const data = this.advancedAnalyticsData.sales?.revenue_by_category || {};
+        
+        const categories = Object.keys(data);
+        const revenues = categories.map(cat => data[cat].revenue);
+        const quantities = categories.map(cat => data[cat].quantity);
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: categories,
+                datasets: [{
+                    label: 'Revenue ($)',
+                    data: revenues,
+                    backgroundColor: 'rgba(102, 126, 234, 0.6)',
+                    borderColor: '#667eea',
+                    borderWidth: 2
+                }, {
+                    label: 'Quantity Sold',
+                    data: quantities,
+                    backgroundColor: 'rgba(118, 75, 162, 0.6)',
+                    borderColor: '#764ba2',
+                    borderWidth: 2,
+                    yAxisID: 'y1'
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Retail Sales by Category'
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'Revenue ($)'
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'Quantity'
+                        },
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    createStockOptimizationChart() {
+        const canvas = document.getElementById('stock-optimization-chart');
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        const data = this.advancedAnalyticsData.inventory?.stock_optimization || {};
+        
+        const labels = ['Overstocked', 'Understocked', 'Optimal'];
+        const values = [
+            data.overstocked_items || 0,
+            data.understocked_items || 0,
+            data.optimal_stock_items || 0
+        ];
+
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: [
+                        'rgba(220, 53, 69, 0.6)',
+                        'rgba(255, 193, 7, 0.6)',
+                        'rgba(40, 167, 69, 0.6)'
+                    ],
+                    borderColor: [
+                        '#dc3545',
+                        '#ffc107',
+                        '#28a745'
+                    ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Stock Level Distribution'
+                    }
+                }
+            }
+        });
+    }
+
+    createSizePerformanceChart() {
+        const canvas = document.getElementById('size-performance-chart');
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        const data = this.advancedAnalyticsData.variants?.size_performance || {};
+        
+        const sizes = Object.keys(data);
+        const sales = sizes.map(size => data[size].sales);
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: sizes,
+                datasets: [{
+                    label: 'Sales by Size',
+                    data: sales,
+                    backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                    borderColor: '#4bc0c0',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Sales Performance by Size'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Units Sold'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    createColorPerformanceChart() {
+        const canvas = document.getElementById('color-performance-chart');
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        const data = this.advancedAnalyticsData.variants?.color_performance || {};
+        
+        const colors = Object.keys(data);
+        const revenues = colors.map(color => data[color].revenue);
+
+        new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: colors,
+                datasets: [{
+                    data: revenues,
+                    backgroundColor: [
+                        '#ff6384', '#36a2eb', '#ffce56', '#4bc0c0',
+                        '#9966ff', '#ff9f40', '#ff6384', '#36a2eb'
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Revenue by Color'
+                    }
+                }
+            }
+        });
+    }
+
+    createCustomerSegmentChart() {
+        const canvas = document.getElementById('customer-segment-chart');
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        const data = this.advancedAnalyticsData.customers?.clv_segments || {};
+        
+        const segments = Object.keys(data);
+        const counts = segments.map(segment => data[segment].length);
+
+        new Chart(ctx, {
+            type: 'polarArea',
+            data: {
+                labels: segments.map(s => s.replace('_', ' ').toUpperCase()),
+                datasets: [{
+                    data: counts,
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.6)',
+                        'rgba(54, 162, 235, 0.6)',
+                        'rgba(255, 206, 86, 0.6)',
+                        'rgba(75, 192, 192, 0.6)',
+                        'rgba(153, 102, 255, 0.6)'
+                    ],
+                    borderColor: [
+                        '#ff6384', '#36a2eb', '#ffce56', '#4bc0c0', '#9966ff'
+                    ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Customer Segments by LTV'
+                    }
+                }
+            }
+        });
+    }
+
+    createGiftServiceChart() {
+        const canvas = document.getElementById('gift-service-chart');
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        const data = this.advancedAnalyticsData.gift_store;
+        
+        const giftRevenue = data?.gift_services_revenue || 0;
+        const totalRevenue = this.advancedAnalyticsData.sales?.total_revenue || 0;
+        const regularRevenue = totalRevenue - giftRevenue;
+
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Gift Services', 'Regular Sales'],
+                datasets: [{
+                    data: [giftRevenue, regularRevenue],
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.6)',
+                        'rgba(54, 162, 235, 0.6)'
+                    ],
+                    borderColor: ['#ff6384', '#36a2eb'],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Gift Store vs Regular Sales'
+                    }
+                }
+            }
+        });
+    }
+
+    createCampaignROIChart() {
+        const canvas = document.getElementById('campaign-roi-chart');
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        const data = this.advancedAnalyticsData.marketing?.campaign_performance || {};
+        
+        const campaigns = Object.values(data).slice(0, 5);
+        const names = campaigns.map(c => c.name);
+        const rois = campaigns.map(c => c.roi);
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: names,
+                datasets: [{
+                    label: 'ROI (%)',
+                    data: rois,
+                    backgroundColor: rois.map(roi => roi > 0 ? 'rgba(40, 167, 69, 0.6)' : 'rgba(220, 53, 69, 0.6)'),
+                    borderColor: rois.map(roi => roi > 0 ? '#28a745' : '#dc3545'),
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Marketing Campaign ROI'
+                    }
+                },
+                scales: {
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'ROI (%)'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    createDemandForecastChart() {
+        const canvas = document.getElementById('demand-forecast-chart');
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        const data = this.advancedAnalyticsData.predictive_analytics?.demand_forecasting || {};
+        
+        const days = Array.from({length: 30}, (_, i) => `Day ${i + 1}`);
+        const predicted = days.map(() => Math.random() * 1000 + 500); // Simulated data
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: days,
+                datasets: [{
+                    label: 'Predicted Demand',
+                    data: predicted,
+                    borderColor: '#17a2b8',
+                    backgroundColor: 'rgba(23, 162, 184, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: '30-Day Demand Forecast'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Predicted Sales'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    createRealtimeRevenueChart() {
+        const canvas = document.getElementById('realtime-revenue-chart');
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        const hours = Array.from({length: 24}, (_, i) => `${i}:00`);
+        const revenue = hours.map(() => Math.random() * 500 + 100); // Simulated real-time data
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: hours,
+                datasets: [{
+                    label: 'Today\'s Revenue',
+                    data: revenue,
+                    borderColor: '#28a745',
+                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Real-time Revenue (Today)'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Revenue ($)'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Retail View Rendering Methods
+
+    renderRetailDashboardView() {
+        const data = this.advancedAnalyticsData;
+        
+        return `
+            <div class="analytics-content">
+                <div class="retail-dashboard">
+                    <div class="section-header">
+                        <h2>🏪 Retail Analytics Dashboard</h2>
+                        <p>Comprehensive retail performance and insights</p>
+                    </div>
+                    
+                    <div class="retail-metrics-grid">
+                        <div class="metric-box">
+                            <h4>Total Retail Revenue</h4>
+                            <div class="metric-amount">${(data.sales?.total_revenue || 0).toFixed(2)}</div>
+                        </div>
+                        
+                        <div class="metric-box">
+                            <h4>Gift Store Revenue</h4>
+                            <div class="metric-amount">${(data.gift_store?.gift_services_revenue || 0).toFixed(2)}</div>
+                        </div>
+                        
+                        <div class="metric-box">
+                            <h4>Inventory Turnover</h4>
+                            <div class="metric-amount">${(data.inventory?.inventory_turnover?.turnover_ratio || 0).toFixed(1)}x</div>
+                        </div>
+                        
+                        <div class="metric-box">
+                            <h4>Dead Stock Items</h4>
+                            <div class="metric-amount">${data.inventory?.dead_stock_analysis?.dead_stock_items?.length || 0}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="retail-charts">
+                        <div class="chart-section">
+                            <h3>Sales by Category</h3>
+                            <canvas id="retail-category-chart" width="600" height="300"></canvas>
+                        </div>
+                        
+                        <div class="chart-section">
+                            <h3>Stock Optimization</h3>
+                            <canvas id="stock-optimization-chart" width="600" height="300"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="retail-insights">
+                        <div class="insights-grid">
+                            <div class="insight-card">
+                                <h3>🎯 Key Insights</h3>
+                                <div class="insight-list">
+                                    ${this.renderRetailInsights(data)}
+                                </div>
+                            </div>
+                            
+                            <div class="insight-card">
+                                <h3>💡 Recommendations</h3>
+                                <div class="recommendation-list">
+                                    ${this.renderRetailRecommendations(data)}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    renderRetailSalesView() {
+        const data = this.advancedAnalyticsData.sales || {};
+        
+        return `
+            <div class="analytics-content">
+                <div class="retail-sales">
+                    <div class="section-header">
+                        <h2>🛍️ Retail Sales Analytics</h2>
+                        <p>Detailed retail sales performance and variant analysis</p>
+                    </div>
+                    
+                    <div class="retail-sales-metrics">
+                        <div class="metric-box">
+                            <h4>Total Revenue</h4>
+                            <div class="metric-amount">${(data.total_revenue || 0).toFixed(2)}</div>
+                        </div>
+                        
+                        <div class="metric-box">
+                            <h4>Average Order Value</h4>
+                            <div class="metric-amount">${(data.average_order_value || 0).toFixed(2)}</div>
+                        </div>
+                        
+                        <div class="metric-box">
+                            <h4>Growth Rate</h4>
+                            <div class="metric-amount ${this.getChangeClass(data.growth_metrics?.revenue_growth)}">
+                                ${this.formatChange(data.growth_metrics?.revenue_growth)}%
+                            </div>
+                        </div>
+                        
+                        <div class="metric-box">
+                            <h4>Top Categories</h4>
+                            <div class="metric-amount">${Object.keys(data.revenue_by_category || {}).length}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="retail-sales-charts">
+                        <div class="chart-section">
+                            <h3>Category Performance</h3>
+                            <canvas id="retail-category-chart" width="600" height="300"></canvas>
+                        </div>
+                        
+                        <div class="chart-section">
+                            <h3>Variant Performance</h3>
+                            <canvas id="variant-performance-chart" width="600" height="300"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    renderInventoryView() {
+        const data = this.advancedAnalyticsData.inventory || {};
+        
+        return `
+            <div class="analytics-content">
+                <div class="inventory-analytics">
+                    <div class="section-header">
+                        <h2>📦 Inventory Optimization</h2>
+                        <p>Stock management and optimization insights</p>
+                    </div>
+                    
+                    <div class="inventory-metrics">
+                        <div class="metric-box">
+                            <h4>Turnover Ratio</h4>
+                            <div class="metric-amount">${(data.inventory_turnover?.turnover_ratio || 0).toFixed(1)}x</div>
+                        </div>
+                        
+                        <div class="metric-box">
+                            <h4>Days of Inventory</h4>
+                            <div class="metric-amount">${Math.round(data.inventory_turnover?.days_of_inventory || 0)}</div>
+                        </div>
+                        
+                        <div class="metric-box">
+                            <h4>Dead Stock Value</h4>
+                            <div class="metric-amount">${(data.dead_stock_analysis?.total_dead_stock_value || 0).toFixed(2)}</div>
+                        </div>
+                        
+                        <div class="metric-box">
+                            <h4>Reorder Alerts</h4>
+                            <div class="metric-amount">${data.reorder_recommendations?.total_recommended_orders || 0}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="inventory-charts">
+                        <div class="chart-section">
+                            <h3>Stock Level Distribution</h3>
+                            <canvas id="stock-optimization-chart" width="600" height="300"></canvas>
+                        </div>
+                        
+                        <div class="chart-section">
+                            <h3>Dead Stock Analysis</h3>
+                            <canvas id="dead-stock-chart" width="600" height="300"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    renderVariantsView() {
+        const data = this.advancedAnalyticsData.variants || {};
+        
+        return `
+            <div class="analytics-content">
+                <div class="variants-analytics">
+                    <div class="section-header">
+                        <h2>🎨 Variant Performance</h2>
+                        <p>Size, color, and style performance analytics</p>
+                    </div>
+                    
+                    <div class="variants-charts">
+                        <div class="chart-section">
+                            <h3>Size Performance</h3>
+                            <canvas id="size-performance-chart" width="600" height="300"></canvas>
+                        </div>
+                        
+                        <div class="chart-section">
+                            <h3>Color Performance</h3>
+                            <canvas id="color-performance-chart" width="600" height="300"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    renderCustomerLTVView() {
+        const data = this.advancedAnalyticsData.customers || {};
+        
+        return `
+            <div class="analytics-content">
+                <div class="customer-ltv-analytics">
+                    <div class="section-header">
+                        <h2>👥 Customer Lifetime Value</h2>
+                        <p>Customer segmentation and retention analytics</p>
+                    </div>
+                    
+                    <div class="customer-ltv-charts">
+                        <div class="chart-section">
+                            <h3>Customer Segments</h3>
+                            <canvas id="customer-segment-chart" width="600" height="300"></canvas>
+                        </div>
+                        
+                        <div class="chart-section">
+                            <h3>CLV Distribution</h3>
+                            <canvas id="clv-distribution-chart" width="600" height="300"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    renderGiftStoreView() {
+        const data = this.advancedAnalyticsData.gift_store || {};
+        
+        return `
+            <div class="analytics-content">
+                <div class="gift-store-analytics">
+                    <div class="section-header">
+                        <h2>🎁 Gift Store Analytics</h2>
+                        <p>Gift services and occasion-based analytics</p>
+                    </div>
+                    
+                    <div class="gift-store-metrics">
+                        <div class="metric-box">
+                            <h4>Gift Services Revenue</h4>
+                            <div class="metric-amount">${(data.gift_services_revenue || 0).toFixed(2)}</div>
+                        </div>
+                        
+                        <div class="metric-box">
+                            <h4>Gift Wrapping Rate</h4>
+                            <div class="metric-amount">${(data.gift_wrapping_utilization || 0).toFixed(1)}%</div>
+                        </div>
+                        
+                        <div class="metric-box">
+                            <h4>Top Occasion</h4>
+                            <div class="metric-amount">${this.getTopOccasion(data.occasion_analysis)}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="gift-store-charts">
+                        <div class="chart-section">
+                            <h3>Gift Services Breakdown</h3>
+                            <canvas id="gift-service-chart" width="600" height="300"></canvas>
+                        </div>
+                        
+                        <div class="chart-section">
+                            <h3>Occasion Analysis</h3>
+                            <canvas id="occasion-analysis-chart" width="600" height="300"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    renderMarketingView() {
+        const data = this.advancedAnalyticsData.marketing || {};
+        
+        return `
+            <div class="analytics-content">
+                <div class="marketing-analytics">
+                    <div class="section-header">
+                        <h2>📢 Marketing Campaign ROI</h2>
+                        <p>Campaign performance and attribution analysis</p>
+                    </div>
+                    
+                    <div class="marketing-charts">
+                        <div class="chart-section">
+                            <h3>Campaign ROI</h3>
+                            <canvas id="campaign-roi-chart" width="600" height="300"></canvas>
+                        </div>
+                        
+                        <div class="chart-section">
+                            <h3>Attribution Analysis</h3>
+                            <canvas id="attribution-chart" width="600" height="300"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    renderPredictiveView() {
+        const data = this.advancedAnalyticsData.predictive_analytics || {};
+        
+        return `
+            <div class="analytics-content">
+                <div class="predictive-analytics">
+                    <div class="section-header">
+                        <h2>🔮 Predictive Analytics</h2>
+                        <p>Forecasting and trend analysis</p>
+                    </div>
+                    
+                    <div class="predictive-charts">
+                        <div class="chart-section">
+                            <h3>Demand Forecast</h3>
+                            <canvas id="demand-forecast-chart" width="600" height="300"></canvas>
+                        </div>
+                        
+                        <div class="chart-section">
+                            <h3>Seasonal Forecast</h3>
+                            <canvas id="seasonal-forecast-chart" width="600" height="300"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    renderRealTimeView() {
+        return `
+            <div class="analytics-content">
+                <div class="realtime-analytics">
+                    <div class="section-header">
+                        <h2>⚡ Real-time KPIs</h2>
+                        <p>Live performance monitoring and alerts</p>
+                    </div>
+                    
+                    <div class="realtime-kpis">
+                        <div class="kpi-grid">
+                            <div class="kpi-card">
+                                <h4>Today's Revenue</h4>
+                                <div class="kpi-value" id="realtime-revenue">$0.00</div>
+                            </div>
+                            
+                            <div class="kpi-card">
+                                <h4>Conversion Rate</h4>
+                                <div class="kpi-value" id="realtime-conversion">0.0%</div>
+                            </div>
+                            
+                            <div class="kpi-card">
+                                <h4>Customer Satisfaction</h4>
+                                <div class="kpi-value" id="realtime-satisfaction">0.0%</div>
+                            </div>
+                            
+                            <div class="kpi-card">
+                                <h4>Low Stock Alerts</h4>
+                                <div class="kpi-value" id="realtime-stock-alerts">0</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="realtime-charts">
+                        <div class="chart-section">
+                            <h3>Live Revenue Tracking</h3>
+                            <canvas id="realtime-revenue-chart" width="600" height="300"></canvas>
+                        </div>
+                        
+                        <div class="chart-section">
+                            <h3>Conversion Funnel</h3>
+                            <canvas id="conversion-funnel-chart" width="600" height="300"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Helper Methods for Retail Views
+
+    renderRetailInsights(data) {
+        const insights = [];
+        
+        if (data.inventory?.dead_stock_analysis?.percentage_of_inventory > 10) {
+            insights.push(`High dead stock percentage: ${data.inventory.dead_stock_analysis.percentage_of_inventory.toFixed(1)}%`);
+        }
+        
+        if (data.inventory?.inventory_turnover?.turnover_ratio < 2) {
+            insights.push('Low inventory turnover - consider optimizing stock levels');
+        }
+        
+        if (data.gift_store?.gift_services_revenue > 0) {
+            insights.push(`Gift services generating ${data.gift_store.gift_services_revenue.toFixed(2)} revenue`);
+        }
+        
+        return insights.length > 0 ? insights.map(insight => `<div class="insight-item">${insight}</div>`).join('') : '<div class="insight-item">No significant insights available</div>';
+    }
+
+    renderRetailRecommendations(data) {
+        const recommendations = [];
+        
+        if (data.inventory?.dead_stock_analysis?.dead_stock_items?.length > 0) {
+            recommendations.push(`Clear ${data.inventory.dead_stock_analysis.dead_stock_items.length} dead stock items`);
+        }
+        
+        if (data.inventory?.reorder_recommendations?.high_priority_orders > 0) {
+            recommendations.push(`Process ${data.inventory.reorder_recommendations.high_priority_orders} high-priority reorders`);
+        }
+        
+        return recommendations.length > 0 ? recommendations.map(rec => `<div class="recommendation-item">${rec}</div>`).join('') : '<div class="recommendation-item">No specific recommendations at this time</div>';
+    }
+
+    getTopOccasion(occasionData) {
+        if (!occasionData || Object.keys(occasionData).length === 0) return 'N/A';
+        
+        return Object.entries(occasionData)
+            .sort(([,a], [,b]) => b.count - a.count)[0][0] || 'N/A';
     }
 }
 

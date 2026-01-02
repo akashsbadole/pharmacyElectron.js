@@ -8,6 +8,23 @@ class POSModule {
     this.container = null;
     this.showPayment = false;
     this.saleType = 'intra'; // intra or inter
+    this.currentLoyaltyProfile = null;
+    this.loyaltyDiscount = 0;
+    this.pointsToEarn = 0;
+    this.availableRedemptions = [];
+    this.giftStoreEnabled = false;
+    this.giftWrappingOptions = [];
+    this.giftBundles = [];
+    this.selectedGiftServices = {};
+    
+    // Enhanced Visual Grid Integration
+    this.visualGridEnabled = true;
+    this.currentViewMode = 'visual'; // 'visual' or 'traditional'
+    this.mobileView = false;
+    this.productDisplayMode = 'grid'; // 'grid', 'list', 'compact'
+    this.enableDragAndDrop = true;
+    this.recentlyViewedProducts = this.loadRecentlyViewedProducts();
+    this.wishlist = this.loadWishlist();
   }
   
   initialize() {
@@ -40,10 +57,72 @@ class POSModule {
         const transId = $("#viewTransaction").attr('data-id');
         if (transId) this.shareEmail(transId);
     });
+    
+    // Initialize gift store features
+    this.initializeGiftStore();
+    
+    // Initialize Enhanced Visual Grid System
+    this.initializeEnhancedVisualGrid();
+    
+    // Setup mobile detection and responsive behavior
+    this.setupMobileOptimization();
+    
+    // Initialize customer experience features
+    this.initializeCustomerExperience();
+  }
+  
+  async initializeGiftStore() {
+    try {
+      // Enable gift store features
+      this.giftStoreEnabled = true;
+      
+      // Load gift store data
+      await Promise.all([
+        this.loadGiftWrappingOptions(),
+        this.loadGiftBundles()
+      ]);
+      
+      console.log('Gift store features initialized successfully');
+    } catch (error) {
+      console.error('Error initializing gift store features:', error);
+      this.giftStoreEnabled = false;
+    }
+  }
+  
+  async loadGiftWrappingOptions() {
+    try {
+      const response = await fetch(`${window.api}gift_store/wrapping/styles`);
+      const wrappingOptions = await response.json();
+      
+      this.giftWrappingOptions = wrappingOptions.filter(w => w.availability?.is_available);
+    } catch (error) {
+      console.error('Error loading gift wrapping options:', error);
+      this.giftWrappingOptions = [];
+    }
+  }
+  
+  async loadGiftBundles() {
+    try {
+      const response = await fetch(`${window.api}gift_store/bundles/available`);
+      const bundles = await response.json();
+      
+      this.giftBundles = bundles.filter(b => b.availability?.is_available);
+    } catch (error) {
+      console.error('Error loading gift bundles:', error);
+      this.giftBundles = [];
+    }
   }
   
   onActivate() {
     this.loadInitialData();
+    
+    // Load enhanced visual grid if enabled
+    if (this.visualGridEnabled) {
+      this.renderEnhancedVisualInterface();
+    }
+    
+    // Setup mobile-optimized interface if needed
+    this.setupMobileInterface();
   }
   
   async loadInitialData() {
@@ -134,10 +213,22 @@ class POSModule {
     }
   }
   
-  selectCustomer(customerId) {
+  async selectCustomer(customerId) {
     const customers = this.app.state.getModuleState('pos').customers;
     const customer = customers.find(c => c._id == customerId);
+    
+    // Load loyalty profile if customer is selected
+    if (customer && customerId) {
+      await this.loadCustomerLoyaltyProfile(customerId);
+    } else {
+      this.currentLoyaltyProfile = null;
+      this.loyaltyDiscount = 0;
+      this.pointsToEarn = 0;
+      this.availableRedemptions = [];
+    }
+    
     this.app.state.updateModule('pos', { currentCustomer: customer || null });
+    this.render();
   }
   
   cancelSale() {
@@ -248,6 +339,11 @@ class POSModule {
       
       const result = await response.json();
       
+      // Award loyalty points if customer is selected
+      if (paymentData.customer && paymentData.customer._id && this.pointsToEarn > 0) {
+        await this.awardLoyaltyPoints(paymentData.customer._id, this.pointsToEarn, 'Purchase', paymentData.total);
+      }
+      
       // Clear cart and reset state
       this.app.state.updateModule('pos', { 
         cart: [], 
@@ -261,9 +357,13 @@ class POSModule {
         dashboard.loadDashboardData();
       }
       
-      // Show success message
+      // Show success message with loyalty info
+      const loyaltyMessage = this.pointsToEarn > 0 ? 
+        `Transaction completed! You earned ${this.pointsToEarn} loyalty points.` :
+        'Transaction completed successfully!';
+        
       if (window.notiflix) {
-        window.notiflix.Report.success('Sale Completed', 'Transaction completed successfully!', 'Ok');
+        window.notiflix.Report.success('Sale Completed', loyaltyMessage, 'Ok');
       }
       
       return result;
@@ -287,40 +387,89 @@ class POSModule {
     const cart = posState.cart;
     
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const discount = 0; // TODO: Get from form
     
-    let cgst = 0, sgst = 0, igst = 0, totalTax = 0;
-    
-    if (settings.charge_tax) {
-        const taxableAmount = subtotal - discount;
-        if (this.saleType === 'intra') {
-            const cgstRate = parseFloat(settings.cgst || 0) / 100;
-            const sgstRate = parseFloat(settings.sgst || 0) / 100;
-            cgst = taxableAmount * cgstRate;
-            sgst = taxableAmount * sgstRate;
-        } else {
-            const igstRate = parseFloat(settings.igst || 0) / 100;
-            igst = taxableAmount * igstRate;
+    // Calculate automatic promotions
+    this.calculatePromotions().then(promoResult => {
+      const totalDiscount = parseFloat(promoResult.total_discount || 0);
+      this.updateCartDisplayWithPromotions(promoResult);
+      
+      let cgst = 0, sgst = 0, igst = 0, totalTax = 0;
+      
+      if (settings.charge_tax) {
+          const taxableAmount = subtotal - totalDiscount;
+          if (this.saleType === 'intra') {
+              const cgstRate = parseFloat(settings.cgst || 0) / 100;
+              const sgstRate = parseFloat(settings.sgst || 0) / 100;
+              cgst = taxableAmount * cgstRate;
+              sgst = taxableAmount * sgstRate;
+          } else {
+              const igstRate = parseFloat(settings.igst || 0) / 100;
+              igst = taxableAmount * igstRate;
+          }
+          totalTax = cgst + sgst + igst;
+      }
+      
+      const total = subtotal - totalDiscount + totalTax;
+      
+      this.app.state.updateModule('pos', {
+        cartTotals: {
+          subtotal: subtotal.toFixed(2),
+          discount: totalDiscount.toFixed(2),
+          tax: totalTax.toFixed(2),
+          cgst: cgst.toFixed(2),
+          sgst: sgst.toFixed(2),
+          igst: igst.toFixed(2),
+          total: total.toFixed(2),
+          items: cart.length,
+          promotions: promoResult
         }
-        totalTax = cgst + sgst + igst;
-    }
+      });
+      
+      this.render(); // Re-render to show updated totals
+    });
     
-    const total = subtotal - discount + totalTax;
+    // Return current totals while promotions are being calculated
+    const currentDiscount = posState.cartTotals?.discount || 0;
+    const currentTotal = subtotal - currentDiscount;
     
     return {
       subtotal: subtotal.toFixed(2),
-      discount: discount.toFixed(2),
-      tax: totalTax.toFixed(2),
-      cgst: cgst.toFixed(2),
-      sgst: sgst.toFixed(2),
-      igst: igst.toFixed(2),
-      total: total.toFixed(2),
+      discount: currentDiscount.toFixed(2),
+      tax: '0.00',
+      cgst: '0.00',
+      sgst: '0.00',
+      igst: '0.00',
+      total: currentTotal.toFixed(2),
       items: cart.length
     };
   }
   
   async searchProduct(barcode) {
     try {
+      // First try variant barcode lookup
+      const variantResponse = await fetch(`${window.api}barcode/variant/${encodeURIComponent(barcode)}`);
+      
+      if (variantResponse.ok) {
+        const variantData = await variantResponse.json();
+        
+        if (variantData.type === 'variant') {
+          // Found a variant - show variant selection modal
+          return {
+            ...variantData,
+            is_variant: true,
+            needs_variant_selection: true
+          };
+        } else if (variantData.type === 'product') {
+          // Found a regular product
+          return {
+            ...variantData.product,
+            is_variant: false,
+            tracking_method: 'aggregate'
+          };
+        }
+      }
+      
+      // Fallback to regular product search
       const response = await fetch(`${window.api}inventory/product/sku`, {
         method: 'POST',
         headers: {
@@ -330,7 +479,11 @@ class POSModule {
       });
       
       const product = await response.json();
-      return product;
+      return {
+        ...product,
+        is_variant: false,
+        tracking_method: 'aggregate'
+      };
     } catch (error) {
       console.error('Product search failed:', error);
       return null;
@@ -391,6 +544,7 @@ class POSModule {
                 <i class="fa fa-plus"></i>
               </button>
             </div>
+            ${this.renderLoyaltyInfo()}
           </div>
         </div>
       </div>
@@ -504,6 +658,22 @@ class POSModule {
                 </div>
             </div>
             
+            <!-- Promotion Controls -->
+            <div class="promotion-controls mt-3 flex gap-2">
+                <button class="btn btn-info btn-sm" onclick="window.pharmaApp.getModule('pos').showPromotionCodeEntry()">
+                    <i class="fa fa-ticket"></i> Apply Code
+                </button>
+                <button class="btn btn-success btn-sm" onclick="window.pharmaApp.getModule('pos').showPromotionDetails()">
+                    <i class="fa fa-tags"></i> View Promotions
+                </button>
+            </div>
+            
+            <!-- Promotion Badge -->
+            <div class="promotion-badge mt-2 p-2 bg-green-50 rounded border-l-4 border-green-400" style="display: none;">
+                <i class="fa fa-tags text-success"></i>
+                <span class="text-success font-medium"></span>
+            </div>
+            
             ${cart.length > 0 ? this.renderCartTotals(totals) : ''}
           </div>
         </div>
@@ -512,6 +682,13 @@ class POSModule {
   }
   
   renderCartTotals(totals) {
+    const posState = this.app.state.getModuleState('pos');
+    const cartTotals = posState.cartTotals;
+    const promotions = cartTotals?.promotions;
+    
+    const totalDiscount = (parseFloat(totals.discount) + this.loyaltyDiscount).toFixed(2);
+    const finalTotal = (parseFloat(totals.total) - this.loyaltyDiscount).toFixed(2);
+    
     return `
       <div class="cart-totals mt-4 p-4 bg-gray-50 rounded">
         <div class="flex justify-between mb-2">
@@ -520,32 +697,83 @@ class POSModule {
         </div>
         <div class="flex justify-between mb-2">
           <span>Subtotal:</span>
-          <span>$${totals.subtotal}</span>
+          <span>₹${totals.subtotal}</span>
         </div>
+        
         ${totals.cgst > 0 ? `
             <div class="flex justify-between mb-1 text-sm text-gray-600">
                 <span>CGST:</span>
-                <span>$${totals.cgst}</span>
+                <span>₹${totals.cgst}</span>
             </div>
             <div class="flex justify-between mb-1 text-sm text-gray-600">
                 <span>SGST:</span>
-                <span>$${totals.sgst}</span>
+                <span>₹${totals.sgst}</span>
             </div>
         ` : ''}
         ${totals.igst > 0 ? `
             <div class="flex justify-between mb-1 text-sm text-gray-600">
                 <span>IGST:</span>
-                <span>$${totals.igst}</span>
+                <span>₹${totals.igst}</span>
             </div>
         ` : ''}
+        
+        ${promotions && promotions.applicable_promotions.length > 0 ? `
+            <div class="discount-breakdown mb-2">
+                <div class="flex justify-between text-sm text-green-600">
+                    <span>Promotions Applied:</span>
+                    <span>-₹${totals.discount}</span>
+                </div>
+                <div class="text-xs text-gray-500 mt-1">
+                    ${promotions.applicable_promotions.map(promo => 
+                        `${promo.rule_name || promo.campaign_name}: ₹${promo.discount_amount.toFixed(2)}`
+                    ).join(', ')}
+                </div>
+            </div>
+        ` : ''}
+        
+        ${this.loyaltyDiscount > 0 ? `
+            <div class="loyalty-discount mb-2">
+                <div class="flex justify-between text-sm text-primary">
+                    <span><i class="fa fa-star"></i> Loyalty Discount:</span>
+                    <span>-₹${this.loyaltyDiscount.toFixed(2)}</span>
+                </div>
+                <div class="text-xs text-muted mt-1">
+                    ${this.currentLoyaltyProfile?.tier?.tier?.toUpperCase() || 'BRONZE'} Member Benefit
+                </div>
+            </div>
+        ` : ''}
+        
         <div class="flex justify-between mb-2 font-medium">
           <span>Total Tax:</span>
-          <span>$${totals.tax}</span>
+          <span>₹${totals.tax}</span>
         </div>
+        
         <div class="flex justify-between font-bold text-lg border-t pt-2">
           <span>TOTAL:</span>
-          <span>$${totals.total}</span>
+          <span class="${totalDiscount > 0 ? 'text-green-600' : ''}">₹${finalTotal}</span>
         </div>
+        
+        ${(totalDiscount > 0 || this.loyaltyDiscount > 0) ? `
+            <div class="text-center text-sm text-green-600 mt-2">
+                <i class="fa fa-check-circle"></i> You saved ₹${totalDiscount}!
+            </div>
+        ` : ''}
+        
+        ${this.pointsToEarn > 0 ? `
+            <div class="loyalty-points-info mt-3 p-2 bg-blue-50 rounded border-l-4 border-blue-400">
+                <div class="text-sm text-blue-800">
+                    <i class="fa fa-gift"></i> You'll earn <strong>${this.pointsToEarn}</strong> loyalty points with this purchase!
+                </div>
+            </div>
+        ` : ''}
+        
+        ${this.availableRedemptions.length > 0 ? `
+            <div class="available-rewards mt-2">
+                <button class="btn btn-outline-primary btn-sm w-100" onclick="window.pharmaApp.getModule('pos').showLoyaltyRewardsModal()">
+                    <i class="fa fa-star"></i> Redeem Points (${this.currentLoyaltyProfile?.points?.balance || 0} available)
+                </button>
+            </div>
+        ` : ''}
       </div>
     `;
   }
@@ -561,10 +789,41 @@ class POSModule {
             <i class="fa fa-hand-paper-o"></i> Hold
           </button>
         </div>
+        
+        <!-- Gift Store Actions -->
+        ${this.giftStoreEnabled ? `
+          <div class="gift-actions mt-3 pt-3 border-t border-gray-200">
+            <div class="flex gap-2 mb-3">
+              <button class="btn btn-sm btn-purple" onclick="window.pharmaApp.getModule('pos').showGiftServicesModal()" 
+                      ${totals.items === 0 ? 'disabled' : ''}>
+                <i class="fa fa-gift"></i> Add Gift Services
+              </button>
+              <button class="btn btn-sm btn-cyan" onclick="window.pharmaApp.getModule('pos').showGiftBundleSelector()" 
+                      ${this.giftBundles.length === 0 ? 'disabled' : ''}>
+                <i class="fa fa-box"></i> Add Gift Bundle
+              </button>
+            </div>
+            
+            ${Object.keys(this.selectedGiftServices).length > 0 ? `
+              <div class="selected-gift-services p-2 bg-purple-50 rounded border border-purple-200">
+                <div class="text-xs text-purple-800 font-medium mb-1">Selected Gift Services:</div>
+                <div class="text-xs text-purple-600">
+                  ${this.selectedGiftServices.gift_wrapping ? `Gift Wrapping (₹${this.selectedGiftServices.gift_wrapping.cost})` : ''}
+                  ${this.selectedGiftServices.gift_receipt ? ' | Gift Receipt' : ''}
+                  ${this.selectedGiftServices.gift_card ? ` | Gift Card (₹${this.selectedGiftServices.gift_card.value})` : ''}
+                </div>
+                <div class="text-xs text-purple-600 mt-1">
+                  Total Gift Services: ₹${this.calculateGiftServicesTotal().toFixed(2)}
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        ` : ''}
+        
         <button class="btn btn-success btn-lg w-full mt-3" 
                 onclick="window.pharmaApp.getModule('pos').showPaymentInterface()"
                 ${totals.items === 0 ? 'disabled' : ''}>
-          <i class="fa fa-money"></i> Pay $${totals.total}
+          <i class="fa fa-money"></i> Pay ₹${totals.total}
         </button>
       </div>
     `;
@@ -576,15 +835,32 @@ class POSModule {
   }
   
   renderPaymentInterface(totals) {
+    const giftServicesTotal = this.calculateGiftServicesTotal();
+    const finalTotal = parseFloat(totals.total) + giftServicesTotal;
+    
     return `
       <div class="payment-modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <div class="bg-white rounded-lg p-6 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
           <div class="flex justify-between items-center mb-4">
             <h3 class="text-lg font-semibold">Payment</h3>
             <button onclick="window.pharmaApp.getModule('pos').hidePaymentInterface()" class="text-gray-500">
               <i class="fa fa-times"></i>
             </button>
           </div>
+          
+          ${giftServicesTotal > 0 ? `
+            <div class="gift-services-summary mb-4 p-3 bg-purple-50 rounded border border-purple-200">
+              <h5 class="font-medium mb-2 text-purple-800">Gift Services Selected</h5>
+              <div class="text-sm text-purple-600">
+                ${this.selectedGiftServices.gift_wrapping ? `Gift Wrapping: ₹${this.selectedGiftServices.gift_wrapping.cost.toFixed(2)}` : ''}
+                ${this.selectedGiftServices.gift_receipt ? '<br>Gift Receipt: Free' : ''}
+                ${this.selectedGiftServices.gift_card ? `<br>Gift Card: ₹${this.selectedGiftServices.gift_card.value.toFixed(2)}` : ''}
+              </div>
+              <div class="text-sm font-medium text-purple-800 mt-1">
+                Gift Services Total: ₹${giftServicesTotal.toFixed(2)}
+              </div>
+            </div>
+          ` : ''}
           
           <div class="payment-methods mb-4">
             <label class="form-label">Payment Mode</label>
@@ -599,26 +875,91 @@ class POSModule {
             <input type="hidden" id="selectedPaymentMethod" value="Cash">
           </div>
           
+          <!-- Gift Card Payment Option -->
+          ${this.selectedGiftServices.gift_card ? `
+            <div class="gift-card-payment mb-4 p-3 bg-pink-50 rounded border border-pink-200">
+              <h5 class="font-medium mb-2 text-pink-800">Gift Card Payment</h5>
+              <div class="form-group mb-2">
+                <label class="form-label">Gift Card Number</label>
+                <input type="text" class="form-input" id="giftCardNumber" placeholder="GC-XXXX-XXXX-XXXX">
+              </div>
+              <div class="form-group mb-2">
+                <label class="form-label">PIN (if required)</label>
+                <input type="password" class="form-input" id="giftCardPIN" placeholder="4-digit PIN">
+              </div>
+              <div class="text-sm text-pink-600">
+                Available: ₹${this.selectedGiftServices.gift_card.value.toFixed(2)}
+              </div>
+            </div>
+          ` : ''}
+          
           <div class="payment-amount mb-4">
             <label class="form-label">Amount Paid</label>
             <input type="number" class="form-input" id="paymentAmount" step="0.01" 
-                   placeholder="0.00" onchange="window.pharmaApp.getModule('pos').calculateChange()">
+                   placeholder="${finalTotal.toFixed(2)}" value="${finalTotal.toFixed(2)}"
+                   onchange="window.pharmaApp.getModule('pos').calculateChange()">
           </div>
           
           <div class="payment-calculation mb-4">
             <div class="flex justify-between mb-2">
+              <span>Subtotal:</span>
+              <span>₹${totals.subtotal}</span>
+            </div>
+            ${totals.discount > 0 ? `
+                <div class="flex justify-between mb-2 text-sm text-green-600">
+                    <span>Promotions:</span>
+                    <span>-₹${totals.discount}</span>
+                </div>
+            ` : ''}
+            <div class="flex justify-between mb-2">
+              <span>Tax:</span>
+              <span>₹${totals.tax}</span>
+            </div>
+            ${giftServicesTotal > 0 ? `
+              <div class="flex justify-between mb-2 text-sm text-purple-600">
+                <span>Gift Services:</span>
+                <span>₹${giftServicesTotal.toFixed(2)}</span>
+              </div>
+            ` : ''}
+            <div class="flex justify-between mb-2 font-bold text-lg border-t pt-2">
               <span>Total:</span>
-              <span>$${totals.total}</span>
+              <span>₹${finalTotal.toFixed(2)}</span>
             </div>
             <div class="flex justify-between mb-2">
               <span>Paid:</span>
-              <span id="amountPaid">$0.00</span>
+              <span id="amountPaid">₹${finalTotal.toFixed(2)}</span>
             </div>
             <div class="flex justify-between font-bold">
               <span>Change:</span>
-              <span id="changeAmount">$0.00</span>
+              <span id="changeAmount">₹0.00</span>
             </div>
+            ${totals.discount > 0 ? `
+                <div class="text-center text-sm text-green-600 mt-2 p-2 bg-green-50 rounded">
+                    <i class="fa fa-tags"></i> You saved ₹${totals.discount} with promotions!
+                </div>
+            ` : ''}
           </div>
+          
+          <!-- Gift Receipt Options -->
+          ${this.selectedGiftServices.gift_receipt ? `
+            <div class="gift-receipt-options mb-4 p-3 bg-cyan-50 rounded border border-cyan-200">
+              <h5 class="font-medium mb-2 text-cyan-800">Gift Receipt Options</h5>
+              <div class="grid grid-cols-2 gap-2">
+                <button class="btn btn-sm btn-outline-cyan" onclick="window.pharmaApp.getModule('pos').previewGiftReceipt()">
+                  <i class="fa fa-eye"></i> Preview
+                </button>
+                <button class="btn btn-sm btn-outline-cyan" onclick="window.pharmaApp.getModule('pos').emailGiftReceipt()">
+                  <i class="fa fa-envelope"></i> Email
+                </button>
+                <button class="btn btn-sm btn-outline-cyan" onclick="window.pharmaApp.getModule('pos').downloadGiftReceipt()">
+                  <i class="fa fa-download"></i> Download
+                </button>
+                <button class="btn btn-sm btn-outline-cyan" onclick="window.pharmaApp.getModule('pos').printGiftReceipt()">
+                  <i class="fa fa-print"></i> Print
+                </button>
+              </div>
+            </div>
+          ` : ''}
           
           <div class="flex gap-3">
             <button class="btn btn-secondary flex-1" onclick="window.pharmaApp.getModule('pos').hidePaymentInterface()">
@@ -639,13 +980,25 @@ class POSModule {
     const barcode = document.getElementById('barcodeInput').value.trim();
     
     if (barcode) {
+      this.showBarcodeFeedback('scanning', 'Scanning barcode...');
+      
       const product = await this.searchProduct(barcode);
+      
       if (product) {
-        this.addToCart(product);
-        document.getElementById('barcodeInput').value = '';
+        if (product.is_variant && product.needs_variant_selection) {
+          // Show variant selection modal
+          this.showVariantSelectionModal(product);
+          this.showBarcodeFeedback('success', 'Variant found - select specific variant');
+        } else {
+          // Direct product add to cart
+          this.addToCart(product);
+          this.showBarcodeFeedback('success', `${product.name} added to cart`);
+          document.getElementById('barcodeInput').value = '';
+        }
       } else {
+        this.showBarcodeFeedback('error', 'Product not found');
         if (window.notiflix) {
-          window.notiflix.Report.warning('Not Found', 'Product not found', 'Ok');
+          window.notiflix.Report.warning('Not Found', 'Product or variant not found', 'Ok');
         }
       }
     }
@@ -873,8 +1226,1342 @@ class POSModule {
     const total = parseFloat(totals.total);
     const change = Math.max(0, paid - total);
     
-    document.getElementById('amountPaid').textContent = `$${paid.toFixed(2)}`;
-    document.getElementById('changeAmount').textContent = `$${change.toFixed(2)}`;
+    document.getElementById('amountPaid').textContent = `${paid.toFixed(2)}`;
+    document.getElementById('changeAmount').textContent = `${change.toFixed(2)}`;
+  }
+  
+  /**
+   * GIFT STORE INTEGRATION METHODS
+   */
+  
+  calculateGiftServicesTotal() {
+    let total = 0;
+    
+    if (this.selectedGiftServices.gift_wrapping) {
+      total += this.selectedGiftServices.gift_wrapping.cost;
+    }
+    
+    if (this.selectedGiftServices.gift_card) {
+      total += this.selectedGiftServices.gift_card.value;
+    }
+    
+    return total;
+  }
+  
+  showGiftServicesModal() {
+    const posState = this.app.state.getModuleState('pos');
+    const cart = posState.cart || [];
+    
+    const modalHtml = `
+      <div class="gift-services-modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" 
+           id="giftServicesModal">
+        <div class="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold">
+              <i class="fa fa-gift text-purple-600"></i> Gift Services
+            </h3>
+            <button onclick="window.pharmaApp.getModule('pos').hideGiftServicesModal()" class="text-gray-500">
+              <i class="fa fa-times"></i>
+            </button>
+          </div>
+          
+          <div class="gift-services-content">
+            <!-- Cart Items Overview -->
+            <div class="cart-overview mb-6 p-4 bg-gray-50 rounded">
+              <h5 class="font-medium mb-3">Current Order (${cart.length} items)</h5>
+              <div class="max-h-32 overflow-y-auto">
+                ${cart.map(item => `
+                  <div class="flex justify-between text-sm py-1">
+                    <span>${item.product_name} x ${item.quantity}</span>
+                    <span>₹${(item.price * item.quantity).toFixed(2)}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+            
+            <!-- Gift Services Tabs -->
+            <div class="gift-services-tabs mb-4">
+              <ul class="nav nav-tabs" role="tablist">
+                <li role="presentation" class="active">
+                  <a href="#giftWrappingTab" aria-controls="wrapping" role="tab" data-toggle="tab">
+                    <i class="fa fa-gift"></i> Gift Wrapping
+                  </a>
+                </li>
+                <li role="presentation">
+                  <a href="#giftReceiptTab" aria-controls="receipt" role="tab" data-toggle="tab">
+                    <i class="fa fa-receipt"></i> Gift Receipt
+                  </a>
+                </li>
+                <li role="presentation">
+                  <a href="#giftCardTab" aria-controls="card" role="tab" data-toggle="tab">
+                    <i class="fa fa-credit-card"></i> Gift Card
+                  </a>
+                </li>
+              </ul>
+            </div>
+            
+            <div class="tab-content">
+              <!-- Gift Wrapping Tab -->
+              <div role="tabpanel" class="tab-pane active" id="giftWrappingTab">
+                ${this.renderGiftWrappingTab()}
+              </div>
+              
+              <!-- Gift Receipt Tab -->
+              <div role="tabpanel" class="tab-pane" id="giftReceiptTab">
+                ${this.renderGiftReceiptTab()}
+              </div>
+              
+              <!-- Gift Card Tab -->
+              <div role="tabpanel" class="tab-pane" id="giftCardTab">
+                ${this.renderGiftCardTab()}
+              </div>
+            </div>
+            
+            <!-- Summary -->
+            <div class="gift-services-summary mt-6 p-4 bg-purple-50 rounded border border-purple-200">
+              <h5 class="font-medium mb-3">Selected Services Summary</h5>
+              <div id="servicesSummary">
+                ${this.renderServicesSummary()}
+              </div>
+            </div>
+            
+            <div class="flex justify-end gap-3 mt-6">
+              <button class="btn btn-secondary" onclick="window.pharmaApp.getModule('pos').hideGiftServicesModal()">
+                Cancel
+              </button>
+              <button class="btn btn-purple" onclick="window.pharmaApp.getModule('pos').applyGiftServices()">
+                <i class="fa fa-check"></i> Apply Services
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  }
+  
+  renderGiftWrappingTab() {
+    if (this.giftWrappingOptions.length === 0) {
+      return `
+        <div class="text-center text-gray-500 py-8">
+          <i class="fa fa-gift text-4xl mb-2"></i>
+          <div>No gift wrapping options available</div>
+        </div>
+      `;
+    }
+    
+    return `
+      <div class="gift-wrapping-tab">
+        <div class="form-group mb-4">
+          <label class="form-label">
+            <input type="checkbox" id="includeGiftWrapping" class="mr-2" 
+                   ${this.selectedGiftServices.gift_wrapping ? 'checked' : ''}
+                   onchange="window.pharmaApp.getModule('pos').toggleGiftWrapping(this.checked)">
+            Include Gift Wrapping
+          </label>
+        </div>
+        
+        <div class="wrapping-options" id="wrappingOptions">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            ${this.giftWrappingOptions.map(style => `
+              <div class="wrapping-option border rounded p-3 cursor-pointer ${
+                this.selectedGiftServices.gift_wrapping?.style_id === style.style_id ? 'border-purple-500 bg-purple-50' : 'hover:border-gray-300'
+              }" 
+                   onclick="window.pharmaApp.getModule('pos').selectGiftWrapping('${style.style_id}')">
+                <div class="flex justify-between items-start">
+                  <div class="flex-1">
+                    <div class="font-medium">${style.style_name}</div>
+                    <div class="text-sm text-gray-600">${style.details?.description || ''}</div>
+                    <div class="text-xs text-gray-500 mt-1">
+                      <i class="fa fa-tag"></i> ${style.style_category}
+                    </div>
+                  </div>
+                  <div class="text-right">
+                    <div class="font-bold text-green-600">₹${style.details?.cost?.toFixed(2) || '0.00'}</div>
+                    <div class="text-xs text-gray-500">per item</div>
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        
+        <div class="wrapping-cost mt-4 p-3 bg-gray-50 rounded">
+          <div class="flex justify-between">
+            <span>Gift Wrapping Cost:</span>
+            <span id="wrappingCost" class="font-medium">₹${(this.selectedGiftServices.gift_wrapping?.cost || 0).toFixed(2)}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  
+  renderGiftReceiptTab() {
+    return `
+      <div class="gift-receipt-tab">
+        <div class="form-group mb-4">
+          <label class="form-label">
+            <input type="checkbox" id="includeGiftReceipt" class="mr-2"
+                   ${this.selectedGiftServices.gift_receipt ? 'checked' : ''}
+                   onchange="window.pharmaApp.getModule('pos').toggleGiftReceipt(this.checked)">
+            Generate Gift Receipt (no prices)
+          </label>
+        </div>
+        
+        <div id="giftReceiptOptions" style="${this.selectedGiftServices.gift_receipt ? '' : 'display: none;'}">
+          <div class="form-group mb-3">
+            <label class="form-label">Gift Message</label>
+            <textarea class="form-input" id="giftMessage" rows="3" 
+                      placeholder="Personal message for the recipient...">${this.selectedGiftServices.gift_receipt?.message || ''}</textarea>
+          </div>
+          
+          <div class="grid grid-cols-2 gap-3">
+            <div class="form-group">
+              <label class="form-label">Recipient Name</label>
+              <input type="text" class="form-input" id="giftRecipientName" 
+                     value="${this.selectedGiftServices.gift_receipt?.recipient_name || ''}"
+                     placeholder="Recipient's name">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Recipient Contact</label>
+              <input type="text" class="form-input" id="giftRecipientContact" 
+                     value="${this.selectedGiftServices.gift_receipt?.recipient_contact || ''}"
+                     placeholder="Email or phone">
+            </div>
+          </div>
+          
+          <div class="form-group mb-3">
+            <label class="form-label">
+              <input type="checkbox" id="anonymousGift" class="mr-2"
+                     ${this.selectedGiftServices.gift_receipt?.anonymous ? 'checked' : ''}>
+              Anonymous Gift
+            </label>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  
+  renderGiftCardTab() {
+    return `
+      <div class="gift-card-tab">
+        <div class="form-group mb-4">
+          <label class="form-label">
+            <input type="checkbox" id="includeGiftCard" class="mr-2"
+                   ${this.selectedGiftServices.gift_card ? 'checked' : ''}
+                   onchange="window.pharmaApp.getModule('pos').toggleGiftCard(this.checked)">
+            Include Gift Card
+          </label>
+        </div>
+        
+        <div id="giftCardOptions" style="${this.selectedGiftServices.gift_card ? '' : 'display: none;'}">
+          <div class="form-group mb-3">
+            <label class="form-label">Gift Card Value (₹)</label>
+            <input type="number" class="form-input" id="giftCardValue" min="1" step="1"
+                   value="${this.selectedGiftServices.gift_card?.value || ''}"
+                   placeholder="100"
+                   onchange="window.pharmaApp.getModule('pos').updateGiftCardValue(this.value)">
+          </div>
+          
+          <div class="form-group mb-3">
+            <label class="form-label">Gift Card Message</label>
+            <textarea class="form-input" id="giftCardMessage" rows="2" 
+                      placeholder="Message on the gift card...">${this.selectedGiftServices.gift_card?.message || ''}</textarea>
+          </div>
+          
+          <div class="gift-card-preview mt-4 p-3 border rounded">
+            <h6 class="font-medium mb-2">Gift Card Preview</h6>
+            <div class="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-4 rounded">
+              <div class="text-center">
+                <div class="text-sm opacity-75">Gift Card</div>
+                <div class="text-2xl font-bold">₹<span id="previewGiftCardValue">${this.selectedGiftServices.gift_card?.value || '0'}</span></div>
+                <div class="text-xs opacity-75 mt-1" id="previewGiftCardMessage">
+                  ${this.selectedGiftServices.gift_card?.message || 'Your gift message here'}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  
+  renderServicesSummary() {
+    const services = this.selectedGiftServices;
+    const hasServices = Object.keys(services).length > 0;
+    
+    if (!hasServices) {
+      return `<div class="text-gray-500">No gift services selected</div>`;
+    }
+    
+    return `
+      <div class="space-y-2">
+        ${services.gift_wrapping ? `
+          <div class="flex justify-between text-sm">
+            <span><i class="fa fa-gift text-purple-600"></i> Gift Wrapping</span>
+            <span>₹${services.gift_wrapping.cost.toFixed(2)}</span>
+          </div>
+        ` : ''}
+        ${services.gift_receipt ? `
+          <div class="flex justify-between text-sm">
+            <span><i class="fa fa-receipt text-cyan-600"></i> Gift Receipt</span>
+            <span>Free</span>
+          </div>
+        ` : ''}
+        ${services.gift_card ? `
+          <div class="flex justify-between text-sm">
+            <span><i class="fa fa-credit-card text-pink-600"></i> Gift Card (₹${services.gift_card.value})</span>
+            <span>₹${services.gift_card.value.toFixed(2)}</span>
+          </div>
+        ` : ''}
+        <div class="border-t pt-2 mt-2">
+          <div class="flex justify-between font-medium">
+            <span>Total Gift Services:</span>
+            <span class="text-purple-600">₹${this.calculateGiftServicesTotal().toFixed(2)}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  
+  hideGiftServicesModal() {
+    const modal = document.getElementById('giftServicesModal');
+    if (modal) {
+      modal.remove();
+    }
+  }
+  
+  toggleGiftWrapping(checked) {
+    const wrappingOptions = document.getElementById('wrappingOptions');
+    if (wrappingOptions) {
+      wrappingOptions.style.display = checked ? 'block' : 'none';
+    }
+    
+    if (!checked) {
+      delete this.selectedGiftServices.gift_wrapping;
+      document.getElementById('wrappingCost').textContent = '₹0.00';
+    } else if (this.giftWrappingOptions.length > 0 && !this.selectedGiftServices.gift_wrapping) {
+      // Auto-select first option
+      this.selectGiftWrapping(this.giftWrappingOptions[0].style_id);
+    }
+    
+    this.updateServicesSummary();
+  }
+  
+  selectGiftWrapping(styleId) {
+    const style = this.giftWrappingOptions.find(s => s.style_id === styleId);
+    if (style) {
+      this.selectedGiftServices.gift_wrapping = {
+        style_id: style.style_id,
+        style_name: style.style_name,
+        cost: style.details?.cost || 0
+      };
+      
+      document.getElementById('wrappingCost').textContent = `₹${style.details?.cost?.toFixed(2) || '0.00'}`;
+      
+      // Update visual selection
+      document.querySelectorAll('.wrapping-option').forEach(option => {
+        option.classList.remove('border-purple-500', 'bg-purple-50');
+        option.classList.add('hover:border-gray-300');
+      });
+      
+      event?.target?.closest('.wrapping-option')?.classList.add('border-purple-500', 'bg-purple-50');
+      
+      this.updateServicesSummary();
+    }
+  }
+  
+  toggleGiftReceipt(checked) {
+    const options = document.getElementById('giftReceiptOptions');
+    if (options) {
+      options.style.display = checked ? 'block' : 'none';
+    }
+    
+    if (checked) {
+      this.selectedGiftServices.gift_receipt = {
+        message: '',
+        recipient_name: '',
+        recipient_contact: '',
+        anonymous: false
+      };
+    } else {
+      delete this.selectedGiftServices.gift_receipt;
+    }
+    
+    this.updateServicesSummary();
+  }
+  
+  toggleGiftCard(checked) {
+    const options = document.getElementById('giftCardOptions');
+    if (options) {
+      options.style.display = checked ? 'block' : 'none';
+    }
+    
+    if (checked) {
+      this.selectedGiftServices.gift_card = {
+        value: 100,
+        message: ''
+      };
+      document.getElementById('giftCardValue').value = '100';
+    } else {
+      delete this.selectedGiftServices.gift_card;
+    }
+    
+    this.updateServicesSummary();
+  }
+  
+  updateGiftCardValue(value) {
+    const numValue = parseFloat(value) || 0;
+    
+    if (this.selectedGiftServices.gift_card) {
+      this.selectedGiftServices.gift_card.value = numValue;
+    }
+    
+    // Update preview
+    const previewElement = document.getElementById('previewGiftCardValue');
+    if (previewElement) {
+      previewElement.textContent = numValue.toString();
+    }
+    
+    this.updateServicesSummary();
+  }
+  
+  updateServicesSummary() {
+    const summaryContainer = document.getElementById('servicesSummary');
+    if (summaryContainer) {
+      summaryContainer.innerHTML = this.renderServicesSummary();
+    }
+  }
+  
+  applyGiftServices() {
+    // Update gift receipt data if enabled
+    if (this.selectedGiftServices.gift_receipt) {
+      const message = document.getElementById('giftMessage')?.value || '';
+      const recipientName = document.getElementById('giftRecipientName')?.value || '';
+      const recipientContact = document.getElementById('giftRecipientContact')?.value || '';
+      const anonymous = document.getElementById('anonymousGift')?.checked || false;
+      
+      this.selectedGiftServices.gift_receipt.message = message;
+      this.selectedGiftServices.gift_receipt.recipient_name = recipientName;
+      this.selectedGiftServices.gift_receipt.recipient_contact = recipientContact;
+      this.selectedGiftServices.gift_receipt.anonymous = anonymous;
+    }
+    
+    // Update gift card data if enabled
+    if (this.selectedGiftServices.gift_card) {
+      const message = document.getElementById('giftCardMessage')?.value || '';
+      this.selectedGiftServices.gift_card.message = message;
+    }
+    
+    this.hideGiftServicesModal();
+    this.render(); // Refresh to show updated totals
+    
+    if (window.notiflix) {
+      window.notiflix.Notify.success('Gift Services Applied', 'Gift services added to order successfully!');
+    }
+  }
+  
+  showGiftBundleSelector() {
+    if (this.giftBundles.length === 0) {
+      if (window.notiflix) {
+        window.notiflix.Notify.info('No Bundles', 'No gift bundles available');
+      }
+      return;
+    }
+    
+    const modalHtml = `
+      <div class="gift-bundle-selector-modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" 
+           id="giftBundleSelectorModal">
+        <div class="bg-white rounded-lg p-6 max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold">
+              <i class="fa fa-box text-purple-600"></i> Select Gift Bundle
+            </h3>
+            <button onclick="window.pharmaApp.getModule('pos').hideGiftBundleSelector()" class="text-gray-500">
+              <i class="fa fa-times"></i>
+            </button>
+          </div>
+          
+          <div class="bundle-categories mb-4">
+            <div class="btn-group btn-group-sm">
+              <button class="btn btn-primary active" onclick="window.pharmaApp.getModule('pos').filterBundlesByCategory('all')">All</button>
+              ${[...new Set(this.giftBundles.map(b => b.bundle_details?.category))].map(category => `
+                <button class="btn btn-outline-secondary" onclick="window.pharmaApp.getModule('pos').filterBundlesByCategory('${category}')">${category}</button>
+              `).join('')}
+            </div>
+          </div>
+          
+          <div class="bundle-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="bundleGrid">
+            ${this.giftBundles.map(bundle => this.renderBundleCard(bundle)).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  }
+  
+  renderBundleCard(bundle) {
+    const details = bundle.bundle_details || {};
+    const pricing = bundle.pricing || {};
+    const availability = bundle.availability || {};
+    
+    return `
+      <div class="bundle-card border rounded-lg p-4 cursor-pointer hover:shadow-lg transition-shadow" 
+           onclick="window.pharmaApp.getModule('pos').selectGiftBundle('${bundle.bundle_id}')">
+        <div class="bundle-info">
+          <h5 class="font-semibold text-lg mb-2">${bundle.bundle_name}</h5>
+          <p class="text-sm text-gray-600 mb-3">${details.description || 'No description available'}</p>
+          
+          <div class="bundle-meta mb-3 text-xs text-gray-500">
+            <div><i class="fa fa-tag"></i> ${details.category || 'general'}</div>
+            <div><i class="fa fa-layer-group"></i> ${bundle.components?.length || 0} components</div>
+            <div><i class="fa fa-cube"></i> ${availability.current_stock || 0} in stock</div>
+          </div>
+          
+          <div class="bundle-components mb-3">
+            <div class="text-xs text-gray-500 mb-1">Includes:</div>
+            <div class="flex flex-wrap gap-1">
+              ${(bundle.components || []).slice(0, 3).map(comp => 
+                `<span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">${comp.product_name}</span>`
+              ).join('')}
+              ${(bundle.components?.length || 0) > 3 ? `<span class="text-xs text-gray-500">+${bundle.components.length - 3} more</span>` : ''}
+            </div>
+          </div>
+          
+          <div class="bundle-pricing flex justify-between items-center">
+            <div class="price-info">
+              <span class="text-lg font-bold text-green-600">₹${pricing.bundle_price?.toFixed(2) || '0.00'}</span>
+              ${pricing.total_individual_price > pricing.bundle_price ? 
+                `<span class="text-sm text-gray-500 line-through ml-2">₹${pricing.total_individual_price?.toFixed(2)}</span>` : 
+                ''
+              }
+            </div>
+            ${pricing.savings_per_customer > 0 ? 
+              `<span class="bg-red-100 text-red-800 px-2 py-1 text-xs rounded">
+                Save ₹${pricing.savings_per_customer.toFixed(2)}
+              </span>` : 
+              ''
+            }
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  
+  hideGiftBundleSelector() {
+    const modal = document.getElementById('giftBundleSelectorModal');
+    if (modal) {
+      modal.remove();
+    }
+  }
+  
+  async selectGiftBundle(bundleId) {
+    const bundle = this.giftBundles.find(b => b.bundle_id === bundleId);
+    if (!bundle) return;
+    
+    try {
+      // Check availability
+      const availability = await this.checkBundleAvailability(bundleId, 1);
+      if (!availability.is_available) {
+        if (window.notiflix) {
+          window.notiflix.Report.warning('Bundle Unavailable', 'This bundle is currently not available');
+        }
+        return;
+      }
+      
+      // Add bundle to cart
+      this.addBundleToCart(bundle);
+      this.hideGiftBundleSelector();
+      
+      if (window.notiflix) {
+        window.notiflix.Notify.success('Bundle Added', `${bundle.bundle_name} added to cart`);
+      }
+      
+    } catch (error) {
+      console.error('Error selecting bundle:', error);
+      if (window.notiflix) {
+        window.notiflix.Report.failure('Error', 'Failed to add bundle to cart');
+      }
+    }
+  }
+  
+  async checkBundleAvailability(bundleId, quantity = 1) {
+    try {
+      const response = await fetch(`${window.api}gift_store/bundles/${bundleId}/process-order`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ quantity, customer_id: null })
+      });
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error checking bundle availability:', error);
+      return { is_available: false, error: error.message };
+    }
+  }
+  
+  addBundleToCart(bundle) {
+    const posState = this.app.state.getModuleState('pos');
+    const cart = [...posState.cart];
+    
+    // Check if bundle already exists in cart
+    const existingIndex = cart.findIndex(item => item.bundle_id === bundle.bundle_id);
+    
+    if (existingIndex >= 0) {
+      // Increase quantity
+      cart[existingIndex].quantity += 1;
+    } else {
+      // Add new bundle item
+      cart.push({
+        bundle_id: bundle.bundle_id,
+        product_name: bundle.bundle_name,
+        sku: bundle.bundle_id,
+        price: parseFloat(bundle.pricing?.bundle_price || 0),
+        quantity: 1,
+        is_bundle: true,
+        bundle_components: bundle.components || [],
+        category: bundle.bundle_details?.category || 'gift_bundle'
+      });
+    }
+    
+    this.app.state.updateModule('pos', { cart });
+    
+    // Recalculate totals
+    setTimeout(() => {
+      this.calculateCartTotal();
+    }, 100);
+  }
+  
+  filterBundlesByCategory(category) {
+    // Update active button
+    document.querySelectorAll('.bundle-categories .btn').forEach(btn => {
+      btn.classList.remove('btn-primary', 'active');
+      btn.classList.add('btn-outline-secondary');
+    });
+    event.target.classList.remove('btn-outline-secondary');
+    event.target.classList.add('btn-primary', 'active');
+    
+    // Filter and render bundles
+    const filteredBundles = category === 'all' ? 
+      this.giftBundles :
+      this.giftBundles.filter(bundle => bundle.bundle_details?.category === category);
+    
+    const bundleGrid = document.getElementById('bundleGrid');
+    if (bundleGrid) {
+      bundleGrid.innerHTML = filteredBundles.map(bundle => this.renderBundleCard(bundle)).join('');
+    }
+  }
+  
+  /**
+   * GIFT RECEIPT MANAGEMENT METHODS
+   */
+  
+  async previewGiftReceipt() {
+    const posState = this.app.state.getModuleState('pos');
+    const cart = posState.cart || [];
+    
+    if (!this.selectedGiftServices.gift_receipt) {
+      if (window.notiflix) {
+        window.notiflix.Notify.warning('No Gift Receipt', 'Please select gift receipt service first');
+      }
+      return;
+    }
+    
+    try {
+      // Generate a temporary receipt for preview
+      const receiptData = {
+        transaction_id: 'PREVIEW-' + Date.now(),
+        items: cart,
+        gift_message: this.selectedGiftServices.gift_receipt.message,
+        gift_recipient_name: this.selectedGiftServices.gift_receipt.recipient_name,
+        gift_recipient_contact: this.selectedGiftServices.gift_receipt.recipient_contact,
+        is_anonymous: this.selectedGiftServices.gift_receipt.anonymous
+      };
+      
+      const previewHtml = this.generateReceiptPreviewHTML(receiptData);
+      
+      // Show in modal
+      const modalHtml = `
+        <div class="gift-receipt-preview-modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60" 
+             id="giftReceiptPreviewModal">
+          <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+              <h4 class="font-medium">Gift Receipt Preview</h4>
+              <button onclick="window.pharmaApp.getModule('pos').hideGiftReceiptPreview()" class="text-gray-500">
+                <i class="fa fa-times"></i>
+              </button>
+            </div>
+            <div class="receipt-preview" id="receiptPreviewContent">
+              ${previewHtml}
+            </div>
+            <div class="flex justify-end gap-3 mt-4">
+              <button class="btn btn-secondary" onclick="window.pharmaApp.getModule('pos').hideGiftReceiptPreview()">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      document.body.insertAdjacentHTML('beforeend', modalHtml);
+      
+    } catch (error) {
+      console.error('Error previewing gift receipt:', error);
+      if (window.notiflix) {
+        window.notiflix.Report.failure('Error', 'Failed to generate receipt preview');
+      }
+    }
+  }
+  
+  generateReceiptPreviewHTML(receiptData) {
+    const currentDate = new Date().toLocaleDateString();
+    
+    return `
+      <div class="receipt-preview-content border rounded p-6" style="font-family: monospace;">
+        <div class="text-center border-b-2 border-black pb-4 mb-4">
+          <h2 class="text-xl font-bold">StyleMine</h2>
+          <h3 class="text-lg">GIFT RECEIPT</h3>
+          <p>${currentDate}</p>
+        </div>
+        
+        <div class="mb-4">
+          <p><strong>Receipt ID:</strong> ${receiptData.transaction_id}</p>
+          ${receiptData.gift_recipient_name ? `<p><strong>Gift Recipient:</strong> ${receiptData.gift_recipient_name}</p>` : ''}
+          ${receiptData.is_anonymous ? `<p><strong>Type:</strong> Anonymous Gift</p>` : ''}
+        </div>
+        
+        ${receiptData.gift_message ? `
+          <div class="mb-4 p-3 bg-gray-100 rounded">
+            <h4 class="font-medium mb-2">Gift Message:</h4>
+            <p class="italic">"${receiptData.gift_message}"</p>
+          </div>
+        ` : ''}
+        
+        <div class="mb-4">
+          <h4 class="font-medium mb-2">Items:</h4>
+          ${receiptData.items.map(item => `
+            <div class="flex justify-between py-1">
+              <span>${item.product_name} x ${item.quantity}</span>
+              <span class="no-price text-gray-500">(price not shown)</span>
+            </div>
+          `).join('')}
+        </div>
+        
+        <div class="border-t pt-4 text-sm text-gray-600">
+          <p class="mb-1">* This is a gift receipt without item prices</p>
+          <p class="mb-1">* Valid for returns/exchanges within 30 days</p>
+          <p class="mb-1">* Original tags must be attached</p>
+          <p class="text-center mt-4 font-medium">Thank you for choosing StyleMine!</p>
+        </div>
+      </div>
+    `;
+  }
+  
+  hideGiftReceiptPreview() {
+    const modal = document.getElementById('giftReceiptPreviewModal');
+    if (modal) {
+      modal.remove();
+    }
+  }
+  
+  emailGiftReceipt() {
+    if (window.notiflix) {
+      window.notiflix.Notify.info('Email Feature', 'Email delivery will be implemented with SMTP integration');
+    }
+  }
+  
+  downloadGiftReceipt() {
+    // Generate and download receipt as HTML
+    const posState = this.app.state.getModuleState('pos');
+    const cart = posState.cart || [];
+    
+    const receiptData = {
+      transaction_id: 'TEMP-' + Date.now(),
+      items: cart,
+      gift_message: this.selectedGiftServices.gift_receipt?.message || '',
+      gift_recipient_name: this.selectedGiftServices.gift_receipt?.recipient_name || '',
+      gift_recipient_contact: this.selectedGiftServices.gift_receipt?.recipient_contact || '',
+      is_anonymous: this.selectedGiftServices.gift_receipt?.anonymous || false
+    };
+    
+    const receiptHtml = this.generateReceiptHTML(receiptData);
+    
+    const blob = new Blob([receiptHtml], { type: 'text/html' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `gift-receipt-${receiptData.transaction_id}.html`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+  
+  generateReceiptHTML(receiptData) {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Gift Receipt - ${receiptData.transaction_id}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          .receipt-header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 20px; margin-bottom: 20px; }
+          .receipt-info { margin-bottom: 20px; }
+          .gift-message { background: #f9f9f9; padding: 15px; border-radius: 5px; margin: 15px 0; }
+          .receipt-footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
+          .no-price { color: #999; font-style: italic; }
+          .item-list { margin: 20px 0; }
+          .item-row { display: flex; justify-content: space-between; padding: 5px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="receipt-header">
+          <h1>StyleMine</h1>
+          <h2>GIFT RECEIPT</h2>
+          <p>${new Date().toLocaleDateString()}</p>
+        </div>
+        
+        <div class="receipt-info">
+          <p><strong>Receipt ID:</strong> ${receiptData.transaction_id}</p>
+          ${receiptData.gift_recipient_name ? `<p><strong>Gift Recipient:</strong> ${receiptData.gift_recipient_name}</p>` : ''}
+          ${receiptData.is_anonymous ? `<p><strong>Type:</strong> Anonymous Gift</p>` : ''}
+        </div>
+        
+        ${receiptData.gift_message ? `
+          <div class="gift-message">
+            <h3>Gift Message:</h3>
+            <p>"${receiptData.gift_message}"</p>
+          </div>
+        ` : ''}
+        
+        <div class="item-list">
+          <h3>Items:</h3>
+          ${receiptData.items.map(item => `
+            <div class="item-row">
+              <span>${item.product_name} x ${item.quantity}</span>
+              <span class="no-price">(price not shown - gift receipt)</span>
+            </div>
+          `).join('')}
+        </div>
+        
+        <div class="receipt-footer">
+          <p>This is a gift receipt without item prices.</p>
+          <p>Valid for returns/exchanges within 30 days with original tags.</p>
+          <p>Thank you for choosing StyleMine!</p>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+  
+  printGiftReceipt() {
+    this.downloadGiftReceipt();
+    
+    setTimeout(() => {
+      window.print();
+    }, 1000);
+  }
+  
+  /**
+   * ENHANCED PAYMENT PROCESSING WITH GIFT SERVICES
+   */
+  
+  async processPayment() {
+    const paid = parseFloat(document.getElementById('paymentAmount').value);
+    const posState = this.app.state.getModuleState('pos');
+    const totals = this.calculateCartTotal();
+    const giftServicesTotal = this.calculateGiftServicesTotal();
+    const total = parseFloat(totals.total) + giftServicesTotal;
+    
+    if (paid < total) {
+      if (window.notiflix) {
+        window.notiflix.Report.warning('Insufficient Payment', 'Amount paid is less than total');
+      }
+      return;
+    }
+    
+    try {
+      // Process gift card payment if applicable
+      if (this.selectedGiftServices.gift_card) {
+        await this.processGiftCardPayment();
+      }
+      
+      // Build payment data
+      const paymentData = {
+        order: Date.now(),
+        ref_number: '',
+        discount: 0,
+        customer: posState.currentCustomer || { id: 0, name: 'Walk in customer' },
+        status: 1,
+        subtotal: parseFloat(totals.subtotal),
+        tax: parseFloat(totals.tax),
+        tax_details: {
+          cgst: parseFloat(totals.cgst),
+          sgst: parseFloat(totals.sgst),
+          igst: parseFloat(totals.igst),
+          total_tax: parseFloat(totals.tax)
+        },
+        order_type: 1,
+        items: posState.cart,
+        date: new Date(),
+        payment_type: $("#selectedPaymentMethod").val() || 'Cash',
+        total: total,
+        paid: paid,
+        change: paid - total,
+        
+        // Gift Services Data
+        gift_services: this.selectedGiftServices,
+        gift_services_total: giftServicesTotal
+      };
+      
+      // Process the main payment
+      await this.completeSale(paymentData);
+      
+      // Generate gift receipt if requested
+      if (this.selectedGiftServices.gift_receipt) {
+        await this.generateGiftReceiptAfterSale(paymentData);
+      }
+      
+      // Issue gift card if requested
+      if (this.selectedGiftServices.gift_card) {
+        await this.issueGiftCardAfterSale(paymentData);
+      }
+      
+      this.hidePaymentInterface();
+      
+      // Show success message with gift services info
+      let successMessage = 'Transaction completed successfully!';
+      if (giftServicesTotal > 0) {
+        successMessage += ` Gift services worth ₹${giftServicesTotal.toFixed(2)} added.`;
+      }
+      
+      if (window.notiflix) {
+        window.notiflix.Notify.success('Sale Completed', successMessage);
+      }
+      
+    } catch (error) {
+      console.error('Payment processing failed:', error);
+      if (window.notiflix) {
+        window.notiflix.Report.failure('Payment Failed', error.message);
+      }
+    }
+  }
+  
+  async processGiftCardPayment() {
+    const giftCardNumber = document.getElementById('giftCardNumber')?.value;
+    const giftCardPIN = document.getElementById('giftCardPIN')?.value;
+    const cardValue = this.selectedGiftServices.gift_card?.value || 0;
+    
+    if (!giftCardNumber) {
+      throw new Error('Gift card number is required');
+    }
+    
+    try {
+      const response = await fetch(`${window.api}gift_store/cards/redeem`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          card_number: giftCardNumber,
+          pin: giftCardPIN,
+          redemption_amount: cardValue,
+          transaction_id: Date.now().toString()
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Gift card redemption failed');
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Gift card payment failed:', error);
+      throw new Error(`Gift card payment failed: ${error.message}`);
+    }
+  }
+  
+  async generateGiftReceiptAfterSale(paymentData) {
+    try {
+      const receiptData = {
+        transaction_id: paymentData.order.toString(),
+        items: paymentData.items,
+        gift_message: this.selectedGiftServices.gift_receipt.message,
+        gift_recipient_name: this.selectedGiftServices.gift_receipt.recipient_name,
+        gift_recipient_contact: this.selectedGiftServices.gift_receipt.recipient_contact,
+        is_anonymous: this.selectedGiftServices.gift_receipt.anonymous,
+        gift_wrapping_style: this.selectedGiftServices.gift_wrapping?.style_name,
+        gift_wrapping_cost: this.selectedGiftServices.gift_wrapping?.cost || 0,
+        gift_card_included: !!this.selectedGiftServices.gift_card,
+        gift_card_value: this.selectedGiftServices.gift_card?.value || 0
+      };
+      
+      const response = await fetch(`${window.api}gift_store/receipts/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(receiptData)
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        console.log('Gift receipt generated:', result.receipt_id);
+        
+        // Optionally show receipt details to user
+        if (window.notiflix) {
+          window.notiflix.Notify.success(
+            'Gift Receipt Created', 
+            `Receipt ID: ${result.receipt_id}`
+          );
+        }
+      }
+      
+    } catch (error) {
+      console.error('Error generating gift receipt:', error);
+      // Don't fail the entire transaction for receipt generation errors
+    }
+  }
+  
+  async issueGiftCardAfterSale(paymentData) {
+    try {
+      const cardData = {
+        card_type: 'digital',
+        denomination: this.selectedGiftServices.gift_card.value,
+        purchaser_info: {
+          name: paymentData.customer.name,
+          email: paymentData.customer.email || '',
+          phone: paymentData.customer.phone || ''
+        },
+        recipient_info: {
+          name: this.selectedGiftServices.gift_receipt?.recipient_name || paymentData.customer.name,
+          email: this.selectedGiftServices.gift_receipt?.recipient_contact || '',
+          phone: ''
+        },
+        custom_message: this.selectedGiftServices.gift_card.message,
+        delivery_method: 'email',
+        design_template: 'default'
+      };
+      
+      const response = await fetch(`${window.api}gift_store/cards/issue`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(cardData)
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        console.log('Gift card issued:', result.card_id);
+        
+        if (window.notiflix) {
+          window.notiflix.Notify.success(
+            'Gift Card Issued', 
+            `Card ID: ${result.card_id}`
+          );
+        }
+      }
+      
+    } catch (error) {
+      console.error('Error issuing gift card:', error);
+      // Don't fail the entire transaction for card issuance errors
+    }
+  }
+
+  /**
+   * Enhanced Barcode Scanning Methods
+   */
+
+  showBarcodeFeedback(status, message) {
+    const feedbackElement = document.getElementById('barcodeFeedback') || this.createFeedbackElement();
+    
+    // Clear previous classes
+    feedbackElement.className = 'barcode-feedback';
+    
+    // Add status-specific classes and content
+    switch (status) {
+      case 'scanning':
+        feedbackElement.classList.add('scanning');
+        feedbackElement.innerHTML = `<i class="fa fa-spinner fa-spin"></i> ${message}`;
+        break;
+      case 'success':
+        feedbackElement.classList.add('success');
+        feedbackElement.innerHTML = `<i class="fa fa-check"></i> ${message}`;
+        setTimeout(() => {
+          feedbackElement.style.display = 'none';
+        }, 3000);
+        break;
+      case 'error':
+        feedbackElement.classList.add('error');
+        feedbackElement.innerHTML = `<i class="fa fa-times"></i> ${message}`;
+        setTimeout(() => {
+          feedbackElement.style.display = 'none';
+        }, 5000);
+        break;
+      case 'warning':
+        feedbackElement.classList.add('warning');
+        feedbackElement.innerHTML = `<i class="fa fa-exclamation-triangle"></i> ${message}`;
+        break;
+    }
+    
+    feedbackElement.style.display = 'block';
+  }
+
+  createFeedbackElement() {
+    const feedbackElement = document.createElement('div');
+    feedbackElement.id = 'barcodeFeedback';
+    feedbackElement.className = 'barcode-feedback';
+    
+    const scannerSection = document.querySelector('.barcode-scanner .card-body');
+    if (scannerSection) {
+      scannerSection.appendChild(feedbackElement);
+    }
+    
+    return feedbackElement;
+  }
+
+  showVariantSelectionModal(variantData) {
+    const modalHtml = `
+      <div class="variant-selection-modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" 
+           id="variantSelectionModal">
+        <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold">Select Variant</h3>
+            <button onclick="window.pharmaApp.getModule('pos').hideVariantSelectionModal()" class="text-gray-500">
+              <i class="fa fa-times"></i>
+            </button>
+          </div>
+          
+          <div class="variant-info mb-4 p-4 bg-gray-50 rounded">
+            <h4 class="font-medium">${variantData.product_name}</h4>
+            <p class="text-sm text-gray-600">Scanned barcode: <code>${variantData.variant.barcode}</code></p>
+            <p class="text-sm text-gray-600">Found variant: <strong>${variantData.variant_key}</strong></p>
+          </div>
+          
+          <div class="variant-options mb-4">
+            <h5 class="font-medium mb-2">Available Variants:</h5>
+            <div id="variantOptionsContainer" class="grid grid-cols-1 gap-2">
+              ${this.renderVariantOptions(variantData)}
+            </div>
+          </div>
+          
+          <div class="variant-details mb-4" id="variantDetailsContainer">
+            <div class="text-center text-gray-500 py-4">
+              <i class="fa fa-info-circle"></i>
+              Select a variant to view details
+            </div>
+          </div>
+          
+          <div class="flex gap-3">
+            <button class="btn btn-secondary flex-1" onclick="window.pharmaApp.getModule('pos').hideVariantSelectionModal()">
+              Cancel
+            </button>
+            <button class="btn btn-success flex-1" id="addVariantToCart" onclick="window.pharmaApp.getModule('pos').addSelectedVariantToCart()" disabled>
+              Add to Cart
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Store variant data for selection
+    this.selectedVariantData = variantData;
+    this.selectedVariantKey = null;
+  }
+
+  hideVariantSelectionModal() {
+    const modal = document.getElementById('variantSelectionModal');
+    if (modal) {
+      modal.remove();
+    }
+    this.selectedVariantData = null;
+    this.selectedVariantKey = null;
+  }
+
+  renderVariantOptions(variantData) {
+    // This would need to be enhanced to fetch all variants from the matrix
+    // For now, show the scanned variant as primary option
+    const variant = variantData.variant;
+    
+    return `
+      <div class="variant-option border rounded p-3 cursor-pointer hover:bg-blue-50 ${variantData.variant_key === variantData.variant_key ? 'border-blue-500 bg-blue-50' : ''}" 
+           onclick="window.pharmaApp.getModule('pos').selectVariant('${variantData.variant_key}', this)">
+        <div class="flex justify-between items-center">
+          <div>
+            <div class="font-medium">${variantData.variant_key}</div>
+            <div class="text-sm text-gray-500">Barcode: ${variant.barcode}</div>
+          </div>
+          <div class="text-right">
+            <div class="font-medium ${variant.stock > 0 ? 'text-green-600' : 'text-red-600'}">
+              ${variant.stock > 0 ? `${variant.stock} in stock` : 'Out of stock'}
+            </div>
+            <div class="text-xs text-gray-500">Min: ${variant.min_stock || 0}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  selectVariant(variantKey, element) {
+    // Remove previous selection
+    document.querySelectorAll('.variant-option').forEach(opt => {
+      opt.classList.remove('border-blue-500', 'bg-blue-50');
+    });
+    
+    // Add selection to clicked element
+    element.classList.add('border-blue-500', 'bg-blue-50');
+    
+    this.selectedVariantKey = variantKey;
+    
+    // Enable add to cart button
+    const addButton = document.getElementById('addVariantToCart');
+    if (addButton) {
+      addButton.disabled = false;
+    }
+    
+    // Show variant details
+    this.showVariantDetails();
+  }
+
+  showVariantDetails() {
+    if (!this.selectedVariantData || !this.selectedVariantKey) return;
+    
+    const variantData = this.selectedVariantData;
+    const variantKey = this.selectedVariantKey;
+    const [color, size] = variantKey.split('-');
+    const variant = variantData.variant;
+    
+    const detailsHtml = `
+      <div class="variant-details-content">
+        <h5 class="font-medium mb-3">Variant Details</h5>
+        <div class="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <strong>Color:</strong> ${color}<br>
+            <strong>Size:</strong> ${size}<br>
+            <strong>Barcode:</strong> <code>${variant.barcode}</code>
+          </div>
+          <div>
+            <strong>Stock:</strong> ${variant.stock}<br>
+            <strong>Reserved:</strong> ${variant.reserved || 0}<br>
+            <strong>Min Stock:</strong> ${variant.min_stock || 0}
+          </div>
+        </div>
+        <div class="mt-3 p-3 bg-yellow-50 rounded border-l-4 border-yellow-400">
+          <div class="text-sm">
+            <strong>Status:</strong> 
+            <span class="${variant.stock > 0 ? 'text-green-600' : 'text-red-600'}">
+              ${variant.stock > 0 ? 'Available' : 'Out of Stock'}
+            </span>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    const container = document.getElementById('variantDetailsContainer');
+    if (container) {
+      container.innerHTML = detailsHtml;
+    }
+  }
+
+  addSelectedVariantToCart() {
+    if (!this.selectedVariantData || !this.selectedVariantKey) return;
+    
+    const variantData = this.selectedVariantData;
+    const variant = variantData.variant;
+    
+    // Check stock availability
+    if (variant.stock <= 0) {
+      if (window.notiflix) {
+        window.notiflix.Report.warning('Out of Stock', 'This variant is currently out of stock', 'Ok');
+      }
+      return;
+    }
+    
+    // Create cart item for variant
+    const cartItem = {
+      id: `${variantData.product_id}_${this.selectedVariantKey}`,
+      product_id: variantData.product_id,
+      variant_key: this.selectedVariantKey,
+      product_name: `${variantData.product_name} (${this.selectedVariantKey})`,
+      sku: variant.barcode,
+      price: parseFloat(variantData.product?.price || 0), // This would need to be fetched
+      quantity: 1,
+      is_variant: true,
+      variant_data: {
+        matrix_id: variantData.matrix_id,
+        variant_key: this.selectedVariantKey,
+        color: this.selectedVariantKey.split('-')[0],
+        size: this.selectedVariantKey.split('-')[1],
+        barcode: variant.barcode
+      }
+    };
+    
+    this.addToCart(cartItem);
+    this.hideVariantSelectionModal();
+    
+    // Clear barcode input
+    document.getElementById('barcodeInput').value = '';
+    
+    if (window.notiflix) {
+      window.notiflix.Notify.success('Variant Added', `${cartItem.product_name} added to cart`);
+    }
+  }
+
+  async validateBarcode(barcode) {
+    try {
+      const response = await fetch(`${window.api}barcode/validate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ barcode })
+      });
+      
+      const validation = await response.json();
+      return validation;
+    } catch (error) {
+      console.error('Barcode validation failed:', error);
+      return { is_valid: false, errors: ['Validation failed'] };
+    }
+  }
+
+  // Enhanced addToCart to handle variants
+  addToCart(product) {
+    const posState = this.app.state.getModuleState('pos');
+    const cart = [...posState.cart];
+    
+    // Check if product/variant already exists in cart
+    const existingIndex = product.is_variant ? 
+      cart.findIndex(item => item.id === product.id) :
+      cart.findIndex(item => item.id === product._id);
+    
+    if (existingIndex >= 0) {
+      // Increase quantity
+      cart[existingIndex].quantity += 1;
+    } else {
+      // Add new item
+      cart.push({
+        id: product.is_variant ? product.id : product._id,
+        product_id: product.is_variant ? product.product_id : product._id,
+        product_name: product.name || product.product_name,
+        sku: product.sku || product.barcode || product._id,
+        price: parseFloat(product.price),
+        quantity: 1,
+        is_variant: product.is_variant || false,
+        variant_data: product.variant_data || null
+      });
+    }
+    
+    this.app.state.updateModule('pos', { cart });
   }
   
   async processPayment() {
@@ -1052,9 +2739,9 @@ class POSModule {
         let body = `Hello ${tx.customer?.name || 'Customer'},\n\n`;
         body += `Please find the details of your invoice ${tx.order}:\n\n`;
         tx.items.forEach(item => {
-            body += `${item.product_name} x ${item.quantity}: $${(item.price * item.quantity).toFixed(2)}\n`;
+            body += `${item.product_name} x ${item.quantity}: ${(item.price * item.quantity).toFixed(2)}\n`;
         });
-        body += `\nTotal Amount: $${parseFloat(tx.total).toFixed(2)}\n`;
+        body += `\nTotal Amount: ${parseFloat(tx.total).toFixed(2)}\n`;
         body += `Payment Mode: ${tx.payment_type || 'Paid'}\n\n`;
         body += `Thank you,\n${settings.store || 'FoodMine'}`;
 
@@ -1064,7 +2751,1326 @@ class POSModule {
         console.error("Email share failed", e);
     }
   }
+
+  /**
+   * PROMOTION INTEGRATION METHODS
+   */
+
+  async calculatePromotions() {
+    const posState = this.app.state.getModuleState('pos');
+    const cart = posState.cart || [];
+    const currentCustomer = posState.currentCustomer;
+    
+    if (cart.length === 0) {
+      return {
+        applicable_promotions: [],
+        total_discount: 0,
+        discount_breakdown: {}
+      };
+    }
+    
+    try {
+      const cartItems = cart.map(item => ({
+        id: item.id,
+        product_name: item.product_name,
+        category: item.category || 'general',
+        price: item.price,
+        quantity: item.quantity
+      }));
+      
+      const orderValue = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const customerId = currentCustomer?._id || null;
+      const loyaltyTier = currentCustomer?.loyalty_program?.tier || 'bronze';
+      
+      const response = await fetch(`${window.api}promotions/rules/apply`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          cart_items: cartItems,
+          customer_id: customerId,
+          order_value: orderValue,
+          customer_loyalty_tier: loyaltyTier
+        })
+      });
+      
+      const result = await response.json();
+      return result;
+      
+    } catch (error) {
+      console.error('Error calculating promotions:', error);
+      return {
+        applicable_promotions: [],
+        total_discount: 0,
+        discount_breakdown: {}
+      };
+    }
+  }
+
+  updateCartDisplayWithPromotions(promoResult) {
+    // Update the cart display to show applied promotions
+    const promoBadge = document.querySelector('.promotion-badge');
+    if (promoBadge) {
+      if (promoResult.total_discount > 0) {
+        promoBadge.innerHTML = `
+          <i class="fa fa-tags text-success"></i>
+          <span class="text-success">₹${promoResult.total_discount.toFixed(2)} saved!</span>
+        `;
+        promoBadge.style.display = 'block';
+      } else {
+        promoBadge.style.display = 'none';
+      }
+    }
+  }
+
+  showPromotionDetails() {
+    const posState = this.app.state.getModuleState('pos');
+    const cartTotals = posState.cartTotals;
+    const promotions = cartTotals?.promotions;
+    
+    if (!promotions || promotions.applicable_promotions.length === 0) {
+      if (window.notiflix) {
+        window.notiflix.Notify.info('No Promotions', 'No promotions applicable to current cart');
+      }
+      return;
+    }
+    
+    const modalHtml = `
+      <div class="promotion-details-modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" 
+           id="promotionDetailsModal">
+        <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold">Applied Promotions</h3>
+            <button onclick="window.pharmaApp.getModule('pos').hidePromotionDetails()" class="text-gray-500">
+              <i class="fa fa-times"></i>
+            </button>
+          </div>
+          
+          <div class="promotions-list">
+            ${promotions.applicable_promotions.map(promo => `
+              <div class="promotion-item border rounded p-3 mb-3 bg-green-50">
+                <div class="flex justify-between items-start">
+                  <div class="flex-1">
+                    <h5 class="font-medium text-green-800">${promo.rule_name || promo.campaign_name}</h5>
+                    <p class="text-sm text-green-600">
+                      ${promo.discount_type} discount applied
+                    </p>
+                  </div>
+                  <div class="text-right">
+                    <div class="font-bold text-green-800">₹${promo.discount_amount.toFixed(2)}</div>
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+          
+          <div class="promotion-summary mt-4 p-3 bg-gray-50 rounded">
+            <div class="flex justify-between items-center">
+              <span class="font-medium">Total Savings:</span>
+              <span class="font-bold text-green-600">₹${promotions.total_discount.toFixed(2)}</span>
+            </div>
+          </div>
+          
+          <div class="flex justify-end gap-3 mt-6">
+            <button class="btn btn-secondary" onclick="window.pharmaApp.getModule('pos').hidePromotionDetails()">
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  }
+
+  hidePromotionDetails() {
+    const modal = document.getElementById('promotionDetailsModal');
+    if (modal) {
+      modal.remove();
+    }
+  }
+
+  showPromotionCodeEntry() {
+    const modalHtml = `
+      <div class="promotion-code-modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" 
+           id="promotionCodeModal">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold">Enter Promotion Code</h3>
+            <button onclick="window.pharmaApp.getModule('pos').hidePromotionCodeEntry()" class="text-gray-500">
+              <i class="fa fa-times"></i>
+            </button>
+          </div>
+          
+          <form onsubmit="window.pharmaApp.getModule('pos').handlePromotionCodeSubmit(event)">
+            <div class="form-group mb-4">
+              <label class="form-label">Promotion Code</label>
+              <input type="text" class="form-input" id="promotionCodeInput" 
+                     placeholder="Enter code (e.g., WINTER20)" autofocus>
+            </div>
+            
+            <div class="flex gap-3">
+              <button type="button" class="btn btn-secondary flex-1" onclick="window.pharmaApp.getModule('pos').hidePromotionCodeEntry()">
+                Cancel
+              </button>
+              <button type="submit" class="btn btn-primary flex-1">
+                Apply Code
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  }
+
+  hidePromotionCodeEntry() {
+    const modal = document.getElementById('promotionCodeModal');
+    if (modal) {
+      modal.remove();
+    }
+  }
+
+  async handlePromotionCodeSubmit(event) {
+    event.preventDefault();
+    
+    const code = document.getElementById('promotionCodeInput').value.trim();
+    if (!code) return;
+    
+    try {
+      if (window.notiflix) window.notiflix.Block.standard('#promotionCodeModal .modal-content', 'Validating Code...');
+      
+      const posState = this.app.state.getModuleState('pos');
+      const cart = posState.cart || [];
+      const currentCustomer = posState.currentCustomer;
+      const orderValue = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      
+      const response = await fetch(`${window.api}promotions/validate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          promotion_code: code,
+          customer_id: currentCustomer?._id,
+          order_value: orderValue,
+          items: cart
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (window.notiflix) window.notiflix.Block.remove('#promotionCodeModal .modal-content');
+      
+      if (result.valid) {
+        this.hidePromotionCodeEntry();
+        
+        // Add manual promotion to cart
+        const manualPromo = {
+          promotion_id: result.promotion.promotion_id,
+          rule_name: result.promotion.promotion_name,
+          discount_amount: result.discount_amount,
+          discount_type: 'manual_code',
+          priority: 0
+        };
+        
+        // Update cart totals with manual promotion
+        const currentTotals = this.calculateCartTotal();
+        const newDiscount = parseFloat(currentTotals.discount) + result.discount_amount;
+        
+        this.app.state.updateModule('pos', {
+          cartTotals: {
+            ...currentTotals,
+            discount: newDiscount.toFixed(2),
+            total: (parseFloat(currentTotals.subtotal) - newDiscount).toFixed(2),
+            manual_promotion: manualPromo
+          }
+        });
+        
+        this.render();
+        
+        if (window.notiflix) {
+          window.notiflix.Notify.success(
+            'Code Applied', 
+            `Promotion code applied! You saved ₹${result.discount_amount.toFixed(2)}`
+          );
+        }
+      } else {
+        if (window.notiflix) {
+          window.notiflix.Report.warning('Invalid Code', result.error || 'Promotion code is not valid');
+        }
+      }
+      
+    } catch (error) {
+      console.error('Error validating promotion code:', error);
+      if (window.notiflix) {
+        window.notiflix.Block.remove('#promotionCodeModal .modal-content');
+        window.notiflix.Report.failure('Error', 'Failed to validate promotion code', 'Ok');
+      }
+    }
+  }
+
+  async trackPromotionInteraction(interactionType, campaignId, discountAmount) {
+    try {
+      const posState = this.app.state.getModuleState('pos');
+      const currentCustomer = posState.currentCustomer;
+      const cartTotals = posState.cartTotals;
+      
+      await fetch(`${window.api}promotions/analytics/track`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          campaign_id: campaignId,
+          interaction_type: interactionType,
+          customer_id: currentCustomer?._id,
+          order_value: parseFloat(cartTotals?.subtotal || 0),
+          discount_applied: discountAmount,
+          timestamp: new Date().toISOString()
+        })
+      });
+    } catch (error) {
+      console.error('Error tracking promotion interaction:', error);
+    }
+  }
+
+  /**
+   * LOYALTY SYSTEM INTEGRATION METHODS
+   */
+
+  async loadCustomerLoyaltyProfile(customerId) {
+    try {
+      const response = await fetch(`${window.api}loyalty/customer/${customerId}`);
+      this.currentLoyaltyProfile = await response.json();
+      
+      // Calculate loyalty benefits for current cart
+      await this.calculateLoyaltyBenefits();
+      
+      // Load available redemptions
+      await this.loadAvailableRedemptions();
+      
+    } catch (error) {
+      console.error('Error loading loyalty profile:', error);
+      this.currentLoyaltyProfile = null;
+      this.loyaltyDiscount = 0;
+      this.pointsToEarn = 0;
+    }
+  }
+
+  async calculateLoyaltyBenefits() {
+    if (!this.currentLoyaltyProfile) {
+      this.loyaltyDiscount = 0;
+      this.pointsToEarn = 0;
+      return;
+    }
+
+    const posState = this.app.state.getModuleState('pos');
+    const cart = posState.cart || [];
+    const orderValue = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    
+    try {
+      // Get loyalty discount
+      const discountResponse = await fetch(`${window.api}loyalty/discount/apply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerId: this.currentLoyaltyProfile.customer._id,
+          orderValue: orderValue,
+          category: 'general'
+        })
+      });
+      
+      const discountData = await discountResponse.json();
+      this.loyaltyDiscount = discountData.discountAmount || 0;
+      
+      // Calculate points to earn
+      const tier = this.currentLoyaltyProfile.tier?.tier || 'bronze';
+      const multiplier = this.currentLoyaltyProfile.benefits?.pointsMultiplier || 1;
+      this.pointsToEarn = Math.floor(orderValue * multiplier);
+      
+    } catch (error) {
+      console.error('Error calculating loyalty benefits:', error);
+      this.loyaltyDiscount = 0;
+      this.pointsToEarn = Math.floor(orderValue);
+    }
+  }
+
+  async loadAvailableRedemptions() {
+    if (!this.currentLoyaltyProfile) {
+      this.availableRedemptions = [];
+      return;
+    }
+
+    try {
+      const tier = this.currentLoyaltyProfile.tier?.tier || 'bronze';
+      const customerId = this.currentLoyaltyProfile.customer._id;
+      
+      const response = await fetch(`${window.api}loyalty/rewards?customerId=${customerId}&tier=${tier}`);
+      this.availableRedemptions = await response.json();
+      
+    } catch (error) {
+      console.error('Error loading available redemptions:', error);
+      this.availableRedemptions = [];
+    }
+  }
+
+  async awardLoyaltyPoints(customerId, points, reason, orderValue) {
+    try {
+      await fetch(`${window.api}loyalty/points/award`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerId: customerId,
+          points: points,
+          reason: reason,
+          orderValue: orderValue,
+          metadata: {
+            timestamp: new Date(),
+            source: 'pos_system'
+          }
+        })
+      });
+    } catch (error) {
+      console.error('Error awarding loyalty points:', error);
+    }
+  }
+
+  /**
+   * ENHANCED VISUAL GRID INTEGRATION METHODS
+   */
+
+  initializeEnhancedVisualGrid() {
+    try {
+      // Load the enhanced visual grid CSS if not already loaded
+      if (!document.querySelector('link[href*="enhanced-visual-grid.css"]')) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'assets/css/enhanced-visual-grid.css';
+        document.head.appendChild(link);
+      }
+      
+      // Load the enhanced visual grid JavaScript if not already loaded
+      if (typeof EnhancedVisualGrid === 'undefined') {
+        const script = document.createElement('script');
+        script.src = 'assets/js/modules/enhanced-visual-grid.js';
+        script.onload = () => this.setupVisualGrid();
+        document.head.appendChild(script);
+      } else {
+        this.setupVisualGrid();
+      }
+      
+      console.log('Enhanced Visual Grid system initialized');
+    } catch (error) {
+      console.error('Error initializing enhanced visual grid:', error);
+    }
+  }
+
+  setupVisualGrid() {
+    try {
+      // Create the visual grid instance
+      this.visualGrid = new EnhancedVisualGrid({
+        containerId: 'enhanced-product-grid',
+        layout: this.productDisplayMode,
+        enableDragAndDrop: this.enableDragAndDrop,
+        enableVariantSelection: true,
+        enableQuickActions: true,
+        mobileBreakpoint: 768
+      });
+      
+      // Make it globally accessible for event handlers
+      window.visualGrid = this.visualGrid;
+      
+      // Override the addToCart method to integrate with POS cart
+      this.visualGrid.addToCart = this.addToCartEnhanced.bind(this);
+      
+    } catch (error) {
+      console.error('Error setting up visual grid:', error);
+    }
+  }
+
+  renderEnhancedVisualInterface() {
+    const posState = this.app.state.getModuleState('pos');
+    const totals = this.calculateCartTotal();
+    
+    return `
+      <div class="module-container pos-module enhanced-pos-interface" data-module="pos">
+        <div class="module-header">
+          <div class="flex justify-between items-center">
+            <div>
+              <h1 class="module-title">Enhanced Point of Sale</h1>
+              <p class="module-subtitle">Visual shopping experience with image-based product selection</p>
+            </div>
+            <div class="view-mode-selector">
+              <button class="btn btn-sm ${this.currentViewMode === 'visual' ? 'btn-primary' : 'btn-secondary'}" 
+                      onclick="window.pharmaApp.getModule('pos').setViewMode('visual')">
+                <i class="fa fa-th-large"></i> Visual Grid
+              </button>
+              <button class="btn btn-sm ${this.currentViewMode === 'traditional' ? 'btn-primary' : 'btn-secondary'}" 
+                      onclick="window.pharmaApp.getModule('pos').setViewMode('traditional')">
+                <i class="fa fa-list"></i> Traditional
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        ${this.currentViewMode === 'visual' ? this.renderVisualGridInterface() : this.renderTraditionalInterface(posState, totals)}
+      </div>
+    `;
+  }
+
+  renderVisualGridInterface() {
+    return `
+      <div class="visual-grid-layout">
+        <!-- Customer and Search Section -->
+        <div class="visual-controls-section mb-6">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-1">
+              ${this.renderCustomerSelector(this.app.state.getModuleState('pos').currentCustomer)}
+            </div>
+            <div class="lg:col-span-2">
+              ${this.renderEnhancedSearchAndFilters()}
+            </div>
+          </div>
+        </div>
+        
+        <!-- Enhanced Product Grid -->
+        <div class="enhanced-product-section">
+          <div id="enhanced-product-grid"></div>
+        </div>
+        
+        <!-- Mobile Cart Summary -->
+        ${this.mobileView ? this.renderMobileCartSummary() : ''}
+      </div>
+    `;
+  }
+
+  renderEnhancedSearchAndFilters() {
+    return `
+      <div class="enhanced-search-container">
+        <div class="search-and-layout-controls mb-4">
+          <div class="flex flex-col sm:flex-row gap-4">
+            <!-- Enhanced Search Bar -->
+            <div class="flex-1">
+              <div class="relative">
+                <input type="text" 
+                       class="enhanced-search-input w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none"
+                       placeholder="Search products, brands, or categories..."
+                       id="enhanced-product-search"
+                       autocomplete="off">
+                <i class="fa fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                <button class="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 text-gray-400 hover:text-gray-600"
+                        onclick="clearEnhancedSearch()"
+                        id="clear-search-btn" style="display: none;">
+                  <i class="fa fa-times"></i>
+                </button>
+              </div>
+            </div>
+            
+            <!-- Layout Selector -->
+            <div class="flex items-center gap-2">
+              <span class="text-sm text-gray-600">View:</span>
+              <div class="flex rounded-lg border border-gray-200 overflow-hidden">
+                <button class="layout-toggle-btn active" data-layout="grid" title="Grid View">
+                  <i class="fa fa-th-large"></i>
+                </button>
+                <button class="layout-toggle-btn" data-layout="list" title="List View">
+                  <i class="fa fa-list"></i>
+                </button>
+                <button class="layout-toggle-btn" data-layout="compact" title="Compact View">
+                  <i class="fa fa-th"></i>
+                </button>
+              </div>
+            </div>
+            
+            <!-- Filter Toggle -->
+            <button class="filter-toggle-btn btn btn-outline-secondary"
+                    onclick="toggleAdvancedFilters()">
+              <i class="fa fa-filter"></i> Filters
+              <span class="filter-count-badge" id="active-filter-count" style="display: none;">0</span>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Quick Filter Chips -->
+        <div class="quick-filters-container" id="quick-filters">
+          <div class="flex flex-wrap gap-2">
+            <button class="quick-filter-chip active" data-filter="all">
+              <i class="fa fa-star"></i> All Products
+            </button>
+            <button class="quick-filter-chip" data-filter="new-arrivals">
+              <i class="fa fa-sparkles"></i> New Arrivals
+            </button>
+            <button class="quick-filter-chip" data-filter="bestsellers">
+              <i class="fa fa-fire"></i> Best Sellers
+            </button>
+            <button class="quick-filter-chip" data-filter="sale">
+              <i class="fa fa-percentage"></i> On Sale
+            </button>
+            <button class="quick-filter-chip" data-filter="gift-eligible">
+              <i class="fa fa-gift"></i> Gift Eligible
+            </button>
+            <button class="quick-filter-chip" data-filter="in-stock">
+              <i class="fa fa-check-circle"></i> In Stock
+            </button>
+          </div>
+        </div>
+        
+        <!-- Advanced Filters Panel (Hidden by default) -->
+        <div class="advanced-filters-panel hidden" id="advanced-filters">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
+            <!-- Category Filter -->
+            <div class="filter-section">
+              <h4 class="filter-section-title">Category</h4>
+              <div class="filter-options" id="category-filters">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+            
+            <!-- Price Range Filter -->
+            <div class="filter-section">
+              <h4 class="filter-section-title">Price Range</h4>
+              <div class="price-range-container">
+                <input type="range" min="0" max="500" value="500" class="price-range-slider" id="price-range-slider">
+                <div class="price-range-display">
+                  <span>$0</span> - <span id="max-price-display">$500</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Brand Filter -->
+            <div class="filter-section">
+              <h4 class="filter-section-title">Brand</h4>
+              <div class="filter-options" id="brand-filters">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+            
+            <!-- Size Filter -->
+            <div class="filter-section">
+              <h4 class="filter-section-title">Size</h4>
+              <div class="size-filter-options" id="size-filters">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+          </div>
+          
+          <div class="filter-actions mt-4 flex justify-between">
+            <button class="btn btn-outline-secondary" onclick="clearAllAdvancedFilters()">
+              <i class="fa fa-times"></i> Clear All
+            </button>
+            <button class="btn btn-primary" onclick="applyAdvancedFilters()">
+              <i class="fa fa-check"></i> Apply Filters
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  renderMobileCartSummary() {
+    const posState = this.app.state.getModuleState('pos');
+    const cart = posState.cart || [];
+    const totals = this.calculateCartTotal();
+    
+    if (cart.length === 0) return '';
+    
+    return `
+      <div class="mobile-cart-summary fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-lg">
+        <div class="flex items-center justify-between">
+          <div class="cart-summary-info">
+            <div class="text-sm text-gray-600">${cart.length} items</div>
+            <div class="text-lg font-bold text-green-600">₹${totals.total}</div>
+          </div>
+          <button class="btn btn-primary px-6" onclick="window.pharmaApp.getModule('pos').showMobileCart()">
+            <i class="fa fa-shopping-cart"></i> View Cart
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  setViewMode(mode) {
+    this.currentViewMode = mode;
+    this.render();
+  }
+
+  setupMobileOptimization() {
+    // Detect mobile device
+    this.mobileView = window.innerWidth <= 768;
+    
+    // Listen for resize events
+    window.addEventListener('resize', this.debounce(() => {
+      this.mobileView = window.innerWidth <= 768;
+      if (this.currentViewMode === 'visual') {
+        this.render();
+      }
+    }, 250));
+  }
+
+  setupMobileInterface() {
+    if (!this.mobileView) return;
+    
+    // Add mobile-specific event listeners
+    this.setupTouchGestures();
+    this.setupMobileSearch();
+  }
+
+  setupTouchGestures() {
+    // Implement swipe gestures for mobile product browsing
+    let startX = 0;
+    let startY = 0;
+    
+    document.addEventListener('touchstart', (e) => {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+    });
+    
+    document.addEventListener('touchend', (e) => {
+      if (!startX || !startY) return;
+      
+      const endX = e.changedTouches[0].clientX;
+      const endY = e.changedTouches[0].clientY;
+      
+      const diffX = startX - endX;
+      const diffY = startY - endY;
+      
+      // Horizontal swipe detection
+      if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+        if (diffX > 0) {
+          // Swipe left - next products
+          this.navigateProductGrid('next');
+        } else {
+          // Swipe right - previous products
+          this.navigateProductGrid('prev');
+        }
+      }
+      
+      startX = 0;
+      startY = 0;
+    });
+  }
+
+  setupMobileSearch() {
+    const searchInput = document.getElementById('enhanced-product-search');
+    if (searchInput) {
+      // Add mobile-specific search features
+      searchInput.addEventListener('focus', () => {
+        // Expand search bar on mobile
+        searchInput.parentElement.classList.add('search-focused');
+      });
+      
+      searchInput.addEventListener('blur', () => {
+        // Collapse search bar when focus is lost
+        searchInput.parentElement.classList.remove('search-focused');
+      });
+    }
+  }
+
+  navigateProductGrid(direction) {
+    // Implement navigation between product pages/sections
+    console.log('Navigate product grid:', direction);
+  }
+
+  addToCartEnhanced(productData) {
+    // Enhanced addToCart method that integrates with visual grid
+    const product = {
+      _id: productData.id || productData._id,
+      name: productData.name || productData.product_name,
+      price: parseFloat(productData.price),
+      sku: productData.sku || `SKU-${productData.id}`,
+      category: productData.category || 'general',
+      image: productData.image,
+      variant_data: productData.variant_data
+    };
+    
+    // Add to cart using the existing POS method
+    this.addToCart(product);
+    
+    // Show visual feedback
+    this.showAddToCartFeedback(product);
+    
+    // Track analytics
+    this.trackProductAddToCart(productData);
+  }
+
+  showAddToCartFeedback(product) {
+    // Create visual feedback for successful cart addition
+    const feedback = document.createElement('div');
+    feedback.className = 'add-to-cart-feedback fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+    feedback.innerHTML = `
+      <div class="flex items-center gap-2">
+        <i class="fa fa-check"></i>
+        <span>${product.name} added to cart!</span>
+      </div>
+    `;
+    
+    document.body.appendChild(feedback);
+    
+    // Animate in
+    setTimeout(() => feedback.classList.add('show'), 100);
+    
+    // Remove after delay
+    setTimeout(() => {
+      feedback.classList.remove('show');
+      setTimeout(() => document.body.removeChild(feedback), 300);
+    }, 3000);
+  }
+
+  trackProductAddToCart(productData) {
+    // Track analytics for product additions from visual grid
+    console.log('Product added to cart:', productData);
+    
+    // Could integrate with analytics service
+    if (typeof gtag !== 'undefined') {
+      gtag('event', 'add_to_cart', {
+        currency: 'INR',
+        value: productData.price,
+        items: [{
+          item_id: productData.id,
+          item_name: productData.name,
+          category: productData.category,
+          price: productData.price,
+          quantity: 1
+        }]
+      });
+    }
+  }
+
+  /**
+   * CUSTOMER EXPERIENCE ENHANCEMENT METHODS
+   */
+
+  initializeCustomerExperience() {
+    // Load customer preferences and history
+    this.loadCustomerPreferences();
+    this.loadRecentlyViewedProducts();
+    this.loadWishlist();
+    this.setupProductRecommendations();
+  }
+
+  loadRecentlyViewedProducts() {
+    try {
+      const stored = localStorage.getItem('pharma_recently_viewed');
+      return stored ? JSON.parse(stored) : [];
+    } catch (error) {
+      console.error('Error loading recently viewed products:', error);
+      return [];
+    }
+  }
+
+  saveRecentlyViewedProduct(productId) {
+    try {
+      let recentlyViewed = this.recentlyViewedProducts;
+      
+      // Remove if already exists
+      recentlyViewed = recentlyViewed.filter(id => id !== productId);
+      
+      // Add to beginning
+      recentlyViewed.unshift(productId);
+      
+      // Keep only last 20 products
+      recentlyViewed = recentlyViewed.slice(0, 20);
+      
+      this.recentlyViewedProducts = recentlyViewed;
+      localStorage.setItem('pharma_recently_viewed', JSON.stringify(recentlyViewed));
+    } catch (error) {
+      console.error('Error saving recently viewed product:', error);
+    }
+  }
+
+  loadWishlist() {
+    try {
+      const stored = localStorage.getItem('pharma_wishlist');
+      return stored ? JSON.parse(stored) : [];
+    } catch (error) {
+      console.error('Error loading wishlist:', error);
+      return [];
+    }
+  }
+
+  toggleWishlist(productId) {
+    try {
+      let wishlist = this.wishlist;
+      
+      if (wishlist.includes(productId)) {
+        wishlist = wishlist.filter(id => id !== productId);
+      } else {
+        wishlist.push(productId);
+      }
+      
+      this.wishlist = wishlist;
+      localStorage.setItem('pharma_wishlist', JSON.stringify(wishlist));
+      
+      // Update UI
+      this.updateWishlistUI(productId, wishlist.includes(productId));
+      
+      return wishlist.includes(productId);
+    } catch (error) {
+      console.error('Error toggling wishlist:', error);
+      return false;
+    }
+  }
+
+  updateWishlistUI(productId, isInWishlist) {
+    // Update wishlist button UI across the application
+    const wishlistBtns = document.querySelectorAll(`[data-product-id="${productId}"] .wishlist-btn`);
+    wishlistBtns.forEach(btn => {
+      btn.classList.toggle('active', isInWishlist);
+      btn.innerHTML = `<i class="fa ${isInWishlist ? 'fa-heart' : 'fa-heart-o'}"></i>`;
+    });
+  }
+
+  setupProductRecommendations() {
+    // Setup AI-powered product recommendations
+    this.recommendationEngine = {
+      basedOn: 'recently_viewed', // recently_viewed, purchase_history, similar_customers
+      algorithm: 'collaborative_filtering', // collaborative_filtering, content_based, hybrid
+      maxRecommendations: 10
+    };
+  }
+
+  /**
+   * ENHANCED CART METHODS WITH PROMOTION SUPPORT
+   */
+
+  addToCart(product) {
+    const posState = this.app.state.getModuleState('pos');
+    const cart = [...posState.cart];
+    
+    // Check if product/variant already exists in cart
+    const existingIndex = product.is_variant ? 
+      cart.findIndex(item => item.id === product.id) :
+      cart.findIndex(item => item.id === product._id);
+    
+    if (existingIndex >= 0) {
+      // Increase quantity
+      cart[existingIndex].quantity += 1;
+    } else {
+      // Add new item
+      cart.push({
+        id: product.is_variant ? product.id : product._id,
+        product_id: product.is_variant ? product.product_id : product._id,
+        product_name: product.name || product.product_name,
+        sku: product.sku || product.barcode || product._id,
+        price: parseFloat(product.price),
+        quantity: 1,
+        category: product.category || 'general',
+        is_variant: product.is_variant || false,
+        variant_data: product.variant_data || null
+      });
+    }
+    
+    this.app.state.updateModule('pos', { cart });
+    
+    // Recalculate promotions and loyalty benefits after adding item
+    setTimeout(async () => {
+      await this.calculateCartTotal();
+      if (this.currentLoyaltyProfile) {
+        await this.calculateLoyaltyBenefits();
+        this.render();
+      }
+    }, 100);
+  }
+
+  removeFromCart(index) {
+    const posState = this.app.state.getModuleState('pos');
+    const cart = posState.cart.filter((_, i) => i !== index);
+    this.app.state.updateModule('pos', { cart });
+    
+    // Recalculate promotions and loyalty benefits after removing item
+    setTimeout(async () => {
+      await this.calculateCartTotal();
+      if (this.currentLoyaltyProfile) {
+        await this.calculateLoyaltyBenefits();
+        this.render();
+      }
+    }, 100);
+  }
+
+  updateCartQuantity(index, quantity) {
+    const posState = this.app.state.getModuleState('pos');
+    const cart = [...posState.cart];
+    
+    if (cart[index]) {
+      cart[index].quantity = parseInt(quantity) || 1;
+      this.app.state.updateModule('pos', { cart });
+      
+      // Recalculate promotions and loyalty benefits after quantity change
+      setTimeout(async () => {
+        await this.calculateCartTotal();
+        if (this.currentLoyaltyProfile) {
+          await this.calculateLoyaltyBenefits();
+          this.render();
+        }
+      }, 100);
+    }
+  }
+
+  /**
+   * LOYALTY UI RENDERING METHODS
+   */
+
+  renderLoyaltyInfo() {
+    if (!this.currentLoyaltyProfile) {
+      return `
+        <div class="loyalty-info mt-3 p-2 bg-light rounded">
+          <small class="text-muted">
+            <i class="fa fa-info-circle"></i> Select a customer to view loyalty benefits and earn points
+          </small>
+        </div>
+      `;
+    }
+
+    const tier = this.currentLoyaltyProfile.tier?.tier || 'bronze';
+    const points = this.currentLoyaltyProfile.points?.balance || 0;
+    const benefits = this.currentLoyaltyProfile.benefits || {};
+    
+    const tierColors = {
+      bronze: '#CD7F32',
+      silver: '#C0C0C0',
+      gold: '#FFD700',
+      platinum: '#E5E4E2',
+      diamond: '#B9F2FF'
+    };
+    
+    const tierName = tier.charAt(0).toUpperCase() + tier.slice(1);
+    const color = tierColors[tier] || '#CD7F32';
+    
+    return `
+      <div class="loyalty-info mt-3 p-3 rounded" style="background: linear-gradient(135deg, ${color}15, ${color}05); border: 1px solid ${color}30;">
+        <div class="row align-items-center">
+          <div class="col-auto">
+            <div class="loyalty-tier-badge" style="color: ${color};">
+              <i class="fa fa-star"></i>
+              <span class="badge badge-sm" style="background-color: ${color}20; color: ${color}; border: 1px solid ${color}40;">
+                ${tierName}
+              </span>
+            </div>
+          </div>
+          <div class="col-auto">
+            <div class="points-balance">
+              <strong class="text-primary">${points.toLocaleString()}</strong>
+              <small class="text-muted d-block">points</small>
+            </div>
+          </div>
+          <div class="col">
+            <div class="loyalty-benefits">
+              ${benefits.pointsMultiplier > 1 ? 
+                `<small class="text-success"><i class="fa fa-plus"></i> ${benefits.pointsMultiplier}x points</small>` : ''
+              }
+              ${benefits.discountPercentage > 0 ? 
+                ` <small class="text-info"><i class="fa fa-percent"></i> ${benefits.discountPercentage}% off</small>` : ''
+              }
+              ${benefits.freeShipping ? 
+                ` <small class="text-warning"><i class="fa fa-truck"></i> Free shipping</small>` : ''
+              }
+            </div>
+          </div>
+          <div class="col-auto">
+            <button class="btn btn-sm btn-outline-primary" onclick="window.pharmaApp.getModule('pos').showLoyaltyDetailsModal()">
+              <i class="fa fa-eye"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  showLoyaltyDetailsModal() {
+    if (!this.currentLoyaltyProfile) return;
+    
+    const loyaltyProfile = this.currentLoyaltyProfile;
+    const tier = loyaltyProfile.tier?.tier || 'bronze';
+    const benefits = loyaltyProfile.benefits || {};
+    const giftBenefits = loyaltyProfile.giftBenefits || {};
+    
+    const modalHtml = `
+      <div class="loyalty-details-modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" 
+           id="loyaltyDetailsModal">
+        <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold">
+              <i class="fa fa-star text-primary"></i> Loyalty Program Details
+            </h3>
+            <button onclick="window.pharmaApp.getModule('pos').hideLoyaltyDetailsModal()" class="text-gray-500">
+              <i class="fa fa-times"></i>
+            </button>
+          </div>
+          
+          <div class="loyalty-details-content">
+            <div class="tier-overview mb-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded">
+              <h5 class="mb-2">
+                <i class="fa fa-crown"></i> ${tier.charAt(0).toUpperCase() + tier.slice(1)} Member
+              </h5>
+              <p class="text-muted mb-0">You're enjoying exclusive benefits as a ${tier} tier member!</p>
+            </div>
+            
+            <div class="row">
+              <div class="col-md-6">
+                <h6 class="mb-3"><i class="fa fa-gift"></i> Current Benefits</h6>
+                <div class="benefits-list">
+                  ${benefits.pointsMultiplier > 1 ? `
+                    <div class="benefit-item mb-2">
+                      <i class="fa fa-times-circle text-success"></i>
+                      <span>${benefits.pointsMultiplier}x Points Multiplier</span>
+                    </div>
+                  ` : ''}
+                  ${benefits.discountPercentage > 0 ? `
+                    <div class="benefit-item mb-2">
+                      <i class="fa fa-percent text-primary"></i>
+                      <span>${benefits.discountPercentage}% Purchase Discount</span>
+                    </div>
+                  ` : ''}
+                  ${benefits.freeShipping ? `
+                    <div class="benefit-item mb-2">
+                      <i class="fa fa-truck text-info"></i>
+                      <span>Free Shipping</span>
+                    </div>
+                  ` : ''}
+                  ${benefits.earlyAccess ? `
+                    <div class="benefit-item mb-2">
+                      <i class="fa fa-clock text-warning"></i>
+                      <span>Early Access to Sales</span>
+                    </div>
+                  ` : ''}
+                  ${benefits.birthdayBonus ? `
+                    <div class="benefit-item mb-2">
+                      <i class="fa fa-gift text-danger"></i>
+                      <span>${benefits.birthdayBonus} Birthday Bonus Points</span>
+                    </div>
+                  ` : ''}
+                </div>
+              </div>
+              
+              <div class="col-md-6">
+                <h6 class="mb-3"><i class="fa fa-box"></i> Gift Store Benefits</h6>
+                <div class="gift-benefits-list">
+                  ${giftBenefits.wrappingDiscount > 0 ? `
+                    <div class="benefit-item mb-2">
+                      <i class="fa fa-gift text-purple"></i>
+                      <span>${giftBenefits.wrappingDiscount}% Gift Wrapping Discount</span>
+                    </div>
+                  ` : ''}
+                  ${giftBenefits.giftCardBonus > 0 ? `
+                    <div class="benefit-item mb-2">
+                      <i class="fa fa-credit-card text-green"></i>
+                      <span>${giftBenefits.giftCardBonus}% Gift Card Bonus</span>
+                    </div>
+                  ` : ''}
+                  ${giftBenefits.bulkDiscount > 0 ? `
+                    <div class="benefit-item mb-2">
+                      <i class="fa fa-users text-blue"></i>
+                      <span>${giftBenefits.bulkDiscount}% Bulk Purchase Discount</span>
+                    </div>
+                  ` : ''}
+                  ${giftBenefits.exclusiveWrapping ? `
+                    <div class="benefit-item mb-2">
+                      <i class="fa fa-crown text-warning"></i>
+                      <span>Exclusive Gift Wrapping Options</span>
+                    </div>
+                  ` : ''}
+                </div>
+              </div>
+            </div>
+            
+            <div class="tier-progress mt-4">
+              ${this.renderTierProgressForModal(loyaltyProfile.tier)}
+            </div>
+          </div>
+          
+          <div class="flex justify-end gap-3 mt-6">
+            <button class="btn btn-secondary" onclick="window.pharmaApp.getModule('pos').hideLoyaltyDetailsModal()">
+              Close
+            </button>
+            <button class="btn btn-primary" onclick="window.pharmaApp.getModule('pos').showLoyaltyRewardsModal()">
+              <i class="fa fa-star"></i> Redeem Points
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  }
+
+  hideLoyaltyDetailsModal() {
+    const modal = document.getElementById('loyaltyDetailsModal');
+    if (modal) {
+      modal.remove();
+    }
+  }
+
+  showLoyaltyRewardsModal() {
+    if (!this.availableRedemptions.length) {
+      if (window.notiflix) {
+        window.notiflix.Notify.info('No Rewards', 'No rewards available for redemption at this time');
+      }
+      return;
+    }
+    
+    const currentBalance = this.currentLoyaltyProfile?.points?.balance || 0;
+    
+    const modalHtml = `
+      <div class="loyalty-rewards-modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" 
+           id="loyaltyRewardsModal">
+        <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold">
+              <i class="fa fa-star text-warning"></i> Redeem Loyalty Points
+            </h3>
+            <button onclick="window.pharmaApp.getModule('pos').hideLoyaltyRewardsModal()" class="text-gray-500">
+              <i class="fa fa-times"></i>
+            </button>
+          </div>
+          
+          <div class="current-balance mb-4 p-3 bg-blue-50 rounded">
+            <h6>Your Points Balance: <span class="text-primary font-bold">${currentBalance.toLocaleString()}</span></h6>
+          </div>
+          
+          <div class="rewards-list">
+            <h6 class="mb-3">Available Rewards</h6>
+            ${this.availableRedemptions.map(reward => {
+              const canRedeem = currentBalance >= reward.pointsCost;
+              return `
+                <div class="reward-item border rounded p-3 mb-3 ${!canRedeem ? 'opacity-50' : ''}">
+                  <div class="row align-items-center">
+                    <div class="col-md-8">
+                      <h6 class="mb-1">${reward.name}</h6>
+                      <p class="text-muted mb-2">${reward.description}</p>
+                      <span class="badge badge-primary">${reward.pointsCost} points</span>
+                      ${reward.automatic ? '<span class="badge badge-success ml-2">Automatic</span>' : ''}
+                    </div>
+                    <div class="col-md-4 text-right">
+                      <button class="btn ${canRedeem ? 'btn-success' : 'btn-secondary'}" 
+                              ${!canRedeem ? 'disabled' : ''}
+                              onclick="window.pharmaApp.getModule('pos').redeemReward('${reward.id}')">
+                        ${canRedeem ? 'Redeem' : `Need ${reward.pointsCost - currentBalance} more`}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+          
+          <div class="flex justify-end gap-3 mt-6">
+            <button class="btn btn-secondary" onclick="window.pharmaApp.getModule('pos').hideLoyaltyRewardsModal()">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  }
+
+  hideLoyaltyRewardsModal() {
+    const modal = document.getElementById('loyaltyRewardsModal');
+    if (modal) {
+      modal.remove();
+    }
+  }
+
+  renderTierProgressForModal(tierData) {
+    const tier = tierData?.tier || 'bronze';
+    const progress = tierData?.progress || 0;
+    const nextTier = tierData?.nextTier;
+    
+    if (!nextTier) {
+      return `
+        <div class="tier-complete text-center p-4 bg-success text-white rounded">
+          <i class="fa fa-trophy" style="font-size: 2rem;"></i>
+          <h5 class="mt-2">Highest Tier Achieved!</h5>
+          <p>Congratulations! You've reached the pinnacle of our loyalty program</p>
+        </div>
+      `;
+    }
+    
+    const nextTierName = nextTier.charAt(0).toUpperCase() + nextTier.slice(1);
+    
+    return `
+      <div class="tier-progress-info">
+        <h6 class="mb-2">Progress to ${nextTierName}</h6>
+        <div class="progress mb-2" style="height: 10px;">
+          <div class="progress-bar bg-primary" style="width: ${progress}%" role="progressbar"></div>
+        </div>
+        <div class="d-flex justify-content-between">
+          <small class="text-muted">Current: ${tier.charAt(0).toUpperCase() + tier.slice(1)}</small>
+          <small class="text-muted">${progress.toFixed(1)}% to ${nextTierName}</small>
+        </div>
+      </div>
+    `;
+  }
+
+  async redeemReward(rewardId) {
+    try {
+      if (window.notiflix) {
+        window.notiflix.Block.standard('#loyaltyRewardsModal .modal-content', 'Processing redemption...');
+      }
+      
+      // Find the reward details
+      const reward = this.availableRedemptions.find(r => r.id === rewardId);
+      if (!reward) {
+        throw new Error('Reward not found');
+      }
+      
+      const response = await fetch(`${window.api}loyalty/points/redeem`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerId: this.currentLoyaltyProfile.customer._id,
+          points: reward.pointsCost,
+          rewardType: reward.type,
+          rewardId: rewardId
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (window.notiflix) {
+        window.notiflix.Block.remove('#loyaltyRewardsModal .modal-content');
+      }
+      
+      if (result.success) {
+        this.hideLoyaltyRewardsModal();
+        
+        if (window.notiflix) {
+          window.notiflix.Notify.success(
+            'Reward Redeemed!', 
+            `Successfully redeemed ${reward.name}. Your new balance: ${result.newBalance} points`
+          );
+        }
+        
+        // Refresh loyalty data
+        await this.loadCustomerLoyaltyProfile(this.currentLoyaltyProfile.customer._id);
+        this.render();
+        
+        // Apply discount to current cart if applicable
+        if (reward.type === 'discount') {
+          this.loyaltyDiscount += (result.discountAmount || 0);
+          this.render();
+        }
+      } else {
+        throw new Error(result.error || 'Redemption failed');
+      }
+      
+    } catch (error) {
+      console.error('Error redeeming reward:', error);
+      
+      if (window.notiflix) {
+        window.notiflix.Block.remove('#loyaltyRewardsModal .modal-content');
+        window.notiflix.Notify.failure('Redemption Failed', error.message);
+      }
+    }
+  }
 }
+
+// Make POSModule available globally
+window.POSModule = POSModule;
 
 // Make POSModule available globally
 window.POSModule = POSModule;

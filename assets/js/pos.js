@@ -1,17 +1,163 @@
-const jsPDF = require("jspdf");
-const html2canvas = require("html2canvas");
-const JsBarcode = require("jsbarcode");
-const QRCode = require("qrcode");
-const macaddress = require("macaddress");
-const notiflix = require("notiflix");
-window.notiflix = notiflix;
-window.validator = require("validator");
-const DOMPurify = require("dompurify");
-const _ = require("lodash");
-let fs = require("fs");
-let path = require("path");
-window.moment = require("moment");
-let { ipcRenderer } = require("electron");
+// Browser-compatible library loading
+let QRCode;
+let notiflix;
+let validator;
+let DOMPurify;
+let _;
+let fs;
+let path;
+let moment;
+let ipcRenderer;
+
+// Safe require function for browser compatibility
+function safeRequire(moduleName) {
+    if (typeof require !== 'undefined') {
+        try {
+            return require(moduleName);
+        } catch (e) {
+            console.warn(`Node.js module ${moduleName} not available in browser:`, e.message);
+            return null;
+        }
+    }
+    return null;
+}
+
+// Load libraries with fallbacks
+try {
+    QRCode = safeRequire("qrcode");
+} catch (e) {
+    console.warn('QRCode module not available, will load from CDN if needed');
+}
+
+try {
+    notiflix = safeRequire("notiflix");
+    if (!notiflix) {
+        // Fallback to global if available
+        notiflix = window.notiflix;
+    }
+    window.notiflix = notiflix || {
+        Notify: { init: () => {}, success: () => {}, warning: () => {}, failure: () => {} },
+        Report: { success: () => {}, warning: () => {}, failure: () => {} },
+        Confirm: { show: () => {} },
+        Loading: { dots: () => {}, remove: () => {} }
+    };
+} catch (e) {
+    console.warn('Notiflix not available, using fallback');
+    window.notiflix = {
+        Notify: { init: () => {}, success: () => {}, warning: () => {}, failure: () => {} },
+        Report: { success: () => {}, warning: () => {}, failure: () => {} },
+        Confirm: { show: () => {} },
+        Loading: { dots: () => {}, remove: () => {} }
+    };
+}
+
+try {
+    validator = safeRequire("validator") || window.validator;
+    if (!validator) {
+        validator = {
+            unescape: (str) => str ? String(str).replace(/&quot;/g, '"').replace(/&#x27;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#x2F;/g, '/').replace(/&#x60;/g, '`').replace(/&#x3D;/g, '=') : str
+        };
+    }
+    window.validator = validator;
+} catch (e) {
+    console.warn('Validator not available, using fallback');
+    window.validator = {
+        unescape: (str) => str ? String(str).replace(/&quot;/g, '"').replace(/&#x27;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#x2F;/g, '/').replace(/&#x60;/g, '`').replace(/&#x3D;/g, '=') : str
+    };
+}
+
+try {
+    DOMPurify = safeRequire("dompurify") || window.DOMPurify;
+    if (!DOMPurify) {
+        DOMPurify = {
+            sanitize: (html) => html // Basic fallback - would need proper sanitization in production
+        };
+    }
+    window.DOMPurify = DOMPurify;
+} catch (e) {
+    console.warn('DOMPurify not available, using fallback');
+    window.DOMPurify = {
+        sanitize: (html) => html // Basic fallback - would need proper sanitization in production
+    };
+}
+
+try {
+    _ = safeRequire("lodash") || window._;
+    if (!_) {
+        _ = {
+            escape: (str) => str ? String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;') : str
+        };
+    }
+    window._ = _;
+} catch (e) {
+    console.warn('Lodash not available, using fallback');
+    window._ = {
+        escape: (str) => str ? String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;') : str
+    };
+}
+
+try {
+    fs = safeRequire("fs");
+    path = safeRequire("path");
+} catch (e) {
+    console.warn('File system modules not available in browser');
+    fs = null;
+    path = null;
+}
+
+try {
+    moment = safeRequire("moment") || window.moment;
+    if (!moment) {
+        moment = window.moment;
+    }
+    window.moment = moment;
+} catch (e) {
+    console.warn('Moment not available, using browser Date');
+    window.moment = {
+        format: (fmt) => new Date().toLocaleDateString(),
+        startOf: (unit) => new Date(),
+        endOf: (unit) => new Date(),
+        subtract: (value, unit) => new Date(Date.now() - value * 24 * 60 * 60 * 1000),
+        toDate: () => new Date(),
+        toJSON: () => new Date().toISOString()
+    };
+}
+
+try {
+    ipcRenderer = safeRequire("electron")?.ipcRenderer || window.ipcRenderer;
+    if (!ipcRenderer) {
+        // Fallback for browser environment
+        ipcRenderer = {
+            on: () => {},
+            send: () => {},
+            sendSync: () => null
+        };
+    }
+} catch (e) {
+    console.warn('Electron IPC not available, using fallback');
+    ipcRenderer = {
+        on: () => {},
+        send: () => {},
+        sendSync: () => null
+    };
+}
+
+// Auto-load QRCode from CDN if not available
+if (typeof QRCode === 'undefined' || QRCode === null) {
+    document.addEventListener('DOMContentLoaded', function() {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
+        script.onload = function() {
+            console.log('QRCode loaded from CDN');
+            QRCode = window.qrcode;
+        };
+        script.onerror = function() {
+            console.warn('Failed to load QRCode from CDN');
+            QRCode = null;
+        };
+        document.head.appendChild(script);
+    });
+}
 
 // Import vanilla JavaScript store and store manager (with error handling)
 let useStore, storeManager;
@@ -32,7 +178,56 @@ try {
 let dotInterval = setInterval(function () {
   $(".dot").text(".");
 }, 3000);
-let Store = require("electron-store");
+
+// Store class with browser fallback
+class Store {
+  constructor() {
+    this.storage = window.localStorage;
+  }
+  
+  get(key) {
+    try {
+      if (!this.storage) return null;
+      const item = this.storage.getItem(key);
+      return item ? JSON.parse(item) : null;
+    } catch (error) {
+      console.error('Error reading from localStorage:', error);
+      return null;
+    }
+  }
+  
+  set(key, value) {
+    try {
+      if (!this.storage) return;
+      this.storage.setItem(key, JSON.stringify(value));
+    } catch (error) {
+      console.error('Error writing to localStorage:', error);
+    }
+  }
+  
+  delete(key) {
+    try {
+      if (!this.storage) return;
+      this.storage.removeItem(key);
+    } catch (error) {
+      console.error('Error deleting from localStorage:', error);
+    }
+  }
+}
+
+// Try to use electron-store if available, otherwise use browser fallback
+try {
+  const electronStore = safeRequire("electron-store");
+  if (electronStore) {
+    Store = electronStore;
+  } else {
+    Store = Store; // Use the browser Store class defined above
+  }
+} catch (e) {
+  console.warn('Electron store not available, using browser localStorage fallback');
+  Store = Store; // Use the browser Store class defined above
+}
+
 window.host = "localhost";
 window.port = null; // Will be set via IPC
 window.api = null; // Will be configured when port is received
@@ -154,8 +349,50 @@ function safeAjaxCall(options) {
   });
 }
 
-const io = require('socket.io-client');
-const remote = require("@electron/remote");
+// Socket.io loading with fallback
+let io;
+try {
+    io = safeRequire('socket.io-client') || window.io;
+    if (!io) {
+        // Fallback for browser - create a mock socket.io
+        io = function(url) {
+            console.warn('Socket.io not available, using mock implementation');
+            return {
+                on: () => {},
+                emit: () => {},
+                disconnect: () => {}
+            };
+        };
+    }
+} catch (e) {
+    console.warn('Socket.io not available, using fallback');
+    io = function(url) {
+        console.warn('Socket.io not available, using mock implementation');
+        return {
+            on: () => {},
+            emit: () => {},
+            disconnect: () => {}
+        };
+    };
+}
+
+let remote;
+try {
+    remote = safeRequire("@electron/remote");
+    if (!remote) {
+        // Fallback for browser environment
+        remote = {
+            getGlobal: () => null,
+            BrowserWindow: function() { return { show: () => {} }; }
+        };
+    }
+} catch (e) {
+    console.warn('Electron remote not available, using fallback');
+    remote = {
+        getGlobal: () => null,
+        BrowserWindow: function() { return { show: () => {} }; }
+    };
+}
 let cart = [];
 let index = 0;
 let allUsers = [];
@@ -178,10 +415,10 @@ let subTotal = 0;
 let method = "";
 let user_index = 0;
 let transaction_index;
-const appName = process.env.APPNAME;
-const appData = process.env.APPDATA;
-let img_path = path.join(appData, appName, "uploads", "/");
-const bcrypt = require("bcrypt");
+const appName = process.env.APPNAME || 'StyleMine';
+const appData = process.env.APPDATA || 'assets';
+let img_path = path ? path.join(appData, appName, "uploads", "/") : "assets/uploads/";
+// bcrypt will be loaded via browser-compatible method below
 let categories = [];
 let holdOrderList = [];
 let customerOrderList = [];
@@ -203,7 +440,7 @@ let end_date = moment(end).toDate();
 let by_till = 0;
 let by_user = 0;
 let by_status = 1;
-const default_item_img = path.join("assets", "images", "default.jpg");
+const default_item_img = path ? path.join("assets", "images", "default.jpg") : "assets/images/default.jpg";
 const permissions = [
   "perm_products",
   "perm_categories",
@@ -211,22 +448,94 @@ const permissions = [
   "perm_users",
   "perm_settings",
 ];
-notiflix.Notify.init({
-  position: "right-top",
-  cssAnimationDuration: 600,
-  messageMaxLength: 150,
-  clickToClose: true,
-  closeButton: true
-});
+
+// Browser-compatible bcrypt alternative
+let bcrypt;
+try {
+    bcrypt = safeRequire("bcrypt");
+    if (!bcrypt) {
+        // Simple fallback - in production you'd use proper bcrypt
+        bcrypt = {
+            compare: (password, hash) => {
+                console.warn('bcrypt.compare called with fallback implementation');
+                return Promise.resolve(password === hash);
+            }
+        };
+    }
+} catch (e) {
+    console.warn('bcrypt not available, using fallback');
+    bcrypt = {
+        compare: (password, hash) => {
+            console.warn('bcrypt.compare called with fallback implementation');
+            return Promise.resolve(password === hash);
+        }
+    };
+}
+// Initialize notiflix with fallback
+if (window.notiflix && window.notiflix.Notify) {
+    window.notiflix.Notify.init({
+        position: "right-top",
+        cssAnimationDuration: 600,
+        messageMaxLength: 150,
+        clickToClose: true,
+        closeButton: true
+    });
+} else {
+    console.warn('Notiflix not available, skipping initialization');
+}
+// Browser-compatible utils loading
+let utils;
+if (typeof require !== 'undefined') {
+    try {
+        utils = require("./utils");
+    } catch (e) {
+        console.warn('Node.js utils not available, using browser fallback');
+        utils = window.utils;
+    }
+} else {
+    utils = window.utils;
+}
+
+// Fallback if utils is still not available
+if (!utils) {
+    utils = {
+        moneyFormat: (amount) => new Intl.NumberFormat('en-IN').format(amount),
+        getStockStatus: (current, minimum) => {
+            current = Number(current);
+            minimum = Number(minimum);
+            if (current <= 0) return 0;
+            if (current <= minimum) return -1;
+            return 1;
+        },
+        DATE_FORMAT: "DD-MMM-YYYY",
+        isExpired: (date) => {
+            return new Date(date) <= new Date();
+        },
+        daysToExpire: (date) => {
+            const expiry = new Date(date);
+            const today = new Date();
+            return Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+        },
+        checkFileExists: () => true,
+        setContentSecurityPolicy: () => {
+            const meta = document.createElement('meta');
+            meta.httpEquiv = 'Content-Security-Policy';
+            meta.content = "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:; img-src 'self' data: blob: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https:; font-src 'self' data: https:; connect-src 'self' http://localhost:49499 http://localhost:* https: wss: ws:; media-src 'self' data: blob:; frame-src 'none'; object-src 'none';";
+            document.head.appendChild(meta);
+        }
+    };
+}
+
+// Destructure utils for use
 const {
-  DATE_FORMAT,
-  moneyFormat,
-  isExpired,
-  daysToExpire,
-  getStockStatus,
-  checkFileExists,
-  setContentSecurityPolicy,
-} = require("./utils");
+    DATE_FORMAT,
+    moneyFormat,
+    isExpired,
+    daysToExpire,
+    getStockStatus,
+    checkFileExists,
+    setContentSecurityPolicy,
+} = utils;
 
 //set the content security policy of the app
 setContentSecurityPolicy();
@@ -608,13 +917,13 @@ function initializeApp() {
                 item_img = default_item_img;
               }
               else {
-                item_img = path.join(img_path, item.img);
+                item_img = img_path + item.img;
                 item_img = checkFileExists(item_img) ? item_img : default_item_img;
               }
 
               let item_info = `<div class="col-lg-2 box ${item.category}">
                              <div class="widget-panel widget-style-2 " title="${item.name}">                    
-                            <div id="image" onclick="$(this).addToCart(${item._id}, ${item.quantity}, ${item.stock})"><img src="${item_img}" id="product_img" alt=""></div>                    
+                            <div id="image" onclick="$(this).addToCart(${item._id}, ${item.quantity}, ${item.stock}, ${item.has_variants})"><img src="${item_img}" id="product_img" alt=""></div>                    
                                          <div class="text-muted m-t-5 text-center">
                                          <div class="name" id="product_name"><span class="${item_isExpired ? "text-danger" : ""}">${item.name}</span></div> 
                                          <span class="sku">${item.barcode || item._id}</span>
@@ -623,6 +932,7 @@ function initializeApp() {
                   : "N/A"}</span></span>
                                         <br>
                                         <button class="btn btn-xs btn-info" onclick="$(this).viewSubstitutes(${item._id}, '${item.name}')"><i class="fa fa-exchange"></i> Subs</button>
+                  ${item.stock_tracking_method === 'variant' ? `<button class="btn btn-xs btn-success" onclick="$(this).addToCart(${item._id}, ${item.quantity}, ${item.stock}, true)"><i class="fa fa-plus"></i> Variants</button>` : ''}
                                         </div>
                                          <span class="text-success text-center"><b data-plugin="counterup">${getCurrencySymbol() +
                  moneyFormat(item.price)
@@ -741,7 +1051,7 @@ function initializeApp() {
           });
       }
 
-      $.fn.addToCart = function (id, count, stock, bypassPrescription = false) {
+      $.fn.addToCart = function (id, count, stock, hasVariants = false, bypassPrescription = false) {
         $.get(window.api + "inventory/product/" + id)
           .done(function (product) {
             
@@ -755,7 +1065,12 @@ function initializeApp() {
               );
             } else {
               if (count > 0) {
-                $(this).addProductToCart(product);
+                // Check if product has variants
+                if (hasVariants || product.stock_tracking_method === 'variant') {
+                  showVariantSelectionModal(product);
+                } else {
+                  $(this).addProductToCart(product);
+                }
               } else {
                 if (stock == 1) {
                   notiflix.Report.failure(
@@ -875,13 +1190,14 @@ function initializeApp() {
         }
       });
 
-      $.fn.addProductToCart = function (data) {
+      $.fn.addProductToCart = function (data, selectedVariant) {
         item = {
           id: data._id,
           product_name: data.name,
           sku: data.sku,
           price: data.price,
           quantity: 1,
+          variant: selectedVariant || null // Store selected variant info
         };
 
         if ($(this).isExist(item)) {
@@ -1215,7 +1531,7 @@ function initializeApp() {
           method = "POST";
         }
 
-        let logo = path.join(img_path, safeUnescape(settings.img));
+        let logo = img_path + safeUnescape(settings.img);
 
         receipt = `<div style="font-size: 10px">                            
         <p style="text-align: center;">
@@ -2824,7 +3140,7 @@ $.fn.viewTransaction = function (index) {
             </tr>`;
   }
 
-  let logo = path.join(img_path, safeUnescape(settings.img));
+  let logo = img_path + safeUnescape(settings.img);
 
   receipt = `<div style="font-size: 10px">                            
         <p style="text-align: center;">
@@ -3370,6 +3686,319 @@ $('#reportrange').on('apply.daterangepicker', function (ev, picker) {
 window.loadSalesReport = loadSalesReport;
 window.loadInventoryReport = loadInventoryReport;
 window.loadStaffReport = loadStaffReport;
+
+// ============================================
+// VARIANT MANAGEMENT FUNCTIONS
+// ============================================
+
+/**
+ * Show variant selection modal for products with variants
+ */
+function showVariantSelectionModal(product) {
+    // Load variant data for the product
+    $.get(window.api + `variants/product/${product._id}`)
+        .done(function(variantData) {
+            if (!variantData.variants || Object.keys(variantData.variants).length === 0) {
+                // No variants found, add product directly
+                addProductToCart(product);
+                return;
+            }
+            
+            displayVariantSelectionModal(product, variantData);
+        })
+        .fail(function() {
+            // If variant loading fails, add product directly
+            addProductToCart(product);
+        });
+}
+
+/**
+ * Display variant selection modal
+ */
+function displayVariantSelectionModal(product, variantData) {
+    // Create modal HTML if it doesn't exist
+    if ($('#variantSelectionModal').length === 0) {
+        const modalHtml = `
+            <div class="modal fade" id="variantSelectionModal" tabindex="-1" role="dialog">
+                <div class="modal-dialog modal-lg" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Select Variant</h5>
+                            <button type="button" class="close" data-dismiss="modal">
+                                <span>&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <!-- Content will be populated dynamically -->
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary" id="confirmVariantSelection">Add to Cart</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        $('body').append(modalHtml);
+    }
+    
+    const modal = $('#variantSelectionModal');
+    const modalBody = modal.find('.modal-body');
+    
+    // Clear previous content
+    modalBody.empty();
+    
+    // Add product info
+    const productInfo = `
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <img src="${product.img ? img_path + product.img : default_item_img}" 
+                     class="img-fluid" alt="${product.name}">
+            </div>
+            <div class="col-md-9">
+                <h5>${product.name}</h5>
+                <p class="text-muted">Price: ${getCurrencySymbol()}${moneyFormat(parseFloat(product.price).toFixed(2))}</p>
+                <p>Select size and color:</p>
+            </div>
+        </div>
+    `;
+    
+    modalBody.append(productInfo);
+    
+    // Create variant selection form
+    const sizes = variantData.matrix_config?.dimensions?.sizes || [];
+    const colors = Object.keys(variantData.variants);
+    
+    let formHtml = `
+        <form id="variantSelectionForm">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Size:</label>
+                        <select class="form-control" id="selectedSize" required>
+                            <option value="">Select Size</option>
+    `;
+    
+    sizes.forEach(size => {
+        formHtml += `<option value="${size}">${size}</option>`;
+    });
+    
+    formHtml += `
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Color:</label>
+                        <select class="form-control" id="selectedColor" required>
+                            <option value="">Select Color</option>
+    `;
+    
+    colors.forEach(color => {
+        formHtml += `<option value="${color}">${color}</option>`;
+    });
+    
+    formHtml += `
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12">
+                    <div id="variantStockInfo" class="alert alert-info" style="display: none;"></div>
+                    <div id="variantAvailability" class="mt-2"></div>
+                </div>
+            </div>
+        </form>
+    `;
+    
+    modalBody.append(formHtml);
+    
+    // Add event listeners
+    $('#selectedSize, #selectedColor').change(function() {
+        checkVariantAvailability();
+    });
+    
+    // Store product and variant data globally for this modal
+    modal.data('product', product);
+    modal.data('variantData', variantData);
+    
+    // Show modal
+    modal.modal('show');
+}
+
+/**
+ * Check variant availability and stock
+ */
+function checkVariantAvailability() {
+    const product = $('#variantSelectionModal').data('product');
+    const variantData = $('#variantSelectionModal').data('variantData');
+    const selectedSize = $('#selectedSize').val();
+    const selectedColor = $('#selectedColor').val();
+    
+    const availabilityDiv = $('#variantAvailability');
+    const stockInfoDiv = $('#variantStockInfo');
+    
+    if (!selectedSize || !selectedColor) {
+        availabilityDiv.empty();
+        stockInfoDiv.hide();
+        return;
+    }
+    
+    const variant = variantData.variants[selectedColor]?.[selectedSize];
+    
+    if (!variant) {
+        availabilityDiv.html('<div class="alert alert-danger">This combination is not available</div>');
+        stockInfoDiv.hide();
+        return;
+    }
+    
+    const stockStatus = variant.stock === 0 ? 'danger' : 
+                       variant.stock <= variant.min_stock ? 'warning' : 'success';
+    const statusText = variant.stock === 0 ? 'Out of Stock' : 
+                      variant.stock <= variant.min_stock ? 'Low Stock' : 'In Stock';
+    
+    availabilityDiv.html(`
+        <div class="alert alert-${stockStatus}">
+            <strong>Status:</strong> ${statusText}<br>
+            <strong>Available Stock:</strong> ${variant.stock} units
+        </div>
+    `);
+    
+    if (variant.stock > 0) {
+        stockInfoDiv.show();
+        stockInfoDiv.html(`
+            <strong>Barcode:</strong> ${variant.barcode}<br>
+            <strong>Min Stock:</strong> ${variant.min_stock}<br>
+            <strong>Last Updated:</strong> ${moment(variant.last_updated).format('DD/MM/YYYY HH:mm')}
+        `);
+    } else {
+        stockInfoDiv.hide();
+    }
+}
+
+/**
+ * Handle variant selection modal submission
+ */
+$(document).on('click', '#confirmVariantSelection', function() {
+    const product = $('#variantSelectionModal').data('product');
+    const variantData = $('#variantSelectionModal').data('variantData');
+    const selectedSize = $('#selectedSize').val();
+    const selectedColor = $('#selectedColor').val();
+    
+    if (!selectedSize || !selectedColor) {
+        notiflix.Notify.warning('Please select both size and color');
+        return;
+    }
+    
+    const variant = variantData.variants[selectedColor]?.[selectedSize];
+    
+    if (!variant || variant.stock === 0) {
+        notiflix.Notify.warning('Selected variant is not available');
+        return;
+    }
+    
+    // Create variant info object
+    const selectedVariant = {
+        size: selectedSize,
+        color: selectedColor,
+        variant_key: `${selectedColor}-${selectedSize}`,
+        barcode: variant.barcode,
+        stock: variant.stock
+    };
+    
+    // Add product to cart with variant info
+    addProductToCart(product, selectedVariant);
+    
+    // Close modal
+    $('#variantSelectionModal').modal('hide');
+});
+
+/**
+ * Find variant by barcode
+ */
+function findVariantByBarcode(variantData, barcode) {
+    if (!variantData.variants) return null;
+    
+    for (const [color, sizes] of Object.entries(variantData.variants)) {
+        for (const [size, variant] of Object.entries(sizes)) {
+            if (variant.barcode === barcode) {
+                return {
+                    size: size,
+                    color: color,
+                    variant_key: `${color}-${size}`,
+                    barcode: variant.barcode,
+                    stock: variant.stock
+                };
+            }
+        }
+    }
+    return null;
+}
+
+/**
+ * Enhanced renderTable to show variant information
+ */
+$.fn.renderTable = function (cartList) {
+    $("#cartTable .card-body").empty();
+    $(this).calculateCart();
+    $.each(cartList, function (index, data) {
+        const variantInfo = data.variant ? 
+            `<br><small class="text-muted">${data.variant.color} - ${data.variant.size}</small>` : 
+            '';
+        
+        $("#cartTable .card-body").append(
+            $("<div>", { class: "row m-t-10" }).append(
+                $("<div>", { class: "col-md-1", text: index + 1 }),
+                $("<div>", { class: "col-md-3" }).append(
+                    $("<div>", { text: data.product_name }),
+                    $(variantInfo)
+                ),
+                $("<div>", { class: "col-md-3" }).append(
+                    $("<div>", { class: "input-group" }).append(
+                        $("<span>", { class: "input-group-btn" }).append(
+                            $("<button>", {
+                                class: "btn btn-light",
+                                onclick: "$(this).qtDecrement(" + index + ")",
+                            }).append($("<i>", { class: "fa fa-minus" })),
+                        ),
+                        $("<input>", {
+                            class: "form-control",
+                            type: "text",
+                            readonly: "",
+                            value: data.quantity,
+                            min: "1",
+                            onInput: "$(this).qtInput(" + index + ")",
+                        }),
+                        $("<span>", { class: "input-group-btn" }).append(
+                            $("<button>", {
+                                class: "btn btn-light",
+                                onclick: "$(this).qtIncrement(" + index + ")",
+                            }).append($("<i>", { class: "fa fa-plus" })),
+                        ),
+                    ),
+                ),
+                $("<div>", {
+                    class: "col-md-3",
+                    text:
+                        getCurrencySymbol() +
+                        moneyFormat((data.price * data.quantity).toFixed(2)),
+                }),
+                $("<div>", { class: "col-md-1" }).append(
+                    $("<button>", {
+                        class: "btn btn-info btn-xs m-r-5",
+                        title: "View Alternatives",
+                        onclick: "$(this).viewSubstitutes(" + data.id + ', "' + data.product_name + '")',
+                    }).append($("<i>", { class: "fa fa-exchange" })),
+                    $("<button>", {
+                        class: "btn btn-light btn-xs",
+                        onclick: "$(this).deleteFromCart(" + index + ")",
+                    }).append($("<i>", { class: "fa fa-times" })),
+                ),
+            ),
+        );
+    });
+};
 
 // ============================================
 // CSV IMPORT EVENT HANDLERS

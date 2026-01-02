@@ -1,5 +1,29 @@
-const utils = require("./utils");
-const QRCode = require("qrcode");
+// Browser-compatible utils loading
+let utils;
+if (typeof require !== 'undefined') {
+    try {
+        utils = require("./utils");
+    } catch (e) {
+        console.warn('Node.js utils not available, using browser fallback');
+        utils = window.utils;
+    }
+} else {
+    utils = window.utils;
+}
+
+// Fallback if utils is still not available
+if (!utils) {
+    utils = {
+        moneyFormat: (amount) => new Intl.NumberFormat('en-IN').format(amount),
+        getStockStatus: (current, minimum) => {
+            current = Number(current);
+            minimum = Number(minimum);
+            if (current <= 0) return 0;
+            if (current <= minimum) return -1;
+            return 1;
+        }
+    };
+}
 
 /** CheckOut Functions **/
 $(document).ready(function () {
