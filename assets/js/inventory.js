@@ -355,7 +355,7 @@ $(document).ready(function () {
         }
         
         const formData = new FormData();
-        formData.append('file', fileInput.files[0]);
+        formData.append('csvfile', fileInput.files[0]);
         
         notiflix.Loading.dots('Importing variants...');
         
@@ -739,7 +739,7 @@ $(document).ready(function () {
         }
 
         let formData = new FormData();
-        formData.append('file', fileInput.files[0]);
+        formData.append('csvfile', fileInput.files[0]);
         // Append other options if needed via params
 
         // Show loading state

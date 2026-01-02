@@ -1017,6 +1017,19 @@ app.get("/export/csv", function (req, res) {
 });
 
 /**
+ * POST endpoint: Import products (redirect to CSV import)
+ * 
+ * @param {Object} req request object.
+ * @param {Object} res response object.
+ * @returns {void}
+ */
+app.post("/import", function (req, res) {
+    // Redirect to CSV import endpoint
+    req.url = '/import/csv';
+    app.handle(req, res);
+});
+
+/**
  * POST endpoint: Import products from CSV file
  * 
  * @param {Object} req request object with CSV file.
@@ -1064,15 +1077,25 @@ app.post("/import/csv", function (req, res) {
                 });
             }
 
-            // Parse CSV header
-            const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/"/g, '').replace(/\s+/g, ''));
+            // Parse CSV header and normalize it
+            const headers = lines[0].split(',').map(h => {
+                // Remove quotes, convert to lowercase, remove spaces and special characters
+                return h.trim().toLowerCase()
+                        .replace(/"/g, '')
+                        .replace(/\s+/g, '')  // Remove all spaces
+                        .replace(/[^a-z0-9]/g, '');  // Remove special characters except alphanumeric
+            });
             const requiredFields = ['name', 'price'];
 
             // Create header mapping for common variations (restaurant schema)
             const headerMap = {
                 'menuname': 'name',
+                'productname': 'name',  // Added for CSV template compatibility
+                'product': 'name',
                 'name': 'name',
                 'sku': 'sku',
+                'barcode': 'barcode',
+                'barcode/sku': 'barcode',  // Handle combined header
                 'itemcode': 'sku',
                 'price': 'price',
                 'costprice': 'cost',
@@ -1105,7 +1128,9 @@ app.post("/import/csv", function (req, res) {
                 'reorderquantity': 'reorderquantity',
                 'reorder': 'reorderquantity',
                 'imagefile': 'image',
-                'image': 'image'
+                'image': 'image',
+                'requiresprescription': 'requires_prescription',  // For backward compatibility
+                'prescription': 'requires_prescription'
             };
 
             // Validate required fields

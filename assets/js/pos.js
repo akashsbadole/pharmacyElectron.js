@@ -8,6 +8,7 @@ let fs;
 let path;
 let moment;
 let ipcRenderer;
+let macaddress;
 
 // Safe require function for browser compatibility
 function safeRequire(moduleName) {
@@ -139,6 +140,56 @@ try {
         on: () => {},
         send: () => {},
         sendSync: () => null
+    };
+}
+
+// Browser-compatible macaddress service
+try {
+    // Try to load macaddress module in Electron main process context
+    macaddress = {
+        one: function(callback) {
+            // Use IPC to request MAC address from main process
+            const requestId = 'macaddr_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            
+            // Set up one-time listener for this request
+            const timeout = setTimeout(() => {
+                console.warn('MAC address request timeout, using fallback');
+                callback(null, '00:00:00:00:00:00');
+            }, 3000);
+            
+            // Listen for the specific response for this request
+            const handleResponse = (event) => {
+                clearTimeout(timeout);
+                const { macAddress } = event.detail;
+                callback(null, macAddress);
+                // Remove the listener
+                window.removeEventListener('macaddress-response-' + requestId, handleResponse);
+            };
+            
+            window.addEventListener('macaddress-response-' + requestId, handleResponse);
+            
+            // Send request to main process
+            ipcRenderer.send('get-macaddress', requestId);
+        }
+    };
+} catch (e) {
+    console.warn('MAC address service not available, using fallback');
+    // Fallback implementation for browser environments
+    macaddress = {
+        one: function(callback) {
+            // Browser fallback - generate a pseudo-MAC address
+            // In a real browser, we could use other methods like canvas fingerprinting
+            // or network interface enumeration, but for simplicity, we'll use a fallback
+            const fallbackMac = '02:00:00:' + 
+                Math.random().toString(16).substr(2, 2).toUpperCase() + ':' +
+                Math.random().toString(16).substr(2, 2).toUpperCase() + ':' +
+                Math.random().toString(16).substr(2, 2).toUpperCase();
+            
+            console.warn('Using fallback MAC address:', fallbackMac);
+            setTimeout(() => {
+                callback(null, fallbackMac);
+            }, 100); // Small delay to match async behavior
+        }
     };
 }
 
@@ -292,6 +343,15 @@ ipcRenderer.on('server-config', (event, data) => {
   window.port = data.port;
   window.host = data.host || 'localhost';
   configureAPI();
+});
+
+// Listen for MAC address responses
+ipcRenderer.on('macaddress-response', (event, data) => {
+  const { requestId, macAddress } = data;
+  // Forward the response with the request ID
+  window.dispatchEvent(new CustomEvent('macaddress-response-' + requestId, {
+    detail: { macAddress }
+  }));
 });
 
 // Listen for custom event (alternative method)
@@ -931,7 +991,7 @@ function initializeApp() {
                    ? item.quantity
                   : "N/A"}</span></span>
                                         <br>
-                                        <button class="btn btn-xs btn-info" onclick="$(this).viewSubstitutes(${item._id}, '${item.name}')"><i class="fa fa-exchange"></i> Subs</button>
+                                        
                   ${item.stock_tracking_method === 'variant' ? `<button class="btn btn-xs btn-success" onclick="$(this).addToCart(${item._id}, ${item.quantity}, ${item.stock}, true)"><i class="fa fa-plus"></i> Variants</button>` : ''}
                                         </div>
                                          <span class="text-success text-center"><b data-plugin="counterup">${getCurrencySymbol() +
