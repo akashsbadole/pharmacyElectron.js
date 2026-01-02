@@ -31,7 +31,7 @@ try {
 let dotInterval = setInterval(function () {
   $(".dot").text(".");
 }, 3000);
-let Store = require("electron-store");
+// const Store = window.Store || require("electron-store"); // Will use localStorage fallback
 window.host = "localhost";
 window.port = null; // Will be set via IPC
 window.api = null; // Will be configured when port is received
@@ -153,8 +153,8 @@ function safeAjaxCall(options) {
   });
 }
 
-const io = require('socket.io-client');
-const remote = require("@electron/remote");
+// const io = window.io || require('socket.io-client'); // Will be loaded globally
+// const remote = window.remote || require("@electron/remote"); // Electron main process only
 let cart = [];
 let index = 0;
 let allUsers = [];
@@ -180,7 +180,7 @@ let transaction_index;
 const appName = process.env.APPNAME;
 const appData = process.env.APPDATA;
 let img_path = path.join(appData, appName, "uploads", "/");
-const bcrypt = require("bcrypt");
+// const bcrypt = window.bcrypt || require("bcrypt"); // Will be handled differently in browser
 let categories = [];
 let holdOrderList = [];
 let customerOrderList = [];
@@ -217,20 +217,63 @@ notiflix.Notify.init({
   clickToClose: true,
   closeButton: true
 });
-const {
-  DATE_FORMAT,
-  moneyFormat,
-  isExpired,
-  daysToExpire,
-  getStockStatus,
-  checkFileExists,
-  setContentSecurityPolicy,
-} = require("./utils");
+// Browser-compatible utils - these will be available globally or handled differently
+// const {
+//   DATE_FORMAT,
+//   moneyFormat,
+//   isExpired,
+//   daysToExpire,
+//   getStockStatus,
+//   checkFileExists,
+//   setContentSecurityPolicy,
+// } = require("./utils");
 
-//set the content security policy of the app
-setContentSecurityPolicy();
+//setContentSecurityPolicy(); // Commented out for browser compatibility
 
-// Safe function to handle validator.unescape with null checks
+// Browser-compatible utility functions
+window.DATE_FORMAT = "DD-MMM-YYYY";
+window.moneyFormat = function(amount, locale = "en-US") {
+  return new Intl.NumberFormat(locale).format(amount);
+};
+
+window.isExpired = function(dueDate) {
+  let todayDate = moment();
+  return todayDate.isSameOrAfter(dueDate);
+};
+
+window.daysToExpire = function(dueDate) {
+  let todayDate = moment();
+  let expiryDate = moment(dueDate, window.DATE_FORMAT);
+
+  if (expiryDate.isSameOrBefore(todayDate, "day")) {
+    return 0;
+  }
+
+  return expiryDate.diff(todayDate, "days");
+};
+
+window.getStockStatus = function(currentStock, minimumStock) {
+  currentStock = Number(currentStock);
+  minimumStock = Number(minimumStock);
+
+  if (isNaN(currentStock) || isNaN(minimumStock)) {
+    throw new Error("Invalid input: both currentStock and minimumStock should be numbers.");
+  }
+
+  if (currentStock <= 0) {
+    return 0; // No stock
+  }
+
+  if (currentStock <= minimumStock) {
+    return -1; // Low stock
+  }
+  return 1; // Normal stock
+};
+
+window.checkFileExists = function(filePath) {
+  // Browser-compatible file existence check
+  return true; // Assume files exist in browser context
+};
 function safeUnescape(value) {
   if (value === undefined || value === null) {
     return '';
