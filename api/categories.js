@@ -65,7 +65,7 @@ app.post("/category", function (req, res) {
                         message: "An unexpected error occurred.",
                     });
                 }
-        else{res.sendStatus(200);}
+            else{res.sendStatus(200);}
     });
 });
 

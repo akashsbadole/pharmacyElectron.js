@@ -195,10 +195,14 @@ app.post("/product", function (req, res) {
         if (batches.length > 0) {
             quantity = batches.reduce((sum, b) => sum + (parseInt(b.quantity) || 0), 0);
             
-            // Find earliest expiry
-            const sortedBatches = batches.filter(b => b.expirationDate).sort((a, b) => new Date(a.expirationDate) - new Date(b.expirationDate));
-            if (sortedBatches.length > 0) {
+            // Find earliest expiry only if any batch has an expiry date
+            const batchesWithExpiry = batches.filter(b => b.expirationDate && b.expirationDate.trim() !== "");
+            if (batchesWithExpiry.length > 0) {
+                const sortedBatches = batchesWithExpiry.sort((a, b) => new Date(a.expirationDate) - new Date(b.expirationDate));
                 expirationDate = sortedBatches[0].expirationDate;
+            } else {
+                // If no batches have expiry dates, keep the expirationDate as is (empty or from form)
+                expirationDate = expirationDate || "";
             }
         }
 
@@ -359,14 +363,18 @@ app.put("/product", function (req, res) {
 
             let quantity = validator.escape(req.body.quantity || "");
             let expirationDate = validator.escape(req.body.expirationDate || "");
-    
+
             if (batches.length > 0) {
                 quantity = batches.reduce((sum, b) => sum + (parseInt(b.quantity) || 0), 0);
                 
-                // Find earliest expiry
-                const sortedBatches = batches.filter(b => b.expirationDate).sort((a, b) => new Date(a.expirationDate) - new Date(b.expirationDate));
-                if (sortedBatches.length > 0) {
+                // Find earliest expiry only if any batch has an expiry date
+                const batchesWithExpiry = batches.filter(b => b.expirationDate && b.expirationDate.trim() !== "");
+                if (batchesWithExpiry.length > 0) {
+                    const sortedBatches = batchesWithExpiry.sort((a, b) => new Date(a.expirationDate) - new Date(b.expirationDate));
                     expirationDate = sortedBatches[0].expirationDate;
+                } else {
+                    // If no batches have expiry dates, keep the expirationDate as is (empty or from form)
+                    expirationDate = expirationDate || "";
                 }
             }
 
@@ -699,21 +707,21 @@ app.decrementInventory = function (products) {
  */
 app.get("/alternatives/:menuItemId", function (req, res) {
     const menuItemId = parseInt(req.params.menuItemId);
-    
+
     inventoryDB.findOne({ _id: menuItemId }, function (err, menuItem) {
         if (err || !menuItem) {
             return res.status(404).json({ error: "Menu item not found" });
         }
-        
+
         const category = menuItem.category;
         const dietaryInfo = menuItem.dietary_info || [];
-        
+
         if (!category) {
             return res.json([]); // No category, no alternatives
         }
 
         // Find other menu items in same category with overlapping dietary info
-        inventoryDB.find({ 
+        inventoryDB.find({
             category: category,
             _id: { $ne: menuItemId },
             availability_status: { $ne: 'Out of Stock' }
@@ -725,8 +733,8 @@ app.get("/alternatives/:menuItemId", function (req, res) {
                 // Filter by dietary compatibility
                 const compatibleAlternatives = alternatives.filter(item => {
                     const itemDietary = item.dietary_info || [];
-                    return dietaryInfo.length === 0 || 
-                           itemDietary.length === 0 || 
+                    return dietaryInfo.length === 0 ||
+                           itemDietary.length === 0 ||
                            dietaryInfo.some(diet => itemDietary.includes(diet));
                 });
                 res.send(compatibleAlternatives);
@@ -734,6 +742,114 @@ app.get("/alternatives/:menuItemId", function (req, res) {
         });
     });
 });
+
+/**
+ * GET endpoint: Get substitute products based on category and similar name patterns (for garments).
+ * Substitutes are alternative sizes/colors of similar garment types.
+ *
+ * @param {Object} req request object with product ID as parameter.
+ * @param {Object} res response object.
+ * @returns {void}
+ */
+app.get("/substitutes/:productId", function (req, res) {
+    const productId = parseInt(req.params.productId);
+
+    inventoryDB.findOne({ _id: productId }, function (err, product) {
+        if (err || !product) {
+            return res.status(404).json({ error: "Product not found" });
+        }
+
+        const category = product.category;
+        const productName = product.name.toLowerCase();
+
+        if (!category) {
+            return res.json([]); // No category, no substitutes
+        }
+
+        // Find products in same category, excluding current product
+        inventoryDB.find({
+            category: category,
+            _id: { $ne: productId },
+            stock: { $ne: 0 }, // Not out of stock (stock field: 1 = enabled, 0 = disabled)
+            quantity: { $gt: 0 } // Has available quantity
+        }, function (err, products) {
+            if (err) {
+                console.error(err);
+                res.status(500).json({ error: "Internal Server Error" });
+            } else {
+                // Filter products that are likely substitutes based on name similarity
+                const substitutes = products.filter(item => {
+                    const itemName = item.name.toLowerCase();
+
+                    // Check if names are similar (same base name, different sizes/colors)
+                    // This is a simple heuristic: look for common garment patterns
+                    const sizePatterns = /\b(small|medium|large|xl|xxl|xs|s|m|l|2xl|3xl|4xl|extra small|extra large)\b/gi;
+                    const colorPatterns = /\b(black|white|red|blue|green|yellow|orange|purple|pink|gray|grey|brown|beige|navy|maroon|olive|tan|gold|silver|bronze|charcoal|indigo|turquoise|lavender|coral|crimson|teal|mint|violet|peach|burgundy|khaki|aquamarine)\b/gi;
+
+                    // Remove sizes and colors from both names for comparison
+                    const baseProductName = productName.replace(sizePatterns, '').replace(colorPatterns, '').trim();
+                    const baseItemName = itemName.replace(sizePatterns, '').replace(colorPatterns, '').trim();
+
+                    // Consider products as substitutes if they have similar base names
+                    // (allowing for minor differences in spelling or word order)
+                    const similarityThreshold = 0.8;
+                    const similarity = calculateStringSimilarity(baseProductName, baseItemName);
+
+                    return similarity >= similarityThreshold;
+                });
+
+                // Return up to 10 substitutes
+                res.send(substitutes.slice(0, 10));
+            }
+        });
+    });
+});
+
+/**
+ * Helper function to calculate string similarity (simple Levenshtein-based)
+ */
+function calculateStringSimilarity(str1, str2) {
+    const longer = str1.length > str2.length ? str1 : str2;
+    const shorter = str1.length > str2.length ? str2 : str1;
+
+    if (longer.length === 0) {
+        return 1.0;
+    }
+
+    const distance = levenshteinDistance(longer, shorter);
+    return (longer.length - distance) / longer.length;
+}
+
+/**
+ * Calculate Levenshtein distance between two strings
+ */
+function levenshteinDistance(str1, str2) {
+    const matrix = [];
+
+    for (let i = 0; i <= str2.length; i++) {
+        matrix[i] = [i];
+    }
+
+    for (let j = 0; j <= str1.length; j++) {
+        matrix[0][j] = j;
+    }
+
+    for (let i = 1; i <= str2.length; i++) {
+        for (let j = 1; j <= str1.length; j++) {
+            if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+                matrix[i][j] = matrix[i - 1][j - 1];
+            } else {
+                matrix[i][j] = Math.min(
+                    matrix[i - 1][j - 1] + 1, // substitution
+                    matrix[i][j - 1] + 1,     // insertion
+                    matrix[i - 1][j] + 1      // deletion
+                );
+            }
+        }
+    }
+
+    return matrix[str2.length][str1.length];
+}
 
 /**
  * GET endpoint: Check inventory availability for combo components

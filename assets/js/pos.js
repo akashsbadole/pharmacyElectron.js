@@ -934,19 +934,20 @@ function initializeApp() {
 
             let expiredCount = 0;
             allProducts.forEach((product) => {
-              let expiryDate = moment(product.expirationDate, DATE_FORMAT);
-
-              if (!isExpired(expiryDate)) {
-                const diffDays = daysToExpire(expiryDate);
-
-                if (diffDays > 0 && diffDays <= 30) {
-                  var days_noun = diffDays > 1 ? "days" : "day";
-                  notiflix.Notify.warning(
-                    `${product.name} has only ${diffDays} ${days_noun} left to expiry`,
-                  );
-                }
-              } else {
-                expiredCount++;
+              // Handle empty or null expirationDate
+              let expiryDate = product.expirationDate ? moment(product.expirationDate, DATE_FORMAT) : null;
+  
+              if (expiryDate && !isExpired(expiryDate)) {
+                  const diffDays = daysToExpire(expiryDate);
+  
+                  if (diffDays > 0 && diffDays <= 30) {
+                      var days_noun = diffDays > 1 ? "days" : "day";
+                      notiflix.Notify.warning(
+                          `${product.name} has only ${diffDays} ${days_noun} left to expiry`,
+                      );
+                  }
+              } else if (expiryDate && isExpired(expiryDate)) {
+                  expiredCount++;
               }
             });
 
@@ -1382,7 +1383,8 @@ function initializeApp() {
             }
 
             data.forEach(item => {
-              let item_isExpired = isExpired(item.expirationDate);
+              // Handle empty or null expirationDate
+              let item_isExpired = item.expirationDate ? isExpired(item.expirationDate) : false;
               let stockStatus = getStockStatus(item.quantity, item.minStock);
               let row = `<tr>
                 <td>${item.name}</td>
@@ -2156,7 +2158,7 @@ function initializeApp() {
           error: function (xhr, status, error) {
             const errorMessage = handleAjaxError(xhr, status, error, "Failed to save category");
             notiflix.Report.failure("Error", errorMessage, "Ok");
-          },
+          }
         });
       });
 
@@ -2173,7 +2175,7 @@ function initializeApp() {
         $("#product_price").val(allProducts[index].price);
         $("#quantity").val(allProducts[index].quantity);
         $("#barcode").val(allProducts[index].barcode || allProducts[index]._id);
-        $("#expirationDate").val(allProducts[index].expirationDate);
+        $("#expirationDate").val(allProducts[index].expirationDate || "");
         $("#minStock").val(allProducts[index].minStock || 1);
         $("#product_id").val(allProducts[index]._id);
         $("#img").val(allProducts[index].img);
@@ -2432,7 +2434,7 @@ function initializeApp() {
           }
           //calculate days to expiry
           product.expiryAlert = "";
-          if (!isExpired(expiryDate)) {
+          if (expiryDate && !isExpired(expiryDate)) {
             const diffDays = daysToExpire(expiryDate);
 
             if (diffDays > 0 && diffDays <= 30) {
@@ -2441,7 +2443,7 @@ function initializeApp() {
               product.expiryStatus = `${diffDays} ${days_noun} left`;
               product.expiryAlert = `<p class="text-danger"><small><i class="${icon}"></i> ${product.expiryStatus}</small></p>`;
             }
-          } else {
+          } else if (expiryDate && isExpired(expiryDate)) {
             icon = "fa fa-exclamation-triangle";
             product.expiryStatus = "Expired";
             product.expiryAlert = `<p class="text-danger"><small><i class="${icon}"></i> ${product.expiryStatus}</small></p>`;
@@ -2471,7 +2473,7 @@ function initializeApp() {
             <td>${product.stock == 1 ? product.quantity : "N/A"}
             ${product.stockAlert}
             </td>
-            <td>${product.expirationDate}</td>
+            <td>${product.expirationDate || ""}</td>
             <td>${category.length > 0 ? category[0].name : ""}</td>
             <td class="noop"><span class="btn-group"><button onClick="$(this).editProduct(${index})" class="btn btn-warning btn-sm"><i class="fa fa-edit"></i></button><button onClick="$(this).deleteProduct(${product._id
             })" class="btn btn-danger btn-sm"><i class="fa fa-trash"></i></button><button onClick="$(this).reorder(${product._id

@@ -52,53 +52,56 @@ $(document).ready(function () {
     }
 
     function calculateBatchTotals() {
-        let totalQty = 0;
-        let earliestExpiry = null;
-        let batches = [];
-
-        $('.batch-row').each(function() {
-            let qty = parseInt($(this).find('.batch-qty').val()) || 0;
-            let expiry = $(this).find('.batch-expiry').val();
-            let number = $(this).find('.batch-number').val();
-
-            if (qty > 0 || number) {
-                totalQty += qty;
-                batches.push({
-                    batch_number: number,
-                    quantity: qty,
-                    expirationDate: expiry
-                });
-
-                if (expiry) {
-                    let expDate = new Date(expiry);
-                    if (!earliestExpiry || expDate < earliestExpiry) {
-                        earliestExpiry = expDate;
+            let totalQty = 0;
+            let earliestExpiry = null;
+            let batches = [];
+            let hasAnyExpiry = false;
+    
+            $('.batch-row').each(function() {
+                let qty = parseInt($(this).find('.batch-qty').val()) || 0;
+                let expiry = $(this).find('.batch-expiry').val();
+                let number = $(this).find('.batch-number').val();
+    
+                if (qty > 0 || number) {
+                    totalQty += qty;
+                    batches.push({
+                        batch_number: number,
+                        quantity: qty,
+                        expirationDate: expiry
+                    });
+    
+                    if (expiry) {
+                        hasAnyExpiry = true;
+                        let expDate = new Date(expiry);
+                        if (!earliestExpiry || expDate < earliestExpiry) {
+                            earliestExpiry = expDate;
+                        }
                     }
                 }
+            });
+    
+            $('#quantity').val(totalQty);
+            $('#batches_input').val(JSON.stringify(batches));
+            
+            // Only set expiry date if there are batches with expiry dates
+            if (earliestExpiry && hasAnyExpiry) {
+                 let d = earliestExpiry;
+                 // Format as YYYY-MM-DD or whatever the backend expects/validates
+                 // The backend seems to treat it as string or date.
+                 // Existing code used text input.
+                 // Let's store ISO string date part
+                 let month = '' + (d.getMonth() + 1);
+                 let day = '' + d.getDate();
+                 let year = d.getFullYear();
+    
+                if (month.length < 2) month = '0' + month;
+                if (day.length < 2) day = '0' + day;
+    
+                $('#expirationDate').val([year, month, day].join('-'));
+            } else {
+                 $('#expirationDate').val('');
             }
-        });
-
-        $('#quantity').val(totalQty);
-        $('#batches_input').val(JSON.stringify(batches));
-        
-        if (earliestExpiry) {
-             let d = earliestExpiry;
-             // Format as YYYY-MM-DD or whatever the backend expects/validates
-             // The backend seems to treat it as string or date. 
-             // Existing code used text input.
-             // Let's store ISO string date part
-             let month = '' + (d.getMonth() + 1);
-             let day = '' + d.getDate();
-             let year = d.getFullYear();
-
-            if (month.length < 2) month = '0' + month;
-            if (day.length < 2) day = '0' + day;
-
-            $('#expirationDate').val([year, month, day].join('-'));
-        } else {
-             $('#expirationDate').val('');
         }
-    }
 
     // Save Product Form Submit
     $('#saveProduct').submit(function (e) {
