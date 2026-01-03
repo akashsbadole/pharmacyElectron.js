@@ -1532,9 +1532,9 @@ function initializeApp() {
                     <p class="card-text small text-muted">${reward.description}</p>
                     <div class="d-flex justify-content-between align-items-center">
                       <span class="badge badge-primary">${reward.points_required} points</span>
-                      <button class="btn btn-sm ${canRedeem ? 'btn-success' : 'btn-secondary disabled'}"
-                              onclick="${canRedeem ? `redeemReward(${index})` : ''}"
-                              ${canRedeem ? '' : 'disabled'}>
+                      <button class="btn btn-sm ${canRedeem ? "btn-success" : "btn-secondary disabled"}"
+                              onclick="${canRedeem ? "redeemReward(" + index + ")" : ""}"
+                              ${canRedeem ? "" : "disabled"}>
                         <i class="fa fa-gift"></i> Redeem
                       </button>
                     </div>

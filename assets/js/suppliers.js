@@ -109,12 +109,20 @@ $(document).ready(function () {
         let method = formData.id ? "PUT" : "POST";
         let url = formData.id ? window.api + "suppliers/" + formData.id : window.api + "suppliers";
 
-        delete formData.id; // Remove id from body for PUT
+        // Map form field names to API expected names
+        let data = {
+            name: formData.supplierName,
+            contact_person: formData.contactPerson,
+            phone: formData.supplierPhone,
+            email: formData.supplierEmail,
+            address: formData.supplierAddress,
+            payment_terms: formData.paymentTerms
+        };
 
         $.ajax({
             url: url,
             type: method,
-            data: JSON.stringify(formData),
+            data: JSON.stringify(data),
             contentType: "application/json; charset=utf-8",
             cache: false,
             processData: false,
