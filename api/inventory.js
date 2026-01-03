@@ -613,6 +613,44 @@ app.post("/product/sku", function (req, res) {
 });
 
 /**
+ * POST endpoint: Search products by name or SKU.
+ *
+ * @param {Object} req request object with search term in the body.
+ * @param {Object} res response object.
+ * @returns {void}
+ */
+app.post("/products/search", function (req, res) {
+    let searchTerm = validator.escape(req.body.search || "");
+    let limit = parseInt(req.body.limit) || 10;
+
+    if (!searchTerm || searchTerm.trim().length < 2) {
+        return res.json([]);
+    }
+
+    // Create search query for name and barcode
+    let query = {
+        $or: [
+            { name: { $regex: searchTerm, $options: 'i' } },
+            { barcode: isNaN(searchTerm) ? null : parseInt(searchTerm) }
+        ].filter(condition => condition.barcode !== null || condition.name)
+    };
+
+    inventoryDB.find(query)
+        .limit(limit)
+        .exec(function (err, docs) {
+            if (err) {
+                console.error(err);
+                res.status(500).json({
+                    error: "Internal Server Error",
+                    message: "Search failed.",
+                });
+            } else {
+                res.send(docs);
+            }
+        });
+});
+
+/**
  * Decrement inventory quantities based on a list of products in a transaction.
  *
  * @param {Array} products - List of products in the transaction.

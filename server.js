@@ -104,6 +104,7 @@ express.use("/api/audit-logs", require("./api/audit_logs"));
 express.use("/api/analytics", require("./api/analytics"));
 express.use("/api/advanced_analytics", require("./api/advanced_analytics"));
 express.use("/api/share", require("./api/share"));
+express.use("/api/loyalty", require("./api/loyalty_system"));
 // Restaurant APIs removed for Garments focus
 
 global.io = io;

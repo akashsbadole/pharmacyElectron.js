@@ -495,6 +495,12 @@ let platform;
 window.user = {};
 let start = moment().startOf("month");
 let end = moment();
+
+// Loyalty program state variables
+let currentLoyaltyProfile = null;
+let loyaltyDiscount = 0;
+let pointsToEarn = 0;
+let availableRedemptions = [];
 let start_date = moment(start).toDate();
 let end_date = moment(end).toDate();
 let by_till = 0;
@@ -874,6 +880,12 @@ function initializeApp() {
         }, 1000);
       });
 
+      // Initialize keyboard accessibility for legacy POS
+      initializeLegacyKeyboardAccessibility();
+      
+      // Inject CSS for clickable widgets
+      injectClickableWidgetCSS();
+
       if (0 == user.perm_products) {
         $(".p_one").hide();
       }
@@ -984,7 +996,7 @@ function initializeApp() {
 
               let item_info = `<div class="col-lg-2 box ${item.category}">
                              <div class="widget-panel widget-style-2 " title="${item.name}">                    
-                            <div id="image" onclick="$(this).addToCart(${item._id}, ${item.quantity}, ${item.stock}, ${item.has_variants})"><img src="${item_img}" id="product_img" alt=""></div>                    
+                            <div id="image" data-product-id="${item._id}" data-product-quantity="${item.quantity}" data-product-stock="${item.stock}" data-product-has-variants="${item.has_variants}"><img src="${item_img}" id="product_img" alt=""></div>                    
                                          <div class="text-muted m-t-5 text-center">
                                          <div class="name" id="product_name"><span class="${item_isExpired ? "text-danger" : ""}">${item.name}</span></div> 
                                          <span class="sku">${item.barcode || item._id}</span>
@@ -993,7 +1005,7 @@ function initializeApp() {
                   : "N/A"}</span></span>
                                         <br>
                                         
-                  ${item.stock_tracking_method === 'variant' ? `<button class="btn btn-xs btn-success" onclick="$(this).addToCart(${item._id}, ${item.quantity}, ${item.stock}, true)"><i class="fa fa-plus"></i> Variants</button>` : ''}
+                  ${item.stock_tracking_method === 'variant' ? `<button class="btn btn-xs btn-success" data-variant-trigger="${item._id}"><i class="fa fa-plus"></i> Variants</button>` : ''}
                                         </div>
                                          <span class="text-success text-center"><b data-plugin="counterup">${getCurrencySymbol() +
                  moneyFormat(item.price)
@@ -1009,6 +1021,9 @@ function initializeApp() {
             console.log('🔍 DEBUG: Checking if products are visible in DOM');
             console.log('🔍 DEBUG: #parent innerHTML length:', $("#parent").html().length);
             console.log('🔍 DEBUG: #parent children count:', $("#parent").children().length);
+            
+            // Add event delegation for product clicks
+            setupProductClickHandlers();
           })
           .fail(function (xhr, status, error) {
             console.error('🔍 DEBUG: API call FAILED');
@@ -1027,6 +1042,72 @@ function initializeApp() {
               setLoading(false);
             }
           });
+      }
+
+      /**
+       * Set up event delegation for product clicks
+       */
+      function setupProductClickHandlers() {
+        // Remove existing event handlers to prevent duplicates
+        $("#parent").off('click', '.widget-panel #image');
+        $("#parent").off('click', '.btn.btn-xs.btn-success[data-variant-trigger]');
+        
+        // Handle product widget clicks (entire widget now clickable)
+        $("#parent").on('click', '.widget-panel', function(e) {
+          // Prevent default only if clicking on the widget itself, not on variant buttons
+          if (!$(e.target).closest('.btn.btn-xs.btn-success[data-variant-trigger]').length) {
+            e.preventDefault();
+          }
+          
+          // Find the image element within the clicked widget
+          const $image = $(this).find('#image');
+          const productId = $image.data('product-id');
+          const productQuantity = $image.data('product-quantity');
+          const productStock = $image.data('product-stock');
+          const productHasVariants = $image.data('product-has-variants');
+          
+          console.log('Product widget clicked:', {
+            productId,
+            productQuantity,
+            productStock,
+            productHasVariants
+          });
+          
+          if (productId) {
+            // Use the addToCart function with proper context
+            $.fn.addToCart.call($image, productId, productQuantity, productStock, productHasVariants);
+          } else {
+            console.error('Product ID not found in data attributes');
+            notiflix.Report.warning('Error', 'Product information not found', 'Ok');
+          }
+        });
+        
+        // Handle variant trigger button clicks
+        $("#parent").on('click', '.btn.btn-xs.btn-success[data-variant-trigger]', function(e) {
+          e.preventDefault();
+          e.stopPropagation(); // Prevent triggering parent click events
+          
+          const $button = $(this);
+          const productId = $button.data('variant-trigger');
+          
+          console.log('Variant trigger clicked for product:', productId);
+          
+          if (productId) {
+            // Get the product data
+            const product = allProducts.find(p => p._id === productId);
+            if (product) {
+              showVariantSelectionModal(product);
+            } else {
+              console.error('Product not found for variant trigger');
+              notiflix.Report.warning('Error', 'Product not found', 'Ok');
+            }
+          } else {
+            console.error('Product ID not found in variant trigger');
+            notiflix.Report.warning('Error', 'Product information not found', 'Ok');
+          }
+        });
+        
+        console.log('Product click handlers set up successfully');
       }
 
       function loadCategories() {
@@ -1078,11 +1159,512 @@ function initializeApp() {
               let customer = `<option value='${customerValue}'>${cust.name}</option>`;
               $("#customer").append(customer);
             });
+
+            // Add change event handler for customer selection
+            $("#customer").off('change').on('change', function() {
+              selectCustomer();
+            });
+
+            // Initialize loyalty display for default selection
+            selectCustomer();
           })
           .fail(function (xhr, status, error) {
             console.error('Failed to load customers:', error);
             notiflix.Report.failure('Error', 'Failed to load customers', 'Ok');
           });
+      }
+
+      /**
+       * Handle customer selection and load loyalty profile
+       */
+      function selectCustomer() {
+        const customerValue = $("#customer").val();
+
+        if (customerValue === "0") {
+          // Walk-in customer - clear loyalty display
+          currentLoyaltyProfile = null;
+          loyaltyDiscount = 0;
+          pointsToEarn = 0;
+          availableRedemptions = [];
+          updateLoyaltyDisplay();
+          return;
+        }
+
+        try {
+          const customerData = JSON.parse(customerValue);
+          const customerId = customerData.id;
+
+          // Load customer loyalty profile
+          $.get(window.api + `loyalty/customer/${customerId}`)
+            .done(function (loyaltyData) {
+              // Map API response to expected format
+              currentLoyaltyProfile = {
+                customer_id: customerId,
+                points_balance: loyaltyData.points?.balance || 0,
+                tier: loyaltyData.tier?.tier || 'bronze',
+                benefits: loyaltyData.benefits || []
+              };
+
+              // Load available redemptions for this customer
+              $.get(window.api + `loyalty/rewards?tier=${currentLoyaltyProfile.tier}&customerId=${customerId}`)
+                .done(function (rewardsData) {
+                  availableRedemptions = rewardsData || [];
+                })
+                .fail(function () {
+                  availableRedemptions = [];
+                });
+
+              // Calculate automatic discount based on tier
+              const tierDiscount = getTierDiscount(currentLoyaltyProfile.tier);
+              loyaltyDiscount = tierDiscount;
+
+              // Calculate potential points for current cart
+              calculatePointsToEarn();
+
+              updateLoyaltyDisplay();
+            })
+            .fail(function (xhr, status, error) {
+              console.warn('Failed to load loyalty profile:', error);
+              // Don't show error for loyalty loading - it's not critical
+              currentLoyaltyProfile = null;
+              loyaltyDiscount = 0;
+              pointsToEarn = 0;
+              availableRedemptions = [];
+              updateLoyaltyDisplay();
+            });
+        } catch (e) {
+          console.error('Error parsing customer data:', e);
+          currentLoyaltyProfile = null;
+          updateLoyaltyDisplay();
+        }
+      }
+
+      /**
+       * Get discount percentage based on loyalty tier
+       */
+      function getTierDiscount(tier) {
+        const tierDiscounts = {
+          'bronze': 0,
+          'silver': 5,
+          'gold': 10,
+          'platinum': 15
+        };
+        return tierDiscounts[tier.toLowerCase()] || 0;
+      }
+
+      /**
+       * Calculate potential points to earn from current cart
+       */
+      function calculatePointsToEarn() {
+        pointsToEarn = 0;
+        if (!currentLoyaltyProfile) return;
+
+        let cartTotal = 0;
+        cart.forEach(item => {
+          cartTotal += item.price * item.quantity;
+        });
+
+        // Points earned: 1 point per dollar spent, multiplied by tier multiplier
+        const basePoints = Math.floor(cartTotal);
+        const multiplier = getTierMultiplier(currentLoyaltyProfile.tier);
+        pointsToEarn = Math.floor(basePoints * multiplier);
+      }
+
+      /**
+       * Get points multiplier based on loyalty tier
+       */
+      function getTierMultiplier(tier) {
+        const tierMultipliers = {
+          'bronze': 1,
+          'silver': 1.25,
+          'gold': 1.5,
+          'platinum': 2
+        };
+        return tierMultipliers[tier.toLowerCase()] || 1;
+      }
+
+      /**
+       * Update loyalty information display in customer selector area
+       */
+      function updateLoyaltyDisplay() {
+        const loyaltyInfoDiv = $("#loyalty-info");
+        const customerSelector = $("#customer-selector");
+
+        if (!loyaltyInfoDiv.length) {
+          // Create loyalty info display area if it doesn't exist
+          customerSelector.after(`
+            <div id="loyalty-info" class="loyalty-display" style="margin-top: 10px; padding: 10px; background-color: #f8f9fa; border-radius: 5px; display: none;">
+              <div class="row">
+                <div class="col-md-4">
+                  <div id="points-balance" class="loyalty-item">
+                    <small class="text-muted">Points Balance</small><br>
+                    <span class="loyalty-value">0</span>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div id="tier-info" class="loyalty-item">
+                    <small class="text-muted">Current Tier</small><br>
+                    <span class="loyalty-value">None</span>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div id="tier-discount" class="loyalty-item">
+                    <small class="text-muted">Auto Discount</small><br>
+                    <span class="loyalty-value">0%</span>
+                  </div>
+                </div>
+              </div>
+              <div id="tier-benefits" style="margin-top: 10px; display: none;">
+                <small class="text-muted">Tier Benefits:</small>
+                <div id="benefits-list"></div>
+              </div>
+              <div id="points-preview" style="margin-top: 10px; display: none;">
+                <small class="text-muted">Points to Earn: <span id="points-earn-value">0</span></small>
+              </div>
+            </div>
+          `);
+        }
+
+        if (!currentLoyaltyProfile) {
+          // Hide loyalty info for walk-in customers
+          loyaltyInfoDiv.hide();
+          return;
+        }
+
+        // Update loyalty information
+        $("#points-balance .loyalty-value").text(currentLoyaltyProfile.points_balance || 0);
+        $("#tier-info .loyalty-value").text(currentLoyaltyProfile.tier || 'Bronze');
+
+        const discountPercent = loyaltyDiscount;
+        $("#tier-discount .loyalty-value").text(discountPercent + '%');
+
+        // Show tier benefits if available
+        if (currentLoyaltyProfile.benefits && currentLoyaltyProfile.benefits.length > 0) {
+          $("#benefits-list").html(currentLoyaltyProfile.benefits.map(benefit =>
+            `<small class="text-success">• ${benefit}</small><br>`
+          ).join(''));
+          $("#tier-benefits").show();
+        } else {
+          $("#tier-benefits").hide();
+        }
+
+        // Show points preview if cart has items
+        if (cart.length > 0 && pointsToEarn > 0) {
+          $("#points-earn-value").text(pointsToEarn);
+          $("#points-preview").show();
+        } else {
+          $("#points-preview").hide();
+        }
+
+        loyaltyInfoDiv.show();
+      }
+
+      /**
+       * Update loyalty discount display in cart/checkout area
+       */
+      function updateCartLoyaltyDisplay(loyaltyDiscountAmount) {
+        const loyaltyDiscountRow = $("#loyalty-discount-row");
+
+        // Remove existing loyalty discount row
+        loyaltyDiscountRow.remove();
+
+        if (loyaltyDiscountAmount > 0 && currentLoyaltyProfile) {
+          // Add loyalty discount row before tax row or total
+          const discountHtml = `
+            <tr id="loyalty-discount-row">
+              <td><small>Loyalty Discount (${loyaltyDiscount}%)</small></td>
+              <td>:</td>
+              <td class="text-right"><small>-${getCurrencySymbol()}${moneyFormat(loyaltyDiscountAmount.toFixed(2))}</small></td>
+            </tr>
+          `;
+
+          // Find the right place to insert (before tax row or total)
+          const taxRow = $("#cartTable tbody tr").filter(function() {
+            return $(this).find("td:first").text().includes("Tax") ||
+                   $(this).find("td:first").text().includes("Discount");
+          }).first();
+
+          if (taxRow.length > 0) {
+            taxRow.before(discountHtml);
+          } else {
+            // Find the subtotal row and insert after it
+            const subtotalRow = $("#cartTable tbody tr").filter(function() {
+              return $(this).find("td:first").text().includes("Subtotal");
+            }).first();
+
+            if (subtotalRow.length > 0) {
+              subtotalRow.after(discountHtml);
+            }
+          }
+        }
+      }
+
+      /**
+       * Update loyalty points preview in payment modal
+       */
+      function updatePaymentLoyaltyPreview() {
+        const paymentLoyaltyDiv = $("#payment-loyalty-preview");
+
+        if (!paymentLoyaltyDiv.length) {
+          // Add loyalty preview to payment modal
+          const paymentModalBody = $("#paymentModel .modal-body");
+          paymentModalBody.append(`
+            <div id="payment-loyalty-preview" style="margin-top: 15px; padding: 10px; background-color: #f8f9fa; border-radius: 5px; display: none;">
+              <div class="row">
+                <div class="col-md-6">
+                  <small class="text-muted">Points to Earn</small><br>
+                  <span id="payment-points-earn" class="text-success font-weight-bold">0</span>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted">New Balance</small><br>
+                  <span id="payment-new-balance" class="text-primary font-weight-bold">0</span>
+                </div>
+              </div>
+              <div id="payment-tier-upgrade" style="margin-top: 10px; display: none;">
+                <small class="text-warning">
+                  <i class="fa fa-star"></i> You'll reach <span id="next-tier-name"></span> tier!
+                </small>
+              </div>
+            </div>
+          `);
+        }
+
+        if (currentLoyaltyProfile && pointsToEarn > 0) {
+          const currentPoints = currentLoyaltyProfile.points_balance || 0;
+          const newBalance = currentPoints + pointsToEarn;
+
+          $("#payment-points-earn").text(pointsToEarn);
+          $("#payment-new-balance").text(newBalance);
+
+          // Check for tier upgrade
+          const nextTier = getNextTier(currentLoyaltyProfile.tier);
+          if (nextTier && newBalance >= getTierThreshold(nextTier)) {
+            $("#next-tier-name").text(nextTier.charAt(0).toUpperCase() + nextTier.slice(1));
+            $("#payment-tier-upgrade").show();
+          } else {
+            $("#payment-tier-upgrade").hide();
+          }
+
+          paymentLoyaltyDiv.show();
+        } else {
+          paymentLoyaltyDiv.hide();
+        }
+      }
+
+      /**
+       * Get next tier name
+       */
+      function getNextTier(currentTier) {
+        const tiers = ['bronze', 'silver', 'gold', 'platinum'];
+        const currentIndex = tiers.indexOf(currentTier.toLowerCase());
+        if (currentIndex >= 0 && currentIndex < tiers.length - 1) {
+          return tiers[currentIndex + 1];
+        }
+        return null;
+      }
+
+      /**
+       * Get points threshold for tier
+       */
+      function getTierThreshold(tier) {
+        const thresholds = {
+          'bronze': 0,
+          'silver': 500,
+          'gold': 1500,
+          'platinum': 3000
+        };
+        return thresholds[tier.toLowerCase()] || 0;
+      }
+
+      /**
+       * Show reward redemption modal
+       */
+      function showRedemptionModal() {
+        const redemptionModal = $("#redemptionModal");
+
+        if (!redemptionModal.length) {
+          // Create redemption modal
+          const modalHtml = `
+            <div class="modal fade" id="redemptionModal" tabindex="-1" role="dialog">
+              <div class="modal-dialog modal-lg" role="document">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title">
+                      <i class="fa fa-gift"></i> Redeem Rewards
+                      <small class="text-muted ml-2">Available Points: <span id="modal-points-balance">0</span></small>
+                    </h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                      <span>&times;</span>
+                    </button>
+                  </div>
+                  <div class="modal-body">
+                    <div id="redemption-list" class="row">
+                      <!-- Rewards will be populated here -->
+                    </div>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+          $('body').append(modalHtml);
+        }
+
+        // Update points balance in modal
+        $("#modal-points-balance").text(currentLoyaltyProfile.points_balance || 0);
+
+        // Populate available redemptions
+        const redemptionList = $("#redemption-list");
+        redemptionList.empty();
+
+        if (availableRedemptions.length === 0) {
+          redemptionList.html('<div class="col-12 text-center text-muted">No rewards available for redemption</div>');
+        } else {
+          availableRedemptions.forEach((reward, index) => {
+            const canRedeem = (currentLoyaltyProfile.points_balance || 0) >= reward.points_required;
+            const cardHtml = `
+              <div class="col-md-6 mb-3">
+                <div class="card ${canRedeem ? 'border-success' : 'border-secondary'}">
+                  <div class="card-body">
+                    <h6 class="card-title">${reward.name}</h6>
+                    <p class="card-text small text-muted">${reward.description}</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                      <span class="badge badge-primary">${reward.points_required} points</span>
+                      <button class="btn btn-sm ${canRedeem ? 'btn-success' : 'btn-secondary disabled'}"
+                              onclick="${canRedeem ? `redeemReward(${index})` : ''}"
+                              ${canRedeem ? '' : 'disabled'}>
+                        <i class="fa fa-gift"></i> Redeem
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            `;
+            redemptionList.append(cardHtml);
+          });
+        }
+
+        $("#redemptionModal").modal("show");
+      }
+
+      /**
+       * Redeem a specific reward
+       */
+      function redeemReward(rewardIndex) {
+        const reward = availableRedemptions[rewardIndex];
+
+        notiflix.Confirm.show(
+          'Confirm Redemption',
+          `Redeem "${reward.name}" for ${reward.points_required} points?`,
+          'Yes, Redeem',
+          'Cancel',
+          () => {
+            // Call redemption API
+            $.ajax({
+              url: window.api + `loyalty/redeem`,
+              type: "POST",
+              data: JSON.stringify({
+                customer_id: currentLoyaltyProfile.customer_id,
+                reward_id: reward.id,
+                points_required: reward.points_required
+              }),
+              contentType: "application/json; charset=utf-8",
+              success: function (response) {
+                notiflix.Report.success('Reward Redeemed!', `Successfully redeemed ${reward.name}.`, 'Ok');
+
+                // Update loyalty profile and refresh display
+                selectCustomer();
+
+                // Close modal
+                $("#redemptionModal").modal("hide");
+
+                // Add redeemed item to cart if applicable
+                if (reward.type === 'product' || reward.type === 'discount') {
+                  // Handle different reward types
+                  handleRedeemedReward(reward);
+                }
+              },
+              error: function (xhr, status, error) {
+                console.error('Redemption failed:', error);
+                const errorMessage = handleAjaxError(xhr, status, error, "Failed to redeem reward");
+                notiflix.Report.failure("Redemption Failed", errorMessage, "Ok");
+              }
+            });
+          }
+        );
+      }
+
+      /**
+       * Handle redeemed reward (add to cart, apply discount, etc.)
+       */
+      function handleRedeemedReward(reward) {
+        if (reward.type === 'product') {
+          // Add free product to cart
+          $.get(window.api + "inventory/product/" + reward.product_id)
+            .done(function (product) {
+              const freeItem = {
+                id: product._id,
+                product_name: product.name + " (Reward)",
+                sku: product.sku,
+                price: 0, // Free
+                quantity: 1
+              };
+              cart.push(freeItem);
+              $(this).renderTable(cart);
+              notiflix.Notify.success(`Added ${product.name} (Reward) to cart`);
+            })
+            .fail(function (xhr, status, error) {
+              console.error('Failed to load reward product:', error);
+            });
+        } else if (reward.type === 'discount') {
+          // Apply discount to current total
+          const discountAmount = reward.discount_amount || 0;
+          $("#inputDiscount").val(discountAmount);
+          $(this).calculateCart();
+          notiflix.Notify.success(`Applied ${getCurrencySymbol()}${discountAmount} discount`);
+        }
+      }
+
+      /**
+       * Update loyalty discount display in cart/checkout area
+       */
+      function updateCartLoyaltyDisplay(loyaltyDiscountAmount) {
+        const loyaltyDiscountRow = $("#loyalty-discount-row");
+
+        // Remove existing loyalty discount row
+        loyaltyDiscountRow.remove();
+
+        if (loyaltyDiscountAmount > 0 && currentLoyaltyProfile) {
+          // Add loyalty discount row before tax row or total
+          const discountHtml = `
+            <tr id="loyalty-discount-row">
+              <td><small>Loyalty Discount (${loyaltyDiscount}%)</small></td>
+              <td>:</td>
+              <td class="text-right"><small>-${getCurrencySymbol()}${moneyFormat(loyaltyDiscountAmount.toFixed(2))}</small></td>
+            </tr>
+          `;
+
+          // Find the right place to insert (before tax row or total)
+          const taxRow = $("#cartTable tbody tr").filter(function() {
+            return $(this).find("td:first").text().includes("Tax") ||
+                   $(this).find("td:first").text().includes("Discount");
+          }).first();
+
+          if (taxRow.length > 0) {
+            taxRow.before(discountHtml);
+          } else {
+            // Find the subtotal row and insert after it
+            const subtotalRow = $("#cartTable tbody tr").filter(function() {
+              return $(this).find("td:first").text().includes("Subtotal");
+            }).first();
+
+            if (subtotalRow.length > 0) {
+              subtotalRow.after(discountHtml);
+            }
+          }
+        }
       }
 
       function loadAlerts() {
@@ -1293,13 +1875,26 @@ function initializeApp() {
           total_items += parseInt(data.quantity);
         });
         $("#total").text(total_items);
-        total = total - $("#inputDiscount").val();
+
+        // Apply manual discount first
+        let manualDiscount = parseFloat($("#inputDiscount").val()) || 0;
+        total = total - manualDiscount;
+
+        // Apply loyalty discount if available
+        let loyaltyDiscountAmount = 0;
+        if (loyaltyDiscount > 0 && currentLoyaltyProfile) {
+          loyaltyDiscountAmount = (total * loyaltyDiscount) / 100;
+          total = total - loyaltyDiscountAmount;
+        }
+
         $("#price").text(getCurrencySymbol() + moneyFormat(total.toFixed(2)));
 
         subTotal = total;
 
-        if ($("#inputDiscount").val() >= total) {
+        if (manualDiscount >= (total + loyaltyDiscountAmount)) {
           $("#inputDiscount").val(0);
+          manualDiscount = 0;
+          total = total + loyaltyDiscountAmount; // Recalculate without manual discount
         }
 
         if (settings.charge_tax) {
@@ -1313,6 +1908,13 @@ function initializeApp() {
 
         $("#gross_price").text(getCurrencySymbol() + moneyFormat(orderTotal));
         $("#payablePrice").val(moneyFormat(grossTotal));
+
+        // Update loyalty discount display in cart
+        updateCartLoyaltyDisplay(loyaltyDiscountAmount);
+
+        // Recalculate points to earn when cart changes
+        calculatePointsToEarn();
+        updateLoyaltyDisplay();
       };
 
       $.fn.renderTable = function (cartList) {
@@ -1486,6 +2088,7 @@ function initializeApp() {
       $("#payButton").on("click", function () {
         if (cart.length != 0) {
           $("#paymentModel").modal("toggle");
+          updatePaymentLoyaltyPreview();
         } else {
           notiflix.Report.warning("Oops!", "There is nothing to pay!", "Ok");
         }
@@ -1496,6 +2099,17 @@ function initializeApp() {
           $("#dueModal").modal("toggle");
         } else {
           notiflix.Report.warning("Oops!", "There is nothing to hold!", "Ok");
+        }
+      });
+
+      // Add reward redemption button event handler
+      $("#redeemRewards").on("click", function () {
+        if (currentLoyaltyProfile && availableRedemptions.length > 0) {
+          showRedemptionModal();
+        } else if (!currentLoyaltyProfile) {
+          notiflix.Report.warning("No Customer Selected", "Please select a customer to redeem rewards.", "Ok");
+        } else {
+          notiflix.Report.info("No Rewards Available", "This customer has no rewards available for redemption.", "Ok");
         }
       });
 
@@ -1705,9 +2319,16 @@ function initializeApp() {
           tax_details: {
             total: totalVat,
             rate: safeUnescape(settings.percentage),
-            type: 'VAT' 
+            type: 'VAT'
           },
-          payment_mode: type
+          payment_mode: type,
+          // Loyalty program data
+          loyalty_data: currentLoyaltyProfile ? {
+            customer_id: currentLoyaltyProfile.customer_id,
+            points_earned: pointsToEarn,
+            tier_discount_applied: loyaltyDiscount,
+            tier_discount_amount: loyaltyDiscount > 0 ? (subTotal * loyaltyDiscount / 100) : 0
+          } : null
         };
 
         $.ajax({
@@ -3781,20 +4402,33 @@ window.loadStaffReport = loadStaffReport;
  * Show variant selection modal for products with variants
  */
 function showVariantSelectionModal(product) {
-    // Load variant data for the product
+    // Check if product has variants based on existing data
+    // For now, we'll check if the product has variant-related properties
+    const hasVariants = product.has_variants || 
+                       product.stock_tracking_method === 'variant' ||
+                       (product.variants && Object.keys(product.variants).length > 0);
+    
+    if (!hasVariants) {
+        // No variants found, add product directly
+        $(this).addProductToCart(product);
+        return;
+    }
+    
+    // Try to load variant data, but don't fail if endpoint doesn't exist
     $.get(window.api + `variants/product/${product._id}`)
         .done(function(variantData) {
             if (!variantData.variants || Object.keys(variantData.variants).length === 0) {
-                // No variants found, add product directly
-                addProductToCart(product);
+                // No variants found in API response, add product directly
+                $(this).addProductToCart(product);
                 return;
             }
             
             displayVariantSelectionModal(product, variantData);
         })
-        .fail(function() {
+        .fail(function(xhr, status, error) {
+            console.warn('Variant API not available or failed:', error);
             // If variant loading fails, add product directly
-            addProductToCart(product);
+            $(this).addProductToCart(product);
         });
 }
 
@@ -4113,3 +4747,222 @@ $(document).on('click', '#exportCSV', function () {
 $(document).on('click', '#downloadTemplate', function () {
   $(this).downloadCSVTemplate();
 });
+
+// ============================================
+// KEYBOARD ACCESSIBILITY FUNCTIONS
+// ============================================
+
+/**
+ * Initialize keyboard accessibility for legacy POS system
+ */
+function initializeLegacyKeyboardAccessibility() {
+  console.log('Initializing legacy POS keyboard accessibility');
+
+  // Add accessibility CSS
+  injectLegacyAccessibilityCSS();
+
+  // Add global keyboard event listener
+  $(document).on('keydown', function(e) {
+    handleLegacyGlobalKeydown(e);
+  });
+
+  // Make product widgets focusable
+  makeProductsFocusable();
+
+  console.log('Legacy POS keyboard accessibility initialized');
+}
+
+/**
+ * Handle global keyboard shortcuts for legacy POS
+ */
+function handleLegacyGlobalKeydown(e) {
+  console.log('Legacy POS: Key pressed:', e.key, 'Active element:', document.activeElement.tagName);
+
+  // Skip if user is typing in input fields (except for specific shortcuts)
+  const activeElement = document.activeElement;
+  const isInputField = ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeElement.tagName);
+
+  // Allow certain keys even in input fields for specific shortcuts
+  if (isInputField && !['F2', 'F3', 'Escape'].includes(e.key)) {
+    return;
+  }
+
+  switch(e.key) {
+    case 'F2':
+      e.preventDefault();
+      clearLegacyBarcodeInput();
+      break;
+
+    case 'F3':
+      e.preventDefault();
+      focusLegacyBarcodeScanner();
+      break;
+
+    case 'Escape':
+      e.preventDefault();
+      handleLegacyEscapeKey();
+      break;
+
+    case 'Enter':
+      // Only handle Enter for payment if payment modal is visible
+      if ($('#paymentModel').is(':visible')) {
+        e.preventDefault();
+        $('#confirmPayment').click();
+      }
+      break;
+
+    default:
+      // Handle Ctrl+H for hold sale
+      if (e.ctrlKey && e.key === 'h') {
+        e.preventDefault();
+        $('#hold').click();
+      }
+      break;
+  }
+}
+
+/**
+ * Clear barcode input in legacy POS
+ */
+function clearLegacyBarcodeInput() {
+  $('#skuCode').val('');
+  $('#skuCode').focus();
+  console.log('Barcode input cleared');
+}
+
+/**
+ * Focus barcode scanner in legacy POS
+ */
+function focusLegacyBarcodeScanner() {
+  $('#skuCode').focus();
+}
+
+/**
+ * Handle escape key in legacy POS
+ */
+function handleLegacyEscapeKey() {
+  // Close any open modals
+  $('.modal').each(function() {
+    if ($(this).is(':visible')) {
+      $(this).modal('hide');
+    }
+  });
+}
+
+/**
+ * Make product widgets focusable and add ARIA attributes
+ */
+function makeProductsFocusable() {
+  $('.widget-panel').each(function(index) {
+    const $widget = $(this);
+    const productName = $widget.find('.name').text().trim();
+    const stockText = $widget.find('.count').text().trim();
+    const priceText = $widget.find('b').text().trim();
+
+    // Make focusable
+    $widget.attr('tabindex', '0');
+    $widget.addClass('focusable');
+
+    // Add ARIA attributes
+    $widget.attr('role', 'button');
+    $widget.attr('aria-label', `${productName}, price ${priceText}, stock ${stockText}`);
+
+    // Handle keyboard activation
+    $widget.on('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        // Trigger the click on the image inside the widget
+        $widget.find('#image').click();
+      }
+    });
+  });
+}
+
+/**
+ * Inject accessibility CSS for legacy POS
+ */
+function injectLegacyAccessibilityCSS() {
+  const css = `
+    <style id="legacy-pos-accessibility-css">
+      /* Focus indicators for legacy POS */
+      .widget-panel.focusable:focus {
+        outline: 2px solid #007acc;
+        outline-offset: 2px;
+        box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.3);
+      }
+
+      /* Screen reader only content */
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      /* High contrast focus */
+      @media (prefers-contrast: high) {
+        .widget-panel.focusable:focus {
+          outline: 3px solid #000;
+          outline-offset: 1px;
+        }
+      }
+
+      /* Reduced motion */
+      @media (prefers-reduced-motion: reduce) {
+        .widget-panel.focusable:focus {
+          transition: none;
+        }
+      }
+    </style>
+  `;
+
+  if (!$('#legacy-pos-accessibility-css').length) {
+    $('head').append(css);
+  }
+}
+
+/**
+ * Inject clickable widget CSS to provide visual feedback
+ */
+function injectClickableWidgetCSS() {
+  const css = `
+    <style id="clickable-widget-css">
+      /* Make entire widget panel clickable with visual feedback */
+      .widget-panel {
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      
+      .widget-panel:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        border-color: #007acc;
+      }
+      
+      .widget-panel:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      
+      /* Ensure variant buttons don't inherit pointer cursor */
+      .widget-panel .btn.btn-xs.btn-success[data-variant-trigger] {
+        cursor: pointer;
+      }
+      
+      /* Make variant buttons stand out */
+      .widget-panel .btn.btn-xs.btn-success[data-variant-trigger]:hover {
+        transform: none;
+        box-shadow: none;
+      }
+    </style>
+  `;
+
+  if (!$('#clickable-widget-css').length) {
+    $('head').append(css);
+  }
+}

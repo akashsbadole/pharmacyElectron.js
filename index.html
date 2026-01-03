@@ -193,14 +193,7 @@
                     </div>
 
                     <div class="button-list m-t-10">
-                        <button id="settings" data-toggle="modal" data-target="#settingsModal" type="button"
-                            class="btn btn-success waves-effect waves-light p_five">
-                            <i class="glyphicon glyphicon-cog"></i>
-                        </button>
-                        <button id="contactUs" data-toggle="modal" data-target="#contactModal" type="button"
-                            class="btn btn-info waves-effect waves-light">
-                            <i class="glyphicon glyphicon-envelope"></i> Contact Us
-                        </button>
+                        
                         <button id="transactions" type="button"
                             class="btn btn-success waves-effect waves-light p_three">
                             <span class="btn-label"><i class="  glyphicon glyphicon-credit-card"></i> </span>
@@ -233,6 +226,14 @@
                         <button id="purchaseOrdersModal" data-toggle="modal" data-target="#PurchaseOrders" type="button"
                             class="btn btn-info waves-effect waves-light">
                             <span class="btn-label"><i class="fa fa-shopping-cart"></i> </span> Purchase Orders
+                        </button>
+                        <button id="contactUs" data-toggle="modal" data-target="#contactModal" type="button"
+                            class="btn btn-info waves-effect waves-light">
+                            <i class="glyphicon glyphicon-envelope"></i> Contact Us
+                        </button>
+                        <button id="settings" data-toggle="modal" data-target="#settingsModal" type="button"
+                            class="btn btn-success waves-effect waves-light p_five">
+                            <i class="glyphicon glyphicon-cog"></i>
                         </button>
                         <button type="button" title="My Profile" class="btn btn-default waves-effect waves-light"
                             id="cashier">
@@ -612,6 +613,9 @@
                                     </button>
                                     <button type="button" id="hold" class="btn btn-info waves-effect waves-light">
                                         <span class="btn-label"><i class="fa fa-hand-paper-o"></i></span>Hold
+                                    </button>
+                                    <button type="button" id="redeemRewards" class="btn btn-warning waves-effect waves-light">
+                                        <span class="btn-label"><i class="fa fa-gift"></i></span>Redeem
                                     </button>
                                     <button type="button" id="payButton"
                                         class="btn btn-success waves-effect waves-light">
@@ -1208,6 +1212,9 @@
                             <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
                             <h4 class="modal-title" id="mySmallModalLabel">Categories
                             </h4>
+                            <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#newCategory" data-dismiss="modal">
+                                <i class="fa fa-plus"></i> Create Category
+                            </button>
                         </div>
                         <div class="modal-body">
                             <table class="table table-bordered" id="categoryList">
@@ -2134,6 +2141,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/print-js/1.6.0/print.min.js"></script>
     <script src="assets/js/inventory.js"></script>
     <script src="assets/js/pos.js"></script>
+    <script src="assets/js/suppliers.js"></script>
     <script src="assets/js/upi.js"></script>
     <script src="assets/js/checkout.js"></script>
     <script src="assets/js/modules/barcode-dashboard.js"></script>

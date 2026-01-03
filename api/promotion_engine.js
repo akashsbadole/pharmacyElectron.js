@@ -23,7 +23,9 @@ const dbPaths = {
     customer_segments: path.join(appData, appName, "server", "databases", "customer_segments.db"),
     promotion_analytics: path.join(appData, appName, "server", "databases", "promotion_analytics.db"),
     ab_testing: path.join(appData, appName, "server", "databases", "ab_testing.db"),
-    promotion_conflicts: path.join(appData, appName, "server", "databases", "promotion_conflicts.db")
+    promotion_conflicts: path.join(appData, appName, "server", "databases", "promotion_conflicts.db"),
+    item_discounts: path.join(appData, appName, "server", "databases", "item_discounts.db"),
+    cart_item_discounts: path.join(appData, appName, "server", "databases", "cart_item_discounts.db")
 };
 
 const { getDatabase } = require('./database_utils');
@@ -749,6 +751,303 @@ app.post("/promotions/ab-testing/create", function (req, res) {
             });
         }
     });
+});
+
+/**
+ * ITEM-LEVEL DISCOUNT SERVICE
+ */
+
+class ItemDiscountService {
+    constructor() {
+        this.discountCache = new Map();
+        this.bulkDiscountCache = new Map();
+    }
+
+    // Get applicable item discounts for a product
+    async getApplicableItemDiscounts(productId, customerId, quantity = 1) {
+        const cacheKey = `${productId}_${customerId}_${quantity}`;
+        if (this.discountCache.has(cacheKey)) {
+            return this.discountCache.get(cacheKey);
+        }
+
+        return new Promise((resolve, reject) => {
+            const now = new Date().toISOString();
+            const query = {
+                product_id: productId,
+                'status.is_active': true,
+                'conditions.valid_from': { $lte: now },
+                'conditions.valid_until': { $gte: now },
+                'conditions.minimum_quantity': { $lte: quantity },
+                'conditions.maximum_quantity': { $gte: quantity }
+            };
+
+            // Add customer segment check if customerId provided
+            if (customerId) {
+                query.$or = [
+                    { 'conditions.customer_segments': 'all' },
+                    { 'conditions.customer_segments': { $in: ['vip', 'loyal', 'regular'] } } // Default segments
+                ];
+            }
+
+            promotionDBs.item_discounts.find(query, (err, discounts) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    // Cache the result
+                    this.discountCache.set(cacheKey, discounts);
+                    resolve(discounts);
+                }
+            });
+        });
+    }
+
+    // Calculate discount amount for a cart item
+    calculateDiscountAmount(discount, cartItem) {
+        const { discount_type, discount_value } = discount;
+        const { price, quantity } = cartItem;
+
+        switch (discount_type) {
+            case 'percentage':
+                return (price * quantity * discount_value) / 100;
+
+            case 'fixed_amount':
+                return Math.min(discount_value * quantity, price * quantity);
+
+            case 'bulk':
+                return this.calculateBulkDiscountAmount(discount, cartItem);
+
+            default:
+                return 0;
+        }
+    }
+
+    // Calculate bulk discount amount
+    calculateBulkDiscountAmount(discount, cartItem) {
+        const { bulk_rules } = discount;
+        const { price, quantity } = cartItem;
+
+        if (!bulk_rules) return 0;
+
+        switch (bulk_rules.type) {
+            case 'buy_x_get_y_free':
+                const { buy_quantity, get_quantity } = bulk_rules;
+                const sets = Math.floor(quantity / buy_quantity);
+                const freeItems = sets * get_quantity;
+                return Math.min(freeItems * price, price * quantity);
+
+            case 'quantity_discount':
+                const discountPercentage = bulk_rules.discount_percentage || discount.discount_value;
+                return (price * quantity * discountPercentage) / 100;
+
+            case 'step_discount':
+                // Implement step discount logic
+                return this.calculateStepDiscount(bulk_rules, cartItem);
+
+            default:
+                return 0;
+        }
+    }
+
+    // Calculate step discount (progressive discounts)
+    calculateStepDiscount(bulkRules, cartItem) {
+        const { price, quantity } = cartItem;
+        let discountAmount = 0;
+
+        // Assume bulk_rules has steps array with quantity thresholds and discounts
+        const steps = bulkRules.steps || [];
+        steps.sort((a, b) => b.quantity_threshold - a.quantity_threshold);
+
+        for (const step of steps) {
+            if (quantity >= step.quantity_threshold) {
+                discountAmount = (price * quantity * step.discount_percentage) / 100;
+                break;
+            }
+        }
+
+        return discountAmount;
+    }
+
+    // Apply item discounts to cart items
+    async applyItemDiscounts(cartItems, customerId, includeBulkDiscounts = true) {
+        const itemDiscounts = {};
+
+        for (let i = 0; i < cartItems.length; i++) {
+            const cartItem = cartItems[i];
+            const discounts = await this.getApplicableItemDiscounts(
+                cartItem.product_id,
+                customerId,
+                cartItem.quantity
+            );
+
+            if (discounts.length > 0) {
+                // Sort by priority (highest discount first, then by type)
+                discounts.sort((a, b) => {
+                    if (a.discount_type === 'bulk' && includeBulkDiscounts) return -1;
+                    if (b.discount_type === 'bulk' && includeBulkDiscounts) return 1;
+                    return b.discount_value - a.discount_value;
+                });
+
+                const applicableDiscount = discounts[0]; // Take the best discount
+                const discountAmount = this.calculateDiscountAmount(applicableDiscount, cartItem);
+
+                if (discountAmount > 0) {
+                    itemDiscounts[i] = {
+                        discount_id: applicableDiscount.discount_id,
+                        type: applicableDiscount.discount_type,
+                        value: applicableDiscount.discount_value,
+                        amount: discountAmount
+                    };
+                }
+            }
+        }
+
+        return itemDiscounts;
+    }
+
+    // Validate manual discount application
+    async validateManualDiscount(productId, discountType, discountValue, quantity, customerId) {
+        const discounts = await this.getApplicableItemDiscounts(productId, customerId, quantity);
+
+        // Check if the manual discount is reasonable compared to automatic discounts
+        const maxAutoDiscount = Math.max(
+            ...discounts.map(d => this.calculateDiscountAmount(d, { price: 1000, quantity, product_id: productId }))
+        );
+
+        const manualDiscountAmount = discountType === 'percentage'
+            ? (1000 * quantity * discountValue) / 100
+            : discountValue * quantity;
+
+        return {
+            is_valid: manualDiscountAmount <= maxAutoDiscount * 1.5, // Allow 50% more than auto
+            max_allowed_discount: maxAutoDiscount,
+            suggested_discount: maxAutoDiscount
+        };
+    }
+
+    // Clear discount caches
+    clearCaches() {
+        this.discountCache.clear();
+        this.bulkDiscountCache.clear();
+    }
+}
+
+// Initialize the item discount service
+const itemDiscountService = new ItemDiscountService();
+
+/**
+ * ITEM-LEVEL DISCOUNT ENDPOINTS
+ */
+
+// GET - Get item discount rules for a product
+app.get("/promotions/items/rules", function (req, res) {
+    const { product_id, customer_id } = req.query;
+
+    if (!product_id) {
+        return res.status(400).json({ error: "product_id is required" });
+    }
+
+    itemDiscountService.getApplicableItemDiscounts(product_id, customer_id)
+        .then(discounts => {
+            res.json({
+                success: true,
+                product_id,
+                applicable_discounts: discounts
+            });
+        })
+        .catch(err => {
+            console.error(err);
+            res.status(500).json({ error: "Failed to fetch item discount rules" });
+        });
+});
+
+// POST - Create item discount rule
+app.post("/promotions/items/rules", function (req, res) {
+    const discount = {
+        discount_id: `DISC_ITEM_${Date.now()}`,
+        product_id: validator.escape(req.body.product_id || ""),
+        discount_type: validator.escape(req.body.discount_type || "percentage"),
+        discount_value: parseFloat(req.body.discount_value) || 0,
+        conditions: {
+            minimum_quantity: parseInt(req.body.minimum_quantity) || 1,
+            maximum_quantity: parseInt(req.body.maximum_quantity) || 999,
+            customer_segments: req.body.customer_segments || ["all"],
+            valid_from: req.body.valid_from || new Date().toISOString(),
+            valid_until: req.body.valid_until || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
+        },
+        bulk_rules: req.body.bulk_rules || null,
+        status: {
+            is_active: true,
+            created_at: new Date().toISOString(),
+            created_by: validator.escape(req.body.created_by || "admin")
+        },
+        analytics: {
+            times_applied: 0,
+            total_discount_given: 0,
+            revenue_impact: 0
+        }
+    };
+
+    promotionDBs.item_discounts.insert(discount, function (err, newDiscount) {
+        if (err) {
+            console.error(err);
+            res.status(500).json({ error: "Internal Server Error" });
+        } else {
+            res.status(201).json({
+                success: true,
+                discount_id: discount.discount_id,
+                message: "Item discount rule created successfully",
+                discount: newDiscount
+            });
+        }
+    });
+});
+
+// POST - Apply item discounts to cart
+app.post("/promotions/items/apply", function (req, res) {
+    const { cart_items, customer_id, apply_bulk_discounts } = req.body;
+
+    if (!cart_items || !Array.isArray(cart_items)) {
+        return res.status(400).json({ error: "cart_items array is required" });
+    }
+
+    const includeBulk = apply_bulk_discounts !== false;
+
+    itemDiscountService.applyItemDiscounts(cart_items, customer_id, includeBulk)
+        .then(itemDiscounts => {
+            const totalItemDiscount = Object.values(itemDiscounts).reduce((sum, discount) => sum + discount.amount, 0);
+
+            res.json({
+                success: true,
+                item_discounts: itemDiscounts,
+                total_item_discount: totalItemDiscount,
+                bulk_discounts_applied: includeBulk
+            });
+        })
+        .catch(err => {
+            console.error(err);
+            res.status(500).json({ error: "Failed to apply item discounts" });
+        });
+});
+
+// POST - Validate manual item discount
+app.post("/promotions/items/validate", function (req, res) {
+    const { product_id, discount_type, discount_value, quantity, customer_id } = req.body;
+
+    if (!product_id || !discount_type || discount_value === undefined || !quantity) {
+        return res.status(400).json({ error: "product_id, discount_type, discount_value, and quantity are required" });
+    }
+
+    itemDiscountService.validateManualDiscount(product_id, discount_type, discount_value, quantity, customer_id)
+        .then(validation => {
+            res.json({
+                success: true,
+                validation: validation
+            });
+        })
+        .catch(err => {
+            console.error(err);
+            res.status(500).json({ error: "Failed to validate discount" });
+        });
 });
 
 /**

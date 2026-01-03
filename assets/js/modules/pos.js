@@ -12,6 +12,12 @@ class POSModule {
     this.loyaltyDiscount = 0;
     this.pointsToEarn = 0;
     this.availableRedemptions = [];
+
+    // Item-level discount features
+    this.itemDiscounts = {}; // Track discounts per cart item
+    this.showItemDiscountModal = false;
+    this.currentDiscountItemIndex = null;
+
     this.giftStoreEnabled = false;
     this.giftWrappingOptions = [];
     this.giftBundles = [];
@@ -34,10 +40,13 @@ class POSModule {
   initialize() {
     console.log('POS module initialized');
     
+    // Initialize audit trail system
+    this.initializeAuditTrailSystem();
+    
     // Bridge legacy submitDueOrder to modular state
     const originalSubmitDueOrder = $.fn.submitDueOrder;
     const self = this;
-    
+     
     $.fn.submitDueOrder = function(status) {
       if (self.app.state.getState().activeModule === 'pos') {
         if (status === 0) { // Hold Sale
@@ -61,18 +70,405 @@ class POSModule {
         const transId = $("#viewTransaction").attr('data-id');
         if (transId) this.shareEmail(transId);
     });
-    
+ 
+    // Initialize keyboard accessibility features
+    this.initializeKeyboardAccessibility();
+
     // Initialize gift store features
     this.initializeGiftStore();
-    
+     
     // Initialize Enhanced Visual Grid System
     this.initializeEnhancedVisualGrid();
-    
+     
     // Setup mobile detection and responsive behavior
     this.setupMobileOptimization();
-    
+     
     // Initialize customer experience features
     this.initializeCustomerExperience();
+  }
+
+  /**
+   * Initialize audit trail system
+   */
+  initializeAuditTrailSystem() {
+    try {
+      // Load existing audit logs
+      const existingLogs = this.getDiscountAuditLogs();
+      console.log('Loaded', existingLogs.length, 'existing discount audit logs');
+      
+      // Clean up old logs
+      this.cleanupOldAuditLogs();
+      
+      // Set up periodic cleanup
+      setInterval(() => {
+        this.cleanupOldAuditLogs();
+      }, 24 * 60 * 60 * 1000); // Clean up daily
+      
+      console.log('Discount audit trail system initialized');
+    } catch (error) {
+      console.error('Error initializing audit trail system:', error);
+    }
+  }
+
+  /**
+   * Test the discount functionality
+   */
+  testDiscountFunctionality() {
+    try {
+      console.log('=== Testing Discount Functionality ===');
+      
+      // Test 1: Valid percentage discount
+      const testItem1 = { price: 100, quantity: 2 };
+      const testDiscount1 = { type: 'percentage', value: 10 };
+      const result1 = this.calculateItemDiscountAmount(testItem1, testDiscount1);
+      console.log('Test 1 - Percentage discount (10% of 200):', result1, '(expected: 20)');
+      
+      // Test 2: Valid fixed discount
+      const testItem2 = { price: 50, quantity: 1 };
+      const testDiscount2 = { type: 'fixed', value: 15 };
+      const result2 = this.calculateItemDiscountAmount(testItem2, testDiscount2);
+      console.log('Test 2 - Fixed discount (15 from 50):', result2, '(expected: 15)');
+      
+      // Test 3: Percentage discount capped at 100%
+      const testItem3 = { price: 75, quantity: 1 };
+      const testDiscount3 = { type: 'percentage', value: 150 };
+      const result3 = this.calculateItemDiscountAmount(testItem3, testDiscount3);
+      console.log('Test 3 - Percentage discount capped (150% of 75):', result3, '(expected: 75)');
+      
+      // Test 4: Fixed discount capped at item price
+      const testItem4 = { price: 30, quantity: 1 };
+      const testDiscount4 = { type: 'fixed', value: 50 };
+      const result4 = this.calculateItemDiscountAmount(testItem4, testDiscount4);
+      console.log('Test 4 - Fixed discount capped (50 from 30):', result4, '(expected: 30)');
+      
+      // Test 5: Invalid discount type
+      const testItem5 = { price: 100, quantity: 1 };
+      const testDiscount5 = { type: 'invalid', value: 10 };
+      const result5 = this.calculateItemDiscountAmount(testItem5, testDiscount5);
+      console.log('Test 5 - Invalid discount type:', result5, '(expected: 0)');
+      
+      // Test 6: No discount
+      const testItem6 = { price: 200, quantity: 1 };
+      const testDiscount6 = { type: 'none', value: 0 };
+      const result6 = this.calculateItemDiscountAmount(testItem6, testDiscount6);
+      console.log('Test 6 - No discount:', result6, '(expected: 0)');
+      
+      // Test 7: Validation function
+      const validation1 = this.validateDiscountForItem(testItem1, testDiscount1);
+      console.log('Test 7 - Valid discount validation:', validation1.valid, '(expected: true)');
+      
+      const validation2 = this.validateDiscountForItem(testItem1, { type: 'percentage', value: 150 });
+      console.log('Test 8 - Invalid percentage validation:', validation2.valid, '(expected: false)');
+      
+      console.log('=== Discount Tests Complete ===');
+      
+      return true;
+    } catch (error) {
+      console.error('Error running discount tests:', error);
+      return false;
+    }
+  }
+
+  initializeKeyboardAccessibility() {
+    // Add global keyboard event listener for POS shortcuts
+    document.addEventListener('keydown', this.handleGlobalKeydown.bind(this));
+
+    // Initialize navigation state
+    this.currentFocusSection = 'barcode'; // barcode, customer, products, cart, actions
+    this.productGridIndex = 0;
+    this.cartItemIndex = 0;
+
+    // Inject accessibility CSS
+    this.injectAccessibilityCSS();
+
+    console.log('POS keyboard accessibility initialized');
+  }
+
+  injectAccessibilityCSS() {
+    const css = `
+      <style>
+        /* Focus indicators for keyboard accessibility */
+        .focusable:focus {
+          outline: 2px solid #007acc;
+          outline-offset: 2px;
+          box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.3);
+        }
+
+        .cart-item.focused {
+          background-color: rgba(0, 122, 204, 0.1);
+          border-left: 4px solid #007acc;
+        }
+
+        /* Screen reader only content */
+        .sr-only {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0, 0, 0, 0);
+          white-space: nowrap;
+          border: 0;
+        }
+
+        /* High contrast focus for better visibility */
+        @media (prefers-contrast: high) {
+          .focusable:focus {
+            outline: 3px solid #000;
+            outline-offset: 1px;
+          }
+        }
+
+        /* Reduced motion for users who prefer it */
+        @media (prefers-reduced-motion: reduce) {
+          .focusable:focus {
+            transition: none;
+          }
+        }
+      </style>
+    `;
+
+    // Inject CSS into head if not already present
+    if (!document.querySelector('#pos-accessibility-css')) {
+      document.head.insertAdjacentHTML('beforeend', css);
+    }
+  }
+
+  handleGlobalKeydown(e) {
+    console.log('POS Module: Key pressed:', e.key, 'Active element:', document.activeElement.tagName);
+
+    // Skip if user is typing in input fields (except for specific shortcuts)
+    const activeElement = document.activeElement;
+    const isInputField = ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeElement.tagName);
+
+    // Allow certain keys even in input fields for specific shortcuts
+    if (isInputField && !['F2', 'F3', 'Escape'].includes(e.key)) {
+      return;
+    }
+
+    switch(e.key) {
+      case 'Enter':
+        if (this.showPayment) {
+          e.preventDefault();
+          this.processPayment();
+        } else if (this.currentFocusSection === 'products') {
+          e.preventDefault();
+          this.selectCurrentProduct();
+        }
+        break;
+
+      case 'F2':
+        e.preventDefault();
+        this.clearBarcodeInput();
+        break;
+
+      case 'F3':
+        e.preventDefault();
+        this.focusBarcodeScanner();
+        break;
+
+      case 'Escape':
+        e.preventDefault();
+        this.handleEscapeKey();
+        break;
+
+      default:
+        if (e.ctrlKey && e.key === 'h') {
+          e.preventDefault();
+          this.holdSale();
+        } else {
+          // Handle navigation keys
+          this.handleNavigationKeys(e);
+        }
+        break;
+    }
+  }
+
+  handleNavigationKeys(e) {
+    const { key } = e;
+    const isArrowKey = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(key);
+    const isTabKey = key === 'Tab';
+
+    if (!isArrowKey && !isTabKey) return;
+
+    e.preventDefault();
+
+    switch(this.currentFocusSection) {
+      case 'products':
+        this.handleProductGridNavigation(key);
+        break;
+      case 'cart':
+        this.handleCartNavigation(key);
+        break;
+      default:
+        this.handleSectionNavigation(key);
+        break;
+    }
+  }
+
+  handleProductGridNavigation(key) {
+    const productCards = document.querySelectorAll('.product-card, .widget-panel');
+    if (productCards.length === 0) return;
+
+    // Calculate grid dimensions (assuming 3 columns for medium screens)
+    const columnsPerRow = 3;
+    const totalRows = Math.ceil(productCards.length / columnsPerRow);
+
+    switch(key) {
+      case 'ArrowUp':
+        if (this.productGridIndex >= columnsPerRow) {
+          this.productGridIndex -= columnsPerRow;
+        }
+        break;
+      case 'ArrowDown':
+        if (this.productGridIndex < productCards.length - columnsPerRow) {
+          this.productGridIndex += columnsPerRow;
+        }
+        break;
+      case 'ArrowLeft':
+        if (this.productGridIndex % columnsPerRow > 0) {
+          this.productGridIndex -= 1;
+        }
+        break;
+      case 'ArrowRight':
+        if (this.productGridIndex % columnsPerRow < columnsPerRow - 1 && this.productGridIndex < productCards.length - 1) {
+          this.productGridIndex += 1;
+        }
+        break;
+    }
+
+    this.focusProductCard(this.productGridIndex);
+  }
+
+  focusProductCard(index) {
+    const productCards = document.querySelectorAll('.product-card, .widget-panel');
+    if (productCards[index]) {
+      productCards[index].focus();
+      productCards[index].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
+  handleCartNavigation(key) {
+    const cartItems = document.querySelectorAll('.cart-item');
+    if (cartItems.length === 0) return;
+
+    switch(key) {
+      case 'ArrowUp':
+        this.cartItemIndex = Math.max(0, this.cartItemIndex - 1);
+        break;
+      case 'ArrowDown':
+        this.cartItemIndex = Math.min(cartItems.length - 1, this.cartItemIndex + 1);
+        break;
+      case 'Delete':
+        this.removeFromCart(this.cartItemIndex);
+        this.cartItemIndex = Math.min(this.cartItemIndex, cartItems.length - 1);
+        break;
+    }
+
+    this.focusCartItem(this.cartItemIndex);
+  }
+
+  handleSectionNavigation(key) {
+    const sections = ['barcode', 'customer', 'products', 'cart', 'actions'];
+    let currentIndex = sections.indexOf(this.currentFocusSection);
+
+    switch(key) {
+      case 'ArrowRight':
+      case 'Tab':
+        currentIndex = (currentIndex + 1) % sections.length;
+        break;
+      case 'ArrowLeft':
+        if (key === 'ArrowLeft' || (key === 'Tab' && e.shiftKey)) {
+          currentIndex = currentIndex > 0 ? currentIndex - 1 : sections.length - 1;
+        }
+        break;
+    }
+
+    this.currentFocusSection = sections[currentIndex];
+    this.focusSection(this.currentFocusSection);
+  }
+
+  focusSection(section) {
+    const focusMap = {
+      barcode: '#barcodeInput',
+      customer: 'select[name="customer"]',
+      products: '.product-card:first',
+      cart: '.cart-item:first .quantity-input',
+      actions: '.pos-actions button:first'
+    };
+
+    const selector = focusMap[section];
+    if (selector) {
+      const element = document.querySelector(selector);
+      if (element) {
+        element.focus();
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  }
+
+  focusCartItem(index) {
+    const cartItems = document.querySelectorAll('.cart-item');
+    if (cartItems[index]) {
+      const quantityInput = cartItems[index].querySelector('.quantity-input');
+      if (quantityInput) {
+        quantityInput.focus();
+        quantityInput.select();
+        cartItems[index].classList.add('focused');
+      }
+    }
+
+    // Remove focus from other items
+    cartItems.forEach((item, i) => {
+      if (i !== index) {
+        item.classList.remove('focused');
+      }
+    });
+  }
+
+  clearBarcodeInput() {
+    const barcodeInput = document.getElementById('barcodeInput');
+    if (barcodeInput) {
+      barcodeInput.value = '';
+      barcodeInput.focus();
+      this.showBarcodeFeedback('info', 'Barcode input cleared');
+    }
+  }
+
+  focusBarcodeScanner() {
+    const barcodeInput = document.getElementById('barcodeInput');
+    if (barcodeInput) {
+      barcodeInput.focus();
+      barcodeInput.select();
+    }
+  }
+
+  handleEscapeKey() {
+    if (this.showPayment) {
+      this.hidePaymentInterface();
+    } else {
+      // Close any open modals
+      const openModal = document.querySelector('.modal.show');
+      if (openModal) {
+        const closeBtn = openModal.querySelector('.close, [data-dismiss="modal"]');
+        if (closeBtn) closeBtn.click();
+      }
+    }
+  }
+
+  selectCurrentProduct() {
+    // This will be implemented when we have product grid navigation
+    console.log('Select current product');
+  }
+
+  showBarcodeFeedback(status, message) {
+    // Use existing method if available
+    if (typeof this.showBarcodeFeedback === 'function') {
+      this.showBarcodeFeedback(status, message);
+    } else {
+      console.log('Barcode feedback:', status, message);
+    }
   }
   
   async initializeGiftStore() {
@@ -507,29 +903,32 @@ class POSModule {
     const totals = this.calculateCartTotal();
     
     return `
-      <div class="module-container pos-module" data-module="pos">
-        <div class="module-header">
-          <h1 class="module-title">Point of Sale</h1>
-          <p class="module-subtitle">Process sales transactions</p>
-        </div>
-        
-        <div class="pos-layout grid grid-cols-2 gap-6">
-          <div class="pos-left-panel">
-            ${this.renderCustomerSelector(posState.currentCustomer)}
-            ${this.renderProductSearch()}
-            ${this.renderBarcodeScanner()}
-            ${this.renderComboSelector()}
-          </div>
-          
-          <div class="pos-right-panel">
-            ${this.renderShoppingCart(posState.cart, totals)}
-            ${this.renderPOSActions(totals)}
-          </div>
-        </div>
-        
-        ${this.showPayment ? this.renderPaymentInterface(totals) : ''}
+    <div class="module-container pos-module" data-module="pos">
+      <div class="module-header">
+        <h1 class="module-title">Point of Sale</h1>
+        <p class="module-subtitle">Process sales transactions</p>
       </div>
-    `;
+       
+      <div class="pos-layout grid grid-cols-2 gap-6">
+        <div class="pos-left-panel">
+          ${this.renderCustomerSelector(posState.currentCustomer)}
+          ${this.renderProductSearch()}
+          ${this.renderBarcodeScanner()}
+          ${this.renderComboSelector()}
+        </div>
+         
+        <div class="pos-right-panel">
+          ${this.renderShoppingCart(posState.cart, totals)}
+          ${this.renderPOSActions(totals)}
+        </div>
+      </div>
+      
+      ${this.showPayment ? this.renderPaymentInterface(totals) : ''}
+      
+      <!-- Devbit POS Footer -->
+      ${this.renderDevbitFooter()}
+    </div>
+  `;
   }
   
   renderCustomerSelector(currentCustomer) {
@@ -583,60 +982,67 @@ class POSModule {
       <div class="barcode-scanner mb-6">
         <div class="card">
           <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">
+            <h5 class="mb-0" id="barcode-scanner-heading">
               <i class="fa fa-barcode"></i> Barcode Scanner
             </h5>
             <div class="scanner-controls d-flex gap-2">
               <button class="btn btn-sm ${this.soundEnabled ? 'btn-success' : 'btn-secondary'}"
                       onclick="window.pharmaApp.getModule('pos').toggleSound()"
-                      title="${this.soundEnabled ? 'Disable sound notifications' : 'Enable sound notifications'}">
+                      title="${this.soundEnabled ? 'Disable sound notifications' : 'Enable sound notifications'}"
+                      aria-label="${this.soundEnabled ? 'Disable sound notifications' : 'Enable sound notifications'}">
                 <i class="fa ${this.soundEnabled ? 'fa-volume-up' : 'fa-volume-off'}"></i>
               </button>
               <button class="btn btn-sm btn-info"
                       onclick="window.pharmaApp.getModule('pos').showScannerHelp()"
-                      title="Scanner help and tips">
+                      title="Scanner help and tips"
+                      aria-label="Scanner help and tips">
                 <i class="fa fa-question-circle"></i>
               </button>
             </div>
           </div>
           <div class="card-body">
-            <form id="barcodeForm" onsubmit="window.pharmaApp.getModule('pos').handleBarcodeSubmit(event)">
+            <form id="barcodeForm" onsubmit="window.pharmaApp.getModule('pos').handleBarcodeSubmit(event)" role="search" aria-labelledby="barcode-scanner-heading">
               <div class="input-group">
                 <div class="input-group-prepend">
-                  <span class="input-group-text">
+                  <span class="input-group-text" aria-hidden="true">
                     <i class="fa fa-barcode"></i>
                   </span>
                 </div>
                 <input type="text" id="barcodeInput" class="form-control form-control-lg"
-                       placeholder="Scan barcode or type number" autofocus
-                       autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                       placeholder="Scan barcode or type number"
+                       autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+                       aria-label="Barcode scanner input"
+                       aria-describedby="barcode-help">
                 <div class="input-group-append">
-                  <button type="submit" class="btn btn-primary btn-lg">
+                  <button type="submit" class="btn btn-primary btn-lg" aria-label="Scan barcode">
                     <i class="fa fa-search"></i>
                     <span class="d-none d-sm-inline ml-1">Scan</span>
                   </button>
                 </div>
               </div>
+              <div id="barcode-help" class="sr-only">Press F2 to clear input, F3 to focus scanner, Enter to scan</div>
             </form>
 
             <!-- Enhanced feedback display -->
-            <div id="barcodeFeedback" class="barcode-feedback mt-3" style="display: none;">
+            <div id="barcodeFeedback" class="barcode-feedback mt-3" style="display: none;" role="status" aria-live="polite">
               <!-- Dynamic feedback content will be inserted here -->
             </div>
 
             <!-- Scan statistics (hidden by default, can be shown in help) -->
-            <div class="scan-stats mt-2 text-muted small" id="scanStats" style="display: none;">
+            <div class="scan-stats mt-2 text-muted small" id="scanStats" style="display: none;" aria-hidden="true">
               <i class="fa fa-chart-bar"></i> Today's scans: <span id="scanCount">${this.scanSuccessCount}</span>
             </div>
 
             <!-- Quick actions -->
             <div class="mt-3 d-flex flex-wrap gap-2">
               <button class="btn btn-outline-secondary btn-sm"
-                      onclick="window.pharmaApp.getModule('pos').clearBarcodeInput()">
+                      onclick="window.pharmaApp.getModule('pos').clearBarcodeInput()"
+                      aria-label="Clear barcode input (F2)">
                 <i class="fa fa-times"></i> Clear
               </button>
               <button class="btn btn-outline-info btn-sm"
-                      onclick="window.pharmaApp.getModule('pos').showRecentScans()">
+                      onclick="window.pharmaApp.getModule('pos').showRecentScans()"
+                      aria-label="Show recent scans">
                 <i class="fa fa-history"></i> Recent
               </button>
             </div>
@@ -673,33 +1079,40 @@ class POSModule {
       <div class="shopping-cart">
         <div class="card">
           <div class="card-header">
-            <h3 class="card-title">Cart Items (${cart.length})</h3>
+            <h3 class="card-title" id="cart-heading">Cart Items (${cart.length})</h3>
           </div>
           <div class="card-body">
-            <div class="cart-items" style="max-height: 400px; overflow-y: auto;">
-              ${cart.length === 0 ? 
-                '<div class="text-center text-gray-500 py-8">Cart is empty</div>' :
+            <div class="cart-items" style="max-height: 400px; overflow-y: auto;" role="list" aria-labelledby="cart-heading">
+              ${cart.length === 0 ?
+                '<div class="text-center text-gray-500 py-8" role="status" aria-live="polite">Cart is empty</div>' :
                 cart.map((item, index) => `
-                  <div class="cart-item flex items-center gap-3 p-3 border-b">
+                  <div class="cart-item flex items-center gap-3 p-3 border-b focusable" tabindex="0"
+                       role="listitem"
+                       aria-label="${item.product_name}, quantity ${item.quantity}, price ${(item.price * item.quantity).toFixed(2)}. Use arrow keys to navigate, Delete to remove"
+                       data-cart-index="${index}">
                     <div class="flex-1">
                       <div class="font-medium">${item.product_name}</div>
                       <div class="text-sm text-gray-500">${item.sku}</div>
                     </div>
                     <div class="flex items-center gap-2">
-                      <button class="btn btn-sm btn-secondary" 
-                              onclick="window.pharmaApp.getModule('pos').updateCartQuantity(${index}, ${item.quantity - 1})">-</button>
-                      <input type="number" class="form-input" style="width: 60px" 
+                      <button class="btn btn-sm btn-secondary"
+                              onclick="window.pharmaApp.getModule('pos').updateCartQuantity(${index}, ${item.quantity - 1})"
+                              aria-label="Decrease quantity for ${item.product_name}">-</button>
+                      <input type="number" class="form-input quantity-input" style="width: 60px"
                              value="${item.quantity}" min="1"
-                             onchange="window.pharmaApp.getModule('pos').updateCartQuantity(${index}, this.value)">
-                      <button class="btn btn-sm btn-secondary" 
-                              onclick="window.pharmaApp.getModule('pos').updateCartQuantity(${index}, ${item.quantity + 1})">+</button>
+                             onchange="window.pharmaApp.getModule('pos').updateCartQuantity(${index}, this.value)"
+                             aria-label="Quantity for ${item.product_name}">
+                      <button class="btn btn-sm btn-secondary"
+                              onclick="window.pharmaApp.getModule('pos').updateCartQuantity(${index}, ${item.quantity + 1})"
+                              aria-label="Increase quantity for ${item.product_name}">+</button>
                     </div>
                     <div class="text-right">
-                      <div class="font-medium">$${(item.price * item.quantity).toFixed(2)}</div>
-                      <div class="text-sm text-gray-500">$${item.price.toFixed(2)} each</div>
+                      <div class="font-medium">${(item.price * item.quantity).toFixed(2)}</div>
+                      <div class="text-sm text-gray-500">${item.price.toFixed(2)} each</div>
                     </div>
-                    <button class="btn btn-sm btn-danger" 
-                            onclick="window.pharmaApp.getModule('pos').removeFromCart(${index})">
+                    <button class="btn btn-sm btn-danger"
+                            onclick="window.pharmaApp.getModule('pos').removeFromCart(${index})"
+                            aria-label="Remove ${item.product_name} from cart">
                       <i class="fa fa-times"></i>
                     </button>
                   </div>
@@ -839,32 +1252,36 @@ class POSModule {
   
   renderPOSActions(totals) {
     return `
-      <div class="pos-actions mt-6">
+      <div class="pos-actions mt-6" role="toolbar" aria-label="POS actions">
         <div class="grid grid-cols-2 gap-3">
-          <button class="btn btn-danger" onclick="window.pharmaApp.getModule('pos').cancelSale()">
+          <button class="btn btn-danger focusable" onclick="window.pharmaApp.getModule('pos').cancelSale()"
+                  aria-label="Cancel current sale">
             <i class="fa fa-ban"></i> Cancel
           </button>
-          <button class="btn btn-warning" onclick="window.pharmaApp.getModule('pos').holdSale()">
+          <button class="btn btn-warning focusable" onclick="window.pharmaApp.getModule('pos').holdSale()"
+                  aria-label="Hold current sale (Ctrl+H)">
             <i class="fa fa-hand-paper-o"></i> Hold
           </button>
         </div>
-        
+
         <!-- Gift Store Actions -->
         ${this.giftStoreEnabled ? `
           <div class="gift-actions mt-3 pt-3 border-t border-gray-200">
             <div class="flex gap-2 mb-3">
-              <button class="btn btn-sm btn-purple" onclick="window.pharmaApp.getModule('pos').showGiftServicesModal()" 
-                      ${totals.items === 0 ? 'disabled' : ''}>
+              <button class="btn btn-sm btn-purple focusable" onclick="window.pharmaApp.getModule('pos').showGiftServicesModal()"
+                      ${totals.items === 0 ? 'disabled' : ''}
+                      aria-label="Add gift services to order">
                 <i class="fa fa-gift"></i> Add Gift Services
               </button>
-              <button class="btn btn-sm btn-cyan" onclick="window.pharmaApp.getModule('pos').showGiftBundleSelector()" 
-                      ${this.giftBundles.length === 0 ? 'disabled' : ''}>
+              <button class="btn btn-sm btn-cyan focusable" onclick="window.pharmaApp.getModule('pos').showGiftBundleSelector()"
+                      ${this.giftBundles.length === 0 ? 'disabled' : ''}
+                      aria-label="Select gift bundle">
                 <i class="fa fa-box"></i> Add Gift Bundle
               </button>
             </div>
-            
+
             ${Object.keys(this.selectedGiftServices).length > 0 ? `
-              <div class="selected-gift-services p-2 bg-purple-50 rounded border border-purple-200">
+              <div class="selected-gift-services p-2 bg-purple-50 rounded border border-purple-200" role="status" aria-live="polite">
                 <div class="text-xs text-purple-800 font-medium mb-1">Selected Gift Services:</div>
                 <div class="text-xs text-purple-600">
                   ${this.selectedGiftServices.gift_wrapping ? `Gift Wrapping (₹${this.selectedGiftServices.gift_wrapping.cost})` : ''}
@@ -878,10 +1295,11 @@ class POSModule {
             ` : ''}
           </div>
         ` : ''}
-        
-        <button class="btn btn-success btn-lg w-full mt-3" 
+
+        <button class="btn btn-success btn-lg w-full mt-3 focusable"
                 onclick="window.pharmaApp.getModule('pos').showPaymentInterface()"
-                ${totals.items === 0 ? 'disabled' : ''}>
+                ${totals.items === 0 ? 'disabled' : ''}
+                aria-label="Proceed to payment (Enter)">
           <i class="fa fa-money"></i> Pay ₹${totals.total}
         </button>
       </div>
@@ -896,13 +1314,13 @@ class POSModule {
   renderPaymentInterface(totals) {
     const giftServicesTotal = this.calculateGiftServicesTotal();
     const finalTotal = parseFloat(totals.total) + giftServicesTotal;
-    
+
     return `
-      <div class="payment-modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="payment-modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" role="dialog" aria-modal="true" aria-labelledby="payment-modal-title">
         <div class="bg-white rounded-lg p-6 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
           <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-semibold">Payment</h3>
-            <button onclick="window.pharmaApp.getModule('pos').hidePaymentInterface()" class="text-gray-500">
+            <h3 id="payment-modal-title" class="text-lg font-semibold">Payment</h3>
+            <button onclick="window.pharmaApp.getModule('pos').hidePaymentInterface()" class="text-gray-500" aria-label="Close payment modal (Escape)">
               <i class="fa fa-times"></i>
             </button>
           </div>
@@ -1086,18 +1504,18 @@ class POSModule {
   
   filterProducts(searchTerm) {
     const products = this.app.state.getModuleState('pos').products;
-    const filtered = products.filter(product => 
+    const filtered = products.filter(product =>
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (product.barcode && product.barcode.includes(searchTerm))
     );
-    
+
     const resultsContainer = document.getElementById('product-search-results');
     if (resultsContainer) {
       resultsContainer.innerHTML = filtered.slice(0, 5).map(product => `
-        <div class="product-result p-2 border-b cursor-pointer hover:bg-gray-50" 
-             onclick="window.pharmaApp.getModule('pos').addToCartFromSearch('${product._id}')">
+        <div class="product-result p-2 border-b cursor-pointer hover:bg-gray-50"
+             onclick="window.pharmaApp.getModule('pos').addToCartFromSearch('${product._id.replace(/'/g, "\\'")}')">
           <div class="font-medium">${product.name}</div>
-          <div class="text-sm text-gray-500">$${parseFloat(product.price).toFixed(2)}</div>
+          <div class="text-sm text-gray-500">${parseFloat(product.price).toFixed(2)}</div>
         </div>
       `).join('');
     }
@@ -1293,11 +1711,72 @@ class POSModule {
   showPaymentInterface() {
     this.showPayment = true;
     this.render();
+
+    // Set up focus trapping for the modal
+    setTimeout(() => {
+      this.setupPaymentModalFocus();
+    }, 100);
   }
-  
+
   hidePaymentInterface() {
     this.showPayment = false;
     this.render();
+
+    // Restore focus to the element that opened the modal
+    this.restoreFocus();
+  }
+
+  setupPaymentModalFocus() {
+    const modal = document.querySelector('.payment-modal');
+    if (!modal) return;
+
+    // Save current focus
+    this.previousFocusElement = document.activeElement;
+
+    // Get all focusable elements in the modal
+    const focusableElements = modal.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+
+    this.focusableElements = Array.from(focusableElements);
+    this.firstFocusable = this.focusableElements[0];
+    this.lastFocusable = this.focusableElements[this.focusableElements.length - 1];
+
+    // Focus first element
+    if (this.firstFocusable) {
+      this.firstFocusable.focus();
+    }
+
+    // Add event listener for focus trapping
+    modal.addEventListener('keydown', this.handleModalKeydown.bind(this));
+  }
+
+  handleModalKeydown(e) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      this.hidePaymentInterface();
+    } else if (e.key === 'Tab') {
+      if (e.shiftKey) {
+        // Shift + Tab
+        if (document.activeElement === this.firstFocusable) {
+          e.preventDefault();
+          this.lastFocusable.focus();
+        }
+      } else {
+        // Tab
+        if (document.activeElement === this.lastFocusable) {
+          e.preventDefault();
+          this.firstFocusable.focus();
+        }
+      }
+    }
+  }
+
+  restoreFocus() {
+    if (this.previousFocusElement && typeof this.previousFocusElement.focus === 'function') {
+      this.previousFocusElement.focus();
+    }
+    this.previousFocusElement = null;
   }
   
   calculateChange() {
@@ -2068,7 +2547,7 @@ class POSModule {
       is_anonymous: this.selectedGiftServices.gift_receipt?.anonymous || false
     };
     
-    const receiptHtml = this.generateReceiptHTML(receiptData);
+    const receiptHtml = this.generateGiftReceiptHTML(receiptData);
     
     const blob = new Blob([receiptHtml], { type: 'text/html' });
     const url = window.URL.createObjectURL(blob);
@@ -2079,7 +2558,7 @@ class POSModule {
     window.URL.revokeObjectURL(url);
   }
   
-  generateReceiptHTML(receiptData) {
+  generateGiftReceiptHTML(receiptData) {
     return `
       <!DOCTYPE html>
       <html>
@@ -3450,6 +3929,695 @@ class POSModule {
     }
   }
 
+  /**
+   * ITEM-LEVEL DISCOUNT METHODS
+   */
+
+  renderShoppingCartWithItemDiscounts(cart, totals) {
+    return `
+      <div class="shopping-cart">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title" id="cart-heading">Cart Items (${cart.length})</h3>
+          </div>
+          <div class="card-body">
+            <div class="cart-items" style="max-height: 400px; overflow-y: auto;" role="list" aria-labelledby="cart-heading">
+              ${cart.length === 0 ?
+                '<div class="text-center text-gray-500 py-8" role="status" aria-live="polite">Cart is empty</div>' :
+                cart.map((item, index) => this.renderCartItemWithDiscount(item, index)).join('')
+              }
+            </div>
+
+            <div class="cart-tax-toggle mt-3 flex justify-between items-center p-2 bg-blue-50 rounded">
+                <span class="text-sm font-medium">Sale Type:</span>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn ${this.saleType === 'intra' ? 'btn-primary' : 'btn-default'}"
+                            onclick="window.pharmaApp.getModule('pos').setSaleType('intra')">Intra-state</button>
+                    <button class="btn ${this.saleType === 'inter' ? 'btn-primary' : 'btn-default'}"
+                            onclick="window.pharmaApp.getModule('pos').setSaleType('inter')">Inter-state</button>
+                </div>
+            </div>
+
+            <!-- Promotion Controls -->
+            <div class="promotion-controls mt-3 flex gap-2">
+                <button class="btn btn-info btn-sm" onclick="window.pharmaApp.getModule('pos').showPromotionCodeEntry()">
+                    <i class="fa fa-ticket"></i> Apply Code
+                </button>
+                <button class="btn btn-success btn-sm" onclick="window.pharmaApp.getModule('pos').showPromotionDetails()">
+                    <i class="fa fa-tags"></i> View Promotions
+                </button>
+            </div>
+
+            <!-- Promotion Badge -->
+            <div class="promotion-badge mt-2 p-2 bg-green-50 rounded border-l-4 border-green-400" style="display: none;">
+                <i class="fa fa-tags text-success"></i>
+                <span class="text-success font-medium"></span>
+            </div>
+
+            ${cart.length > 0 ? this.renderCartTotals(totals) : ''}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  renderCartItemWithDiscount(item, index) {
+    const itemKey = `${item.id}_${index}`;
+    const itemDiscount = this.itemDiscounts[itemKey] || { type: 'none', value: 0 };
+    const originalPrice = item.price * item.quantity;
+    const discountAmount = this.calculateItemDiscountAmount(item, itemDiscount);
+    const discountedPrice = originalPrice - discountAmount;
+
+    return `
+      <div class="cart-item flex items-center gap-3 p-3 border-b focusable" tabindex="0"
+           role="listitem"
+           aria-label="${item.product_name}, quantity ${item.quantity}, price ${(discountedPrice).toFixed(2)}. Use arrow keys to navigate, Delete to remove"
+           data-cart-index="${index}">
+        <div class="flex-1">
+          <div class="font-medium">${item.product_name}</div>
+          <div class="text-sm text-gray-500">${item.sku}</div>
+          ${itemDiscount.type !== 'none' ? `
+            <div class="text-sm text-green-600">
+              <i class="fa fa-percent"></i> ${this.formatDiscountDisplay(itemDiscount)}
+            </div>
+          ` : ''}
+        </div>
+        <div class="flex items-center gap-2">
+          <button class="btn btn-sm btn-secondary"
+                  onclick="window.pharmaApp.getModule('pos').updateCartQuantity(${index}, ${item.quantity - 1})"
+                  aria-label="Decrease quantity for ${item.product_name}">-</button>
+          <input type="number" class="form-input quantity-input" style="width: 60px"
+                 value="${item.quantity}" min="1"
+                 onchange="window.pharmaApp.getModule('pos').updateCartQuantity(${index}, this.value)"
+                 aria-label="Quantity for ${item.product_name}">
+          <button class="btn btn-sm btn-secondary"
+                  onclick="window.pharmaApp.getModule('pos').updateCartQuantity(${index}, ${item.quantity + 1})"
+                  aria-label="Increase quantity for ${item.product_name}">+</button>
+        </div>
+        <div class="text-right">
+          ${itemDiscount.type !== 'none' ? `
+            <div class="text-sm text-gray-500 line-through">₹${originalPrice.toFixed(2)}</div>
+          ` : ''}
+          <div class="font-medium ${itemDiscount.type !== 'none' ? 'text-green-600' : ''}">₹${discountedPrice.toFixed(2)}</div>
+          <div class="text-sm text-gray-500">₹${item.price.toFixed(2)} each</div>
+        </div>
+        <div class="flex flex-col gap-1">
+          <button class="btn btn-sm btn-danger"
+                  onclick="window.pharmaApp.getModule('pos').removeFromCart(${index})"
+                  aria-label="Remove ${item.product_name} from cart">
+            <i class="fa fa-times"></i>
+          </button>
+          <button class="btn btn-sm btn-info"
+                  onclick="window.pharmaApp.getModule('pos').showItemDiscountModal(${index})"
+                  aria-label="Apply discount to ${item.product_name}">
+            <i class="fa fa-percent"></i>
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  showItemDiscountModal(index) {
+    const posState = this.app.state.getModuleState('pos');
+    const item = posState.cart[index];
+    if (!item) return;
+
+    this.currentDiscountItemIndex = index;
+    const itemKey = `${item.id}_${index}`;
+    const currentDiscount = this.itemDiscounts[itemKey] || { type: 'none', value: 0 };
+
+    const modalHtml = `
+      <div class="item-discount-modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+           id="itemDiscountModal">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold">
+              <i class="fa fa-percent text-primary"></i> Apply Discount to ${item.product_name}
+            </h3>
+            <button onclick="window.pharmaApp.getModule('pos').hideItemDiscountModal()" class="text-gray-500">
+              <i class="fa fa-times"></i>
+            </button>
+          </div>
+
+          <div class="item-details mb-4 p-3 bg-gray-50 rounded">
+            <div class="flex justify-between mb-2">
+              <span>Original Price:</span>
+              <span>₹${(item.price * item.quantity).toFixed(2)}</span>
+            </div>
+            <div class="flex justify-between">
+              <span>Quantity:</span>
+              <span>${item.quantity}</span>
+            </div>
+          </div>
+
+          <div class="discount-options mb-4">
+            <label class="form-label">Discount Type</label>
+            <div class="discount-type-options grid grid-cols-1 gap-2">
+              <label class="discount-option flex items-center gap-3 p-3 border rounded cursor-pointer hover:bg-blue-50">
+                <input type="radio" name="discountType" value="none"
+                       ${currentDiscount.type === 'none' ? 'checked' : ''}
+                       onchange="window.pharmaApp.getModule('pos').selectDiscountType('none')">
+                <div class="flex-1">
+                  <div class="font-medium">No Discount</div>
+                  <div class="text-sm text-gray-600">Remove any applied discount</div>
+                </div>
+              </label>
+
+              <label class="discount-option flex items-center gap-3 p-3 border rounded cursor-pointer hover:bg-blue-50">
+                <input type="radio" name="discountType" value="percentage"
+                       ${currentDiscount.type === 'percentage' ? 'checked' : ''}
+                       onchange="window.pharmaApp.getModule('pos').selectDiscountType('percentage')">
+                <div class="flex-1">
+                  <div class="font-medium">Percentage Discount</div>
+                  <div class="text-sm text-gray-600">Discount by percentage (e.g., 10%)</div>
+                </div>
+              </label>
+
+              <label class="discount-option flex items-center gap-3 p-3 border rounded cursor-pointer hover:bg-blue-50">
+                <input type="radio" name="discountType" value="fixed"
+                       ${currentDiscount.type === 'fixed' ? 'checked' : ''}
+                       onchange="window.pharmaApp.getModule('pos').selectDiscountType('fixed')">
+                <div class="flex-1">
+                  <div class="font-medium">Fixed Amount Discount</div>
+                  <div class="text-sm text-gray-600">Discount by fixed amount (e.g., ₹50)</div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div class="discount-value mb-4" id="discountValueSection"
+               style="${currentDiscount.type === 'none' ? 'display: none;' : ''}">
+            <label class="form-label" id="discountValueLabel">
+              ${currentDiscount.type === 'percentage' ? 'Discount Percentage (%)' : 'Discount Amount (₹)'}
+            </label>
+            <input type="number" class="form-input" id="discountValueInput"
+                   value="${currentDiscount.value}"
+                   min="0" step="${currentDiscount.type === 'percentage' ? '0.1' : '0.01'}"
+                   max="${currentDiscount.type === 'percentage' ? '100' : (item.price * item.quantity)}"
+                   onchange="window.pharmaApp.getModule('pos').updateDiscountValue(this.value)"
+                   oninput="window.pharmaApp.getModule('pos').previewItemDiscount()">
+            <div class="text-sm text-gray-600 mt-1">
+              Max discount: ${currentDiscount.type === 'percentage' ? '100%' : '₹' + (item.price * item.quantity).toFixed(2)}
+            </div>
+          </div>
+
+          <div class="discount-preview mb-4 p-3 bg-green-50 rounded border border-green-200">
+            <h6 class="font-medium mb-2 text-green-800">Discount Preview</h6>
+            <div id="discountPreview">
+              ${this.renderDiscountPreview(item, currentDiscount)}
+            </div>
+          </div>
+
+          <div class="flex gap-3">
+            <button class="btn btn-secondary flex-1" onclick="window.pharmaApp.getModule('pos').hideItemDiscountModal()">
+              Cancel
+            </button>
+            <button class="btn btn-success flex-1" onclick="window.pharmaApp.getModule('pos').applyItemDiscount()">
+              Apply Discount
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    this.updateDiscountPreview();
+  }
+
+  hideItemDiscountModal() {
+    const modal = document.getElementById('itemDiscountModal');
+    if (modal) {
+      modal.remove();
+    }
+    this.currentDiscountItemIndex = null;
+  }
+
+  selectDiscountType(type) {
+    const valueSection = document.getElementById('discountValueSection');
+    const valueInput = document.getElementById('discountValueInput');
+    const valueLabel = document.getElementById('discountValueLabel');
+
+    if (type === 'none') {
+      if (valueSection) valueSection.style.display = 'none';
+      if (valueInput) valueInput.value = '0';
+    } else {
+      if (valueSection) valueSection.style.display = 'block';
+      if (valueLabel) {
+        valueLabel.textContent = type === 'percentage' ? 'Discount Percentage (%)' : 'Discount Amount (₹)';
+      }
+      if (valueInput) {
+        valueInput.step = type === 'percentage' ? '0.1' : '0.01';
+        valueInput.value = '0';
+      }
+    }
+
+    this.updateDiscountPreview();
+  }
+
+  updateDiscountValue(value) {
+    // Value is updated in real-time through oninput event
+    this.updateDiscountPreview();
+  }
+
+  previewItemDiscount() {
+    // Called from oninput event to update preview in real-time
+    this.updateDiscountPreview();
+  }
+
+  updateDiscountPreview() {
+    const posState = this.app.state.getModuleState('pos');
+    const item = posState.cart[this.currentDiscountItemIndex];
+    if (!item) return;
+
+    const discountType = document.querySelector('input[name="discountType"]:checked')?.value || 'none';
+    const discountValue = parseFloat(document.getElementById('discountValueInput')?.value || 0);
+
+    const discount = { type: discountType, value: discountValue };
+    const previewHtml = this.renderDiscountPreview(item, discount);
+
+    const previewElement = document.getElementById('discountPreview');
+    if (previewElement) {
+      previewElement.innerHTML = previewHtml;
+    }
+  }
+
+  renderDiscountPreview(item, discount) {
+    const originalPrice = item.price * item.quantity;
+    const discountAmount = this.calculateItemDiscountAmount(item, discount);
+    const discountedPrice = Math.max(0, originalPrice - discountAmount);
+    const savings = originalPrice - discountedPrice;
+
+    return `
+      <div class="space-y-1 text-sm">
+        <div class="flex justify-between">
+          <span>Original Total:</span>
+          <span>₹${originalPrice.toFixed(2)}</span>
+        </div>
+        ${discount.type !== 'none' ? `
+          <div class="flex justify-between text-red-600">
+            <span>Discount (${this.formatDiscountDisplay(discount)}):</span>
+            <span>-₹${discountAmount.toFixed(2)}</span>
+          </div>
+          <div class="flex justify-between font-medium text-green-600 border-t pt-1">
+            <span>New Total:</span>
+            <span>₹${discountedPrice.toFixed(2)}</span>
+          </div>
+          <div class="text-center text-green-600 font-medium">
+            You save ₹${savings.toFixed(2)}!
+          </div>
+        ` : `
+          <div class="text-gray-600 text-center">
+            No discount applied
+          </div>
+        `}
+      </div>
+    `;
+  }
+
+  applyItemDiscount() {
+    const posState = this.app.state.getModuleState('pos');
+    const item = posState.cart[this.currentDiscountItemIndex];
+    if (!item) {
+      console.error('No item found at index:', this.currentDiscountItemIndex);
+      return;
+    }
+
+    const discountType = document.querySelector('input[name="discountType"]:checked')?.value || 'none';
+    const discountValueInput = document.getElementById('discountValueInput');
+    const discountValue = parseFloat(discountValueInput?.value || 0);
+
+    // Validate discount value
+    if (discountType !== 'none' && (isNaN(discountValue) || discountValue < 0)) {
+      if (window.notiflix) {
+        window.notiflix.Notify.warning('Invalid Discount', 'Please enter a valid positive number');
+      }
+      return;
+    }
+
+    const itemKey = item.id + '_' + this.currentDiscountItemIndex;
+
+    // Validate maximum discount limits
+    const originalPrice = item.price * item.quantity;
+    let validatedDiscountValue = discountValue;
+
+    if (discountType === 'percentage' && discountValue > 100) {
+      validatedDiscountValue = 100;
+      console.warn('Percentage discount capped at 100%');
+    } else if (discountType === 'fixed' && discountValue > originalPrice) {
+      validatedDiscountValue = originalPrice;
+      console.warn('Fixed discount cannot exceed item price');
+    }
+
+    if (discountType === 'none') {
+      delete this.itemDiscounts[itemKey];
+      this.logDiscountChange(itemKey, 'removed', null);
+    } else {
+      this.itemDiscounts[itemKey] = {
+        type: discountType,
+        value: validatedDiscountValue,
+        appliedAt: new Date().toISOString(),
+        appliedBy: window.user?.fullname || 'POS User',
+        originalPrice: originalPrice,
+        itemId: item.id,
+        itemName: item.product_name
+      };
+      this.logDiscountChange(itemKey, 'applied', this.itemDiscounts[itemKey]);
+    }
+
+    this.hideItemDiscountModal();
+    this.render(); // Refresh cart display
+
+    if (window.notiflix) {
+      if (discountType === 'none') {
+        window.notiflix.Notify.info('Discount Removed', 'Item discount has been removed');
+      } else {
+        window.notiflix.Notify.success('Discount Applied', 'Discount applied to ' + item.product_name);
+      }
+    }
+  }
+
+  /**
+   * Log discount changes for audit trail
+   */
+  logDiscountChange(itemKey, action, discountData) {
+    try {
+      const auditLog = {
+        timestamp: new Date().toISOString(),
+        action: action,
+        itemKey: itemKey,
+        discountType: discountData?.type || 'none',
+        discountValue: discountData?.value || 0,
+        appliedBy: discountData?.appliedBy || 'system',
+        originalPrice: discountData?.originalPrice || 0,
+        itemName: discountData?.itemName || 'unknown',
+        userId: window.user?._id || 0,
+        sessionId: this.generateSessionId()
+      };
+
+      // Store in local storage for immediate audit trail
+      const discountAuditLogs = JSON.parse(localStorage.getItem('discountAuditLogs') || '[]');
+      discountAuditLogs.push(auditLog);
+      localStorage.setItem('discountAuditLogs', JSON.stringify(discountAuditLogs));
+
+      // Send to server for permanent storage
+      this.sendAuditLogToServer(auditLog);
+
+      console.log('Discount audit logged:', auditLog);
+    } catch (error) {
+      console.error('Error logging discount change:', error);
+    }
+  }
+
+  /**
+   * Send audit log to server
+   */
+  async sendAuditLogToServer(auditLog) {
+    try {
+      if (!window.api) {
+        console.warn('API endpoint not available, audit log will be stored locally only');
+        return;
+      }
+
+      const response = await fetch(window.api + 'audit/discount-logs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(auditLog)
+      });
+
+      if (!response.ok) {
+        console.error('Failed to send audit log to server:', response.status);
+      }
+    } catch (error) {
+      console.error('Network error sending audit log:', error);
+    }
+  }
+
+  /**
+   * Generate session ID for audit trail
+   */
+  generateSessionId() {
+    return 'pos-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+  }
+
+  /**
+   * Get discount audit logs for reporting
+   */
+  getDiscountAuditLogs() {
+    try {
+      return JSON.parse(localStorage.getItem('discountAuditLogs') || '[]');
+    } catch (error) {
+      console.error('Error retrieving discount audit logs:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Clear old audit logs (older than 30 days)
+   */
+  cleanupOldAuditLogs() {
+    try {
+      const logs = this.getDiscountAuditLogs();
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const recentLogs = logs.filter(log => {
+        try {
+          const logDate = new Date(log.timestamp);
+          return logDate >= thirtyDaysAgo;
+        } catch (e) {
+          return true; // Keep logs with invalid dates
+        }
+      });
+
+      if (recentLogs.length < logs.length) {
+        localStorage.setItem('discountAuditLogs', JSON.stringify(recentLogs));
+        console.log('Cleaned up old discount audit logs:', logs.length - recentLogs.length, 'removed');
+      }
+    } catch (error) {
+      console.error('Error cleaning up audit logs:', error);
+    }
+  }
+
+  calculateItemDiscountAmount(item, discount) {
+    try {
+      // Validate item exists and has valid price
+      if (!item || isNaN(item.price) || item.price < 0 || isNaN(item.quantity) || item.quantity <= 0) {
+        console.error('Invalid item data for discount calculation:', item);
+        return 0;
+      }
+
+      const originalPrice = item.price * item.quantity;
+
+      // Validate discount exists and is valid
+      if (!discount || !discount.type || discount.type === 'none') {
+        return 0;
+      }
+
+      // Validate discount value is a number
+      const discountValue = parseFloat(discount.value);
+      if (isNaN(discountValue) || discountValue < 0) {
+        console.warn('Invalid discount value:', discount.value);
+        return 0;
+      }
+
+      // Optimized discount calculation based on type
+      switch (discount.type) {
+        case 'percentage':
+          // Validate percentage is within bounds (0-100)
+          const percentage = Math.min(100, Math.max(0, discountValue));
+          return this.calculatePercentageDiscount(originalPrice, percentage);
+        case 'fixed':
+          // Validate fixed amount doesn't exceed original price
+          return this.calculateFixedDiscount(discountValue, originalPrice);
+        default:
+          console.warn('Unknown discount type:', discount.type);
+          return 0;
+      }
+    } catch (error) {
+      console.error('Error calculating item discount:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * Calculate percentage discount with precision handling
+   */
+  calculatePercentageDiscount(originalPrice, percentage) {
+    // Use precise calculation to avoid floating point issues
+    const discountAmount = (originalPrice * percentage) / 100;
+    // Round to 2 decimal places for currency
+    return Math.round(discountAmount * 100) / 100;
+  }
+
+  /**
+   * Calculate fixed discount with validation
+   */
+  calculateFixedDiscount(discountValue, originalPrice) {
+    // Ensure discount doesn't exceed original price
+    const cappedDiscount = Math.min(discountValue, originalPrice);
+    // Round to 2 decimal places for currency
+    return Math.round(cappedDiscount * 100) / 100;
+  }
+
+  /**
+   * Validate discount can be applied to item
+   */
+  validateDiscountForItem(item, discount) {
+    try {
+      // Check if item exists
+      if (!item) {
+        return { valid: false, error: 'Item not found' };
+      }
+
+      // Check if discount is valid
+      if (!discount || !discount.type || discount.type === 'none') {
+        return { valid: true, error: null }; // No discount is valid
+      }
+
+      // Validate discount value
+      const discountValue = parseFloat(discount.value);
+      if (isNaN(discountValue) || discountValue < 0) {
+        return { valid: false, error: 'Invalid discount value' };
+      }
+
+      // Validate discount type
+      if (discount.type !== 'percentage' && discount.type !== 'fixed') {
+        return { valid: false, error: 'Invalid discount type' };
+      }
+
+      // Validate percentage bounds
+      if (discount.type === 'percentage' && discountValue > 100) {
+        return { valid: false, error: 'Percentage discount cannot exceed 100%' };
+      }
+
+      // Validate fixed amount doesn't exceed item price
+      const originalPrice = item.price * item.quantity;
+      if (discount.type === 'fixed' && discountValue > originalPrice) {
+        return { valid: false, error: 'Fixed discount cannot exceed item price' };
+      }
+
+      return { valid: true, error: null };
+    } catch (error) {
+      console.error('Error validating discount:', error);
+      return { valid: false, error: 'Validation error: ' + error.message };
+    }
+  }
+
+  formatDiscountDisplay(discount) {
+    switch (discount.type) {
+      case 'percentage':
+        return discount.value + '%';
+      case 'fixed':
+        return '₹' + discount.value.toFixed(2);
+      default:
+        return 'None';
+    }
+  }
+
+  calculateCartTotalWithItemDiscounts() {
+    const posState = this.app.state.getModuleState('pos');
+    const appState = this.app.state.getModuleState('app');
+    const settings = appState.settings || {};
+    const cart = posState.cart;
+
+    // Calculate subtotal with item discounts
+    let subtotal = 0;
+    cart.forEach((item, index) => {
+      const itemKey = `${item.id}_${index}`;
+      const discount = this.itemDiscounts[itemKey] || { type: 'none', value: 0 };
+      const originalPrice = item.price * item.quantity;
+      const discountAmount = this.calculateItemDiscountAmount(item, discount);
+      subtotal += (originalPrice - discountAmount);
+    });
+
+    // Calculate automatic promotions on discounted subtotal
+    this.calculatePromotions().then(promoResult => {
+      const totalDiscount = parseFloat(promoResult.total_discount || 0);
+      this.updateCartDisplayWithPromotions(promoResult);
+
+      let cgst = 0, sgst = 0, igst = 0, totalTax = 0;
+
+      if (settings.charge_tax) {
+        const taxableAmount = subtotal - totalDiscount;
+        if (this.saleType === 'intra') {
+          const cgstRate = parseFloat(settings.cgst || 0) / 100;
+          const sgstRate = parseFloat(settings.sgst || 0) / 100;
+          cgst = taxableAmount * cgstRate;
+          sgst = taxableAmount * sgstRate;
+        } else {
+          const igstRate = parseFloat(settings.igst || 0) / 100;
+          igst = taxableAmount * igstRate;
+        }
+        totalTax = cgst + sgst + igst;
+      }
+
+      const total = subtotal - totalDiscount + totalTax;
+
+      this.app.state.updateModule('pos', {
+        cartTotals: {
+          subtotal: subtotal.toFixed(2),
+          discount: totalDiscount.toFixed(2),
+          tax: totalTax.toFixed(2),
+          cgst: cgst.toFixed(2),
+          sgst: sgst.toFixed(2),
+          igst: igst.toFixed(2),
+          total: total.toFixed(2),
+          items: cart.length,
+          promotions: promoResult,
+          itemDiscounts: this.calculateTotalItemDiscounts()
+        }
+      });
+
+      this.render(); // Re-render to show updated totals
+    });
+
+    // Return current totals while promotions are being calculated
+    const currentDiscount = posState.cartTotals?.discount || 0;
+    const currentTotal = subtotal - currentDiscount;
+
+    return {
+      subtotal: subtotal.toFixed(2),
+      discount: currentDiscount.toFixed(2),
+      tax: '0.00',
+      cgst: '0.00',
+      sgst: '0.00',
+      igst: '0.00',
+      total: currentTotal.toFixed(2),
+      items: cart.length
+    };
+  }
+
+  calculateTotalItemDiscounts() {
+    const posState = this.app.state.getModuleState('pos');
+    const cart = posState.cart;
+    let totalItemDiscount = 0;
+
+    cart.forEach((item, index) => {
+      const itemKey = `${item.id}_${index}`;
+      const discount = this.itemDiscounts[itemKey];
+      if (discount && discount.type !== 'none') {
+        totalItemDiscount += this.calculateItemDiscountAmount(item, discount);
+      }
+    });
+
+    return {
+      totalAmount: totalItemDiscount,
+      formatted: totalItemDiscount.toFixed(2),
+      items: Object.keys(this.itemDiscounts).length
+    };
+  }
+
+  clearAllItemDiscounts() {
+    this.itemDiscounts = {};
+    this.render();
+
+    if (window.notiflix) {
+      window.notiflix.Notify.info('Discounts Cleared', 'All item-level discounts have been removed');
+    }
+  }
+
   showPromotionCodeEntry() {
     const modalHtml = `
       <div class="promotion-code-modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" 
@@ -4191,82 +5359,11 @@ class POSModule {
     };
   }
 
-  /**
-   * ENHANCED CART METHODS WITH PROMOTION SUPPORT
-   */
 
-  addToCart(product) {
-    const posState = this.app.state.getModuleState('pos');
-    const cart = [...posState.cart];
-    
-    // Check if product/variant already exists in cart
-    const existingIndex = product.is_variant ? 
-      cart.findIndex(item => item.id === product.id) :
-      cart.findIndex(item => item.id === product._id);
-    
-    if (existingIndex >= 0) {
-      // Increase quantity
-      cart[existingIndex].quantity += 1;
-    } else {
-      // Add new item
-      cart.push({
-        id: product.is_variant ? product.id : product._id,
-        product_id: product.is_variant ? product.product_id : product._id,
-        product_name: product.name || product.product_name,
-        sku: product.sku || product.barcode || product._id,
-        price: parseFloat(product.price),
-        quantity: 1,
-        category: product.category || 'general',
-        is_variant: product.is_variant || false,
-        variant_data: product.variant_data || null
-      });
-    }
-    
-    this.app.state.updateModule('pos', { cart });
-    
-    // Recalculate promotions and loyalty benefits after adding item
-    setTimeout(async () => {
-      await this.calculateCartTotal();
-      if (this.currentLoyaltyProfile) {
-        await this.calculateLoyaltyBenefits();
-        this.render();
-      }
-    }, 100);
-  }
 
-  removeFromCart(index) {
-    const posState = this.app.state.getModuleState('pos');
-    const cart = posState.cart.filter((_, i) => i !== index);
-    this.app.state.updateModule('pos', { cart });
-    
-    // Recalculate promotions and loyalty benefits after removing item
-    setTimeout(async () => {
-      await this.calculateCartTotal();
-      if (this.currentLoyaltyProfile) {
-        await this.calculateLoyaltyBenefits();
-        this.render();
-      }
-    }, 100);
-  }
 
-  updateCartQuantity(index, quantity) {
-    const posState = this.app.state.getModuleState('pos');
-    const cart = [...posState.cart];
-    
-    if (cart[index]) {
-      cart[index].quantity = parseInt(quantity) || 1;
-      this.app.state.updateModule('pos', { cart });
-      
-      // Recalculate promotions and loyalty benefits after quantity change
-      setTimeout(async () => {
-        await this.calculateCartTotal();
-        if (this.currentLoyaltyProfile) {
-          await this.calculateLoyaltyBenefits();
-          this.render();
-        }
-      }, 100);
-    }
-  }
+
+
 
   /**
    * LOYALTY UI RENDERING METHODS
@@ -4627,9 +5724,6 @@ class POSModule {
     }
   }
 }
-
-// Make POSModule available globally
-window.POSModule = POSModule;
 
 // Make POSModule available globally
 window.POSModule = POSModule;
