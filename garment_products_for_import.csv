@@ -1,0 +1,21 @@
+Product Name,Barcode/SKU,Price,Cost Price,Category,Quantity,Stock Management,Minimum Stock,Expiration Date,Supplier ID,Reorder Quantity,Image File,Garment Category,Sizes,Colors,Materials,Variant Tracking
+Men's Cotton T-Shirt,1234567890123,19.99,12.50,MENS_TOPS,150,Enabled,20,,1,75,,MENS_TOPS,"XS,S,M,L,XL,XXL","Black,White,Navy,Gray,Blue","100% Cotton,Polyester Blend",Enabled
+Women's Summer Dress,2345678901234,45.99,28.75,WOMENS_DRESSES,85,Enabled,15,,1,50,,WOMENS_DRESSES,"XS,S,M,L,XL,XXL","Black,White,Pink,Red,Blue,Navy","Polyester,Cotton,Silk",Enabled
+Running Shoes - Men's,3456789012345,79.99,45.25,ATHLETIC_SHOES,60,Enabled,10,,2,30,,ATHLETIC_SHOES,"6,6.5,7,7.5,8,8.5,9,9.5,10,10.5,11,11.5,12","Black,White,Gray,Blue,Red","Leather,Synthetic,Mesh",Enabled
+Leather Handbag,4567890123456,129.99,75.50,BAGS,35,Enabled,8,,2,20,,BAGS,"One Size","Black,Brown,Tan,Navy","Genuine Leather,Faux Leather",Enabled
+Denim Jeans - Women's,5678901234567,69.99,42.50,WOMENS_BOTTOMS,95,Enabled,18,,1,45,,WOMENS_BOTTOMS,"0,2,4,6,8,10,12,14","Black,Blue,Navy,Gray","Denim,Cotton Stretch",Enabled
+Baseball Cap,6789012345678,24.99,15.25,HATS,120,Enabled,25,,3,60,,HATS,"One Size","Black,Brown,Navy,Gray,Khaki","Cotton,Polyester",Enabled
+Winter Jacket - Men's,7890123456789,149.99,89.75,MENS_OUTERWEAR,45,Enabled,8,,2,25,,MENS_OUTERWEAR,"XS,S,M,L,XL,XXL","Black,Navy,Gray,Brown","Down,Synthetic,Waterproof",Enabled
+Sports Bra,8901234567890,34.99,22.50,WOMENS_TOPS,80,Enabled,15,,1,40,,WOMENS_TOPS,"XS,S,M,L,XL","Black,White,Pink,Blue,Gray","Polyester,Spandex,Nylon",Enabled
+Flip Flops - Women's,9012345678901,19.99,12.25,CASUAL_SHOES,110,Enabled,20,,3,55,,CASUAL_SHOES,"6,6.5,7,7.5,8,8.5,9,9.5,10","Black,White,Brown,Pink,Blue","Rubber,Foam",Enabled
+Silk Scarf,1234567890124,39.99,25.75,SCARVES,65,Enabled,12,,2,30,,SCARVES,"One Size","Black,Gray,Navy,Red,Pink","Silk,Cotton,Wool",Enabled
+Casual Blazer,2345678901235,89.99,55.25,MENS_TOPS,55,Enabled,10,,1,25,,MENS_TOPS,"XS,S,M,L,XL,XXL","Black,Navy,Gray,Brown","Wool,Polyester,Cotton Blend",Enabled
+Yoga Pants,3456789012346,44.99,28.50,WOMENS_BOTTOMS,75,Enabled,15,,1,35,,WOMENS_BOTTOMS,"XS,S,M,L,XL,XXL","Black,Gray,Navy,Purple","Spandex,Cotton,Polyester",Enabled
+Leather Boots - Men's,4567890123457,159.99,95.75,BOOTS,40,Enabled,8,,2,20,,BOOTS,"6,6.5,7,7.5,8,8.5,9,9.5,10,10.5,11,11.5,12","Black,Brown,Tan,Cognac","Genuine Leather,Suede",Enabled
+Cotton Socks - 6 Pack,5678901234568,18.99,11.25,MENS_UNDERWEAR,140,Enabled,30,,3,70,,MENS_UNDERWEAR,"XS,S,M,L,XL","Black,White,Gray,Navy","Cotton,Bamboo,Merino",Enabled
+Summer Tank Top,6789012345679,24.99,16.50,MENS_TOPS,90,Enabled,20,,1,45,,MENS_TOPS,"XS,S,M,L,XL,XXL","Black,White,Blue,Gray,Green","Cotton,Polyester,Linen",Enabled
+Evening Gown,7890123456790,199.99,125.75,WOMENS_DRESSES,25,Enabled,5,,2,15,,WOMENS_DRESSES,"XS,S,M,L,XL,XXL","Black,White,Red,Navy,Purple","Silk,Satin,Polyester",Enabled
+Hiking Backpack,8901234567891,79.99,48.50,BAGS,50,Enabled,10,,2,25,,BAGS,"Small,Medium,Large","Black,Brown,Green,Blue","Nylon,Canvas,Leather",Enabled
+Polar Fleece Jacket,9012345678902,89.99,56.25,MENS_OUTERWEAR,35,Enabled,8,,2,18,,MENS_OUTERWEAR,"XS,S,M,L,XL,XXL","Black,Gray,Navy,Red","Fleece,Polyester",Enabled
+Wool Sweater,1234567890125,69.99,42.75,MENS_TOPS,60,Enabled,12,,1,30,,MENS_TOPS,"XS,S,M,L,XL,XXL","Black,Gray,Navy,Brown","Wool,Cashmere,Cotton Blend",Enabled
+Pajama Set,2345678901236,49.99,30.50,WOMENS_UNDERWEAR,85,Enabled,18,,1,40,,WOMENS_UNDERWEAR,"XS,S,M,L,XL,XXL","Pink,Blue,White,Gray","Cotton,Modal,Silk",Enabled

@@ -1,0 +1,85 @@
+
+> retailspos@1.5.1 start
+> electron-forge start
+
+[STARTED] Checking your system
+[STARTED] Checking git exists
+[STARTED] Checking node version
+[STARTED] Checking packageManager version
+[TITLE] Found node@22.13.1
+[SUCCESS] Found node@22.13.1
+[TITLE] Found git@2.35.1.windows.2
+[SUCCESS] Found git@2.35.1.windows.2
+[TITLE] Found yarn@1.22.22
+[SUCCESS] Found yarn@1.22.22
+[SUCCESS] Checking your system
+[STARTED] Locating application
+[SUCCESS] Locating application
+[STARTED] Loading configuration
+[SUCCESS] Loading configuration
+[STARTED] Preparing native dependencies
+[TITLE] Preparing native dependencies
+[TITLE] Preparing native dependencies: 0 / 1
+[TITLE] Preparing native dependencies: 1 / 1
+[SUCCESS] Preparing native dependencies: 1 / 1
+[STARTED] Running generateAssets hook
+[SUCCESS] Running generateAssets hook
+
+
+Creating new database instance for: C:\Users\akash\AppData\Roaming\retailspos\server\databases\settings.db
+Database initialized successfully: C:\Users\akash\AppData\Roaming\retailspos\server\databases\settings.db
+Server started
+Creating new database instance for: C:\Users\akash\AppData\Roaming\retailspos\server\databases\inventory.db
+Database initialized successfully: C:\Users\akash\AppData\Roaming\retailspos\server\databases\inventory.db
+Creating new database instance for: C:\Users\akash\AppData\Roaming\retailspos\server\databases\inventory_matrix.db
+Database initialized successfully: C:\Users\akash\AppData\Roaming\retailspos\server\databases\inventory_matrix.db
+Creating new database instance for: C:\Users\akash\AppData\Roaming\retailspos\server\databases\transactions.db
+Database initialized successfully: C:\Users\akash\AppData\Roaming\retailspos\server\databases\transactions.db
+Creating new database instance for: C:\Users\akash\AppData\Roaming\retailspos\server\databases\suppliers.db
+Database initialized successfully: C:\Users\akash\AppData\Roaming\retailspos\server\databases\suppliers.db
+Creating new database instance for: C:\Users\akash\AppData\Roaming\retailspos\server\databases\purchase_orders.db
+Database initialized successfully: C:\Users\akash\AppData\Roaming\retailspos\server\databases\purchase_orders.db
+Creating new database instance for: C:\Users\akash\AppData\Roaming\retailspos\server\databases\customers.db
+Database initialized successfully: C:\Users\akash\AppData\Roaming\retailspos\server\databases\customers.db
+Creating new database instance for: C:\Users\akash\AppData\Roaming\retailspos\server\databases\categories.db
+Database initialized successfully: C:\Users\akash\AppData\Roaming\retailspos\server\databases\categories.db
+Creating new database instance for: C:\Users\akash\AppData\Roaming\retailspos\server\databases\garment_categories.db
+Database initialized successfully: C:\Users\akash\AppData\Roaming\retailspos\server\databases\garment_categories.db
+Creating new database instance for: C:\Users\akash\AppData\Roaming\retailspos\server\databases\contact.db
+Database initialized successfully: C:\Users\akash\AppData\Roaming\retailspos\server\databases\contact.db
+Creating new database instance for: C:\Users\akash\AppData\Roaming\retailspos\server\databases\users.db
+Database initialized successfully: C:\Users\akash\AppData\Roaming\retailspos\server\databases\users.db
+Creating new database instance for: C:\Users\akash\AppData\Roaming\retailspos\server\databases\session_logs.db
+Database initialized successfully: C:\Users\akash\AppData\Roaming\retailspos\server\databases\session_logs.db
+Mounting transactions routes...
+Creating new database instance for: C:\Users\akash\AppData\Roaming\retailspos\server\databases\audit_logs.db
+Database initialized successfully: C:\Users\akash\AppData\Roaming\retailspos\server\databases\audit_logs.db
+Transactions API module loaded.
+Transactions routes mounted successfully.
+Creating new database instance for: C:\Users\akash\AppData\Roaming\retailspos\server\databases\analytics.db
+Database initialized successfully: C:\Users\akash\AppData\Roaming\retailspos\server\databases\analytics.db
+Creating new database instance for: C:\Users\akash\AppData\Roaming\retailspos\server\databases\advanced_analytics.db
+Database initialized successfully: C:\Users\akash\AppData\Roaming\retailspos\server\databases\advanced_analytics.db
+Creating new database instance for: C:\Users\akash\AppData\Roaming\retailspos\server\databases\loyalty_programs.db
+Database initialized successfully: C:\Users\akash\AppData\Roaming\retailspos\server\databases\loyalty_programs.db
+Creating new database instance for: C:\Users\akash\AppData\Roaming\retailspos\server\databases\loyalty_points.db
+Database initialized successfully: C:\Users\akash\AppData\Roaming\retailspos\server\databases\loyalty_points.db
+Creating new database instance for: C:\Users\akash\AppData\Roaming\retailspos\server\databases\loyalty_tiers.db
+Database initialized successfully: C:\Users\akash\AppData\Roaming\retailspos\server\databases\loyalty_tiers.db
+Creating new database instance for: C:\Users\akash\AppData\Roaming\retailspos\server\databases\loyalty_referrals.db
+Database initialized successfully: C:\Users\akash\AppData\Roaming\retailspos\server\databases\loyalty_referrals.db
+Listening on PORT 55972
+Server is ready for connections
+Initializing Automated Backup Scheduler...
+Server ready detected, PORT: 55972
+Sending server config to renderer: { port: '55972', host: 'localhost' }
+Running initial database cleanup...
+Periodic cleanup completed
+[19688:0104/152742.818:ERROR:CONSOLE:1] "Request Autofill.enable failed. {"code":-32601,"message":"'Autofill.enable' wasn't found"}", source: devtools://devtools/bundled/core/protocol_client/protocol_client.js (1)
+[19688:0104/152742.818:ERROR:CONSOLE:1] "Request Autofill.setAddresses failed. {"code":-32601,"message":"'Autofill.setAddresses' wasn't found"}", source: devtools://devtools/bundled/core/protocol_client/protocol_client.js (1)
+Transactions request: GET /on-hold at 2026-01-04T09:59:01.546Z
+Transactions request: GET /on-hold at 2026-01-04T09:59:24.327Z
+Transactions request: GET /by-date at 2026-01-04T10:03:03.670Z
+Periodic cleanup completed
+Transactions request: GET /on-hold at 2026-01-04T10:08:41.933Z
+Periodic cleanup completed

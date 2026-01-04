@@ -83,6 +83,8 @@ express.use("/api/inventory", require("./api/inventory"));
 express.use("/api/inventory-matrix", require("./api/inventory_matrix"));
 express.use("/api/customers", require("./api/customers"));
 express.use("/api/categories", require("./api/categories"));
+express.use("/api/garment_categories", require("./api/garment_categories"));
+express.use("/api/inventory/garment", require("./api/inventory_garment_enhancements"));
 express.use("/api/settings", require("./api/settings"));
 express.use("/api/contact", require("./api/contact"));
 express.use("/api/users", require("./api/users"));
@@ -141,7 +143,8 @@ server.listen(PORT, () => {
         require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "contact.db"),
         require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "audit_logs.db"),
         require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "analytics.db"),
-        require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "advanced_analytics.db")
+        require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "advanced_analytics.db"),
+        require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "garment_categories.db")
     ];
     
     // Run cleanup every 10 minutes (increased from 5)

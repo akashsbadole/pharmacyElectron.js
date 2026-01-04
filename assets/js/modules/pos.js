@@ -619,12 +619,16 @@ class POSModule {
     
     // Load loyalty profile if customer is selected
     if (customer && customerId) {
-      await this.loadCustomerLoyaltyProfile(customerId);
+      await Promise.all([
+        this.loadCustomerLoyaltyProfile(customerId),
+        this.loadCustomerGarmentPreferences(customerId)
+      ]);
     } else {
       this.currentLoyaltyProfile = null;
       this.loyaltyDiscount = 0;
       this.pointsToEarn = 0;
       this.availableRedemptions = [];
+      this.customerGarmentPreferences = null;
     }
     
     this.app.state.updateModule('pos', { currentCustomer: customer || null });
@@ -956,6 +960,7 @@ class POSModule {
               </button>
             </div>
             ${this.renderLoyaltyInfo()}
+            ${currentCustomer ? this.renderGarmentPreferencesInfo() : ''}
           </div>
         </div>
       </div>
@@ -4787,6 +4792,42 @@ class POSModule {
     }
   }
 
+  async loadCustomerGarmentPreferences(customerId) {
+    try {
+      const response = await fetch(`${window.api}customers/preferences/${customerId}`);
+      this.customerGarmentPreferences = await response.json();
+      
+      // Load quick selection data for POS
+      await this.loadQuickSelectionData(customerId);
+      
+    } catch (error) {
+      console.error('Error loading garment preferences:', error);
+      this.customerGarmentPreferences = {
+        sizePreferences: {},
+        colorPreferences: {},
+        brandPreferences: [],
+        stylePreferences: []
+      };
+    }
+  }
+
+  async loadQuickSelectionData(customerId) {
+    try {
+      // Get quick selection data for current category or general
+      const response = await fetch(`${window.api}customer_preferences/quick-selection/${customerId}`);
+      this.quickSelectionData = await response.json();
+      
+    } catch (error) {
+      console.error('Error loading quick selection data:', error);
+      this.quickSelectionData = {
+        quickSizes: ['M', 'L'],
+        quickColors: ['Black', 'Blue', 'White'],
+        recommendedVariant: null,
+        hasPreferences: false
+      };
+    }
+  }
+
   async calculateLoyaltyBenefits() {
     if (!this.currentLoyaltyProfile) {
       this.loyaltyDiscount = 0;
@@ -5431,6 +5472,83 @@ class POSModule {
             </button>
           </div>
         </div>
+      </div>
+    `;
+  }
+
+  renderGarmentPreferencesInfo() {
+    if (!this.customerGarmentPreferences) {
+      return `
+        <div class="garment-preferences-info mt-2 p-2 bg-blue-50 rounded">
+          <small class="text-muted">
+            <i class="fa fa-tshirt"></i> No garment preferences recorded
+          </small>
+        </div>
+      `;
+    }
+
+    const sizePrefs = this.customerGarmentPreferences.sizePreferences || {};
+    const colorPrefs = this.customerGarmentPreferences.colorPreferences || {};
+    const quickData = this.quickSelectionData || {};
+    
+    const hasSizePrefs = Object.keys(sizePrefs).length > 0;
+    const hasColorPrefs = Object.keys(colorPrefs).length > 0;
+    
+    if (!hasSizePrefs && !hasColorPrefs) {
+      return `
+        <div class="garment-preferences-info mt-2 p-2 bg-blue-50 rounded">
+          <small class="text-muted">
+            <i class="fa fa-tshirt"></i> No garment preferences recorded
+          </small>
+        </div>
+      `;
+    }
+    
+    // Get top preferences
+    const topSize = Object.entries(sizePrefs)
+      .flatMap(([category, sizes]) => Object.entries(sizes))
+      .sort((a, b) => b[1] - a[1])[0];
+    
+    const topColor = Object.entries(colorPrefs)
+      .sort((a, b) => b[1] - a[1])[0];
+    
+    return `
+      <div class="garment-preferences-info mt-2 p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded border">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <small class="text-primary font-weight-bold">
+            <i class="fa fa-tshirt"></i> Garment Preferences
+          </small>
+          <button class="btn btn-sm btn-outline-primary" onclick="window.pharmaApp.getModule('pos').showGarmentPreferencesModal()">
+            <i class="fa fa-cog"></i>
+          </button>
+        </div>
+        
+        <div class="row">
+          <div class="col-6">
+            <div class="preference-item">
+              <small class="text-muted d-block">Preferred Size</small>
+              <div class="font-weight-bold text-primary">
+                ${topSize ? `${topSize[0]} (${topSize[1]}x)` : 'Not set'}
+              </div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="preference-item">
+              <small class="text-muted d-block">Favorite Color</small>
+              <div class="font-weight-bold text-primary">
+                ${topColor ? `${topColor[0]} (${topColor[1]}x)` : 'Not set'}
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        ${quickData.hasPreferences ? `
+          <div class="mt-2 pt-2 border-top">
+            <small class="text-success">
+              <i class="fa fa-magic"></i> Quick selection available
+            </small>
+          </div>
+        ` : ''}
       </div>
     `;
   }

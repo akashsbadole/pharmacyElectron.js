@@ -132,6 +132,173 @@ app.post("/preferences/:customerId", function (req, res) {
 });
 
 /**
+ * POST endpoint: Set garment-specific size preferences
+ */
+app.post("/sizes/:customerId", function (req, res) {
+    const customerId = req.params.customerId;
+    const sizePreferences = req.body;
+    
+    sizePreferences.customerId = customerId;
+    sizePreferences.lastUpdated = new Date().toISOString();
+    
+    customerPreferencesDB.update(
+        { customerId: customerId },
+        { $set: { sizePreferences: sizePreferences } },
+        { upsert: true },
+        function (err, numReplaced) {
+            if (err) {
+                console.error(err);
+                res.status(500).json({
+                    error: "Internal Server Error",
+                    message: "Failed to update size preferences"
+                });
+            } else {
+                res.sendStatus(200);
+            }
+        }
+    );
+});
+
+/**
+ * POST endpoint: Update color preferences based on purchase history
+ */
+app.post("/colors/:customerId", function (req, res) {
+    const customerId = req.params.customerId;
+    const colorPreferences = req.body;
+    
+    colorPreferences.customerId = customerId;
+    colorPreferences.lastUpdated = new Date().toISOString();
+    
+    customerPreferencesDB.update(
+        { customerId: customerId },
+        { $set: { colorPreferences: colorPreferences } },
+        { upsert: true },
+        function (err, numReplaced) {
+            if (err) {
+                console.error(err);
+                res.status(500).json({
+                    error: "Internal Server Error",
+                    message: "Failed to update color preferences"
+                });
+            } else {
+                res.sendStatus(200);
+            }
+        }
+    );
+});
+
+/**
+ * GET endpoint: Get garment size recommendations for a customer
+ */
+app.get("/sizes/:customerId/recommendations", function (req, res) {
+    const customerId = req.params.customerId;
+    const productCategory = req.query.category || 'general';
+    
+    generateSizeRecommendations(customerId, productCategory, function(err, recommendations) {
+        if (err) {
+            console.error("Error generating size recommendations:", err);
+            res.status(500).json({
+                error: "Internal Server Error",
+                message: "Failed to generate size recommendations"
+            });
+        } else {
+            res.send(recommendations);
+        }
+    });
+});
+
+/**
+ * GET endpoint: Get color recommendations for a customer
+ */
+app.get("/colors/:customerId/recommendations", function (req, res) {
+    const customerId = req.params.customerId;
+    const productCategory = req.query.category || 'general';
+    
+    generateColorRecommendations(customerId, productCategory, function(err, recommendations) {
+        if (err) {
+            console.error("Error generating color recommendations:", err);
+            res.status(500).json({
+                error: "Internal Server Error",
+                message: "Failed to generate color recommendations"
+            });
+        } else {
+            res.send(recommendations);
+        }
+    });
+});
+
+/**
+ * POST endpoint: Analyze purchase history for size/color preferences
+ */
+app.post("/analyze/:customerId", function (req, res) {
+    const customerId = req.params.customerId;
+    
+    analyzePurchaseHistoryForPreferences(customerId, function(err, analysis) {
+        if (err) {
+            console.error("Error analyzing purchase history:", err);
+            res.status(500).json({
+                error: "Internal Server Error",
+                message: "Failed to analyze purchase history"
+            });
+        } else {
+            res.send(analysis);
+        }
+    });
+});
+
+/**
+ * GET endpoint: Get quick selection data for POS
+ */
+app.get("/quick-selection/:customerId", function (req, res) {
+    const customerId = req.params.customerId;
+    const productCategory = req.query.category;
+    
+    generateQuickSelectionData(customerId, productCategory, function(err, quickData) {
+        if (err) {
+            console.error("Error generating quick selection data:", err);
+            res.status(500).json({
+                error: "Internal Server Error",
+                message: "Failed to generate quick selection data"
+            });
+        } else {
+            res.send(quickData);
+        }
+    });
+});
+
+/**
+ * POST endpoint: Track size/color selection for learning
+ */
+app.post("/track-selection", function (req, res) {
+    const selectionData = req.body;
+    
+    // Validate required fields
+    if (!selectionData.customerId || !selectionData.productId || !selectionData.size || !selectionData.color) {
+        return res.status(400).json({
+            error: "Bad Request",
+            message: "customerId, productId, size, and color are required"
+        });
+    }
+    
+    selectionData.timestamp = new Date().toISOString();
+    
+    // Store selection data
+    customerBehaviorDB.insert(selectionData, function (err, result) {
+        if (err) {
+            console.error(err);
+            res.status(500).json({
+                error: "Internal Server Error",
+                message: "Failed to track selection"
+            });
+        } else {
+            // Update preferences based on selection
+            updatePreferencesFromSelection(selectionData);
+            res.sendStatus(200);
+        }
+    });
+});
+
+/**
  * GET endpoint: Get customer behavior history
  */
 app.get("/behavior/:customerId", function (req, res) {
@@ -386,7 +553,11 @@ function updatePurchasePreferences(preferences, behaviorData) {
         productId: behaviorData.productId,
         category: behaviorData.category,
         price: behaviorData.price,
-        timestamp: behaviorData.timestamp
+        timestamp: behaviorData.timestamp,
+        // Add garment-specific data
+        size: behaviorData.size || null,
+        color: behaviorData.color || null,
+        variant: behaviorData.variant || null
     });
     
     // Update category preferences
@@ -405,6 +576,22 @@ function updatePurchasePreferences(preferences, behaviorData) {
     const season = getSeason(new Date());
     preferences.seasonal[season] = 
         (preferences.seasonal[season] || 0) + 1;
+    
+    // Update garment-specific preferences
+    if (behaviorData.size) {
+        if (!preferences.sizePreferences) preferences.sizePreferences = {};
+        if (!preferences.sizePreferences[behaviorData.category]) {
+            preferences.sizePreferences[behaviorData.category] = {};
+        }
+        preferences.sizePreferences[behaviorData.category][behaviorData.size] = 
+            (preferences.sizePreferences[behaviorData.category][behaviorData.size] || 0) + 1;
+    }
+    
+    if (behaviorData.color) {
+        if (!preferences.colorPreferences) preferences.colorPreferences = {};
+        preferences.colorPreferences[behaviorData.color] = 
+            (preferences.colorPreferences[behaviorData.color] || 0) + 1;
+    }
     
     return preferences;
 }
@@ -640,4 +827,322 @@ function getSeason(date) {
     if (month >= 5 && month <= 7) return 'summer';
     if (month >= 8 && month <= 10) return 'autumn';
     return 'winter';
+}
+
+/**
+ * Generate size recommendations based on purchase history and preferences
+ */
+function generateSizeRecommendations(customerId, productCategory, callback) {
+    customerPreferencesDB.findOne({ customerId: customerId }, function(err, preferences) {
+        if (err) return callback(err);
+        
+        const recommendations = {
+            customerId: customerId,
+            category: productCategory,
+            recommendedSizes: [],
+            confidence: 0,
+            reasoning: [],
+            generatedAt: new Date().toISOString()
+        };
+        
+        if (!preferences || !preferences.sizePreferences) {
+            recommendations.recommendedSizes = ['S', 'M', 'L', 'XL']; // Default fallback
+            recommendations.confidence = 0.1;
+            recommendations.reasoning.push('No size history available - showing all common sizes');
+            return callback(null, recommendations);
+        }
+        
+        const categorySizes = preferences.sizePreferences[productCategory] || {};
+        const allSizes = preferences.sizePreferences['all'] || {};
+        
+        // Get most frequent sizes for the category
+        const categoryTopSizes = Object.entries(categorySizes)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3)
+            .map(([size]) => size);
+        
+        // Get most frequent sizes overall
+        const overallTopSizes = Object.entries(allSizes)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3)
+            .map(([size]) => size);
+        
+        // Combine and prioritize
+        const combinedSizes = [...categoryTopSizes, ...overallTopSizes]
+            .filter((size, index, array) => array.indexOf(size) === index);
+        
+        recommendations.recommendedSizes = combinedSizes.slice(0, 3);
+        recommendations.confidence = categoryTopSizes.length > 0 ? 0.8 : 0.5;
+        
+        if (categoryTopSizes.length > 0) {
+            recommendations.reasoning.push(`Frequently purchased in ${productCategory}: ${categoryTopSizes.join(', ')}`);
+        }
+        
+        if (overallTopSizes.length > 0 && overallTopSizes !== categoryTopSizes) {
+            recommendations.reasoning.push(`Overall preference: ${overallTopSizes.join(', ')}`);
+        }
+        
+        callback(null, recommendations);
+    });
+}
+
+/**
+ * Generate color recommendations based on purchase history and preferences
+ */
+function generateColorRecommendations(customerId, productCategory, callback) {
+    customerPreferencesDB.findOne({ customerId: customerId }, function(err, preferences) {
+        if (err) return callback(err);
+        
+        const recommendations = {
+            customerId: customerId,
+            category: productCategory,
+            recommendedColors: [],
+            confidence: 0,
+            reasoning: [],
+            generatedAt: new Date().toISOString()
+        };
+        
+        if (!preferences || !preferences.colorPreferences) {
+            recommendations.recommendedColors = ['Black', 'Blue', 'White', 'Grey']; // Default fallback
+            recommendations.confidence = 0.1;
+            recommendations.reasoning.push('No color history available - showing popular colors');
+            return callback(null, recommendations);
+        }
+        
+        // Get most frequent colors
+        const topColors = Object.entries(preferences.colorPreferences)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5)
+            .map(([color]) => color);
+        
+        recommendations.recommendedColors = topColors;
+        recommendations.confidence = topColors.length > 0 ? 0.75 : 0.3;
+        
+        if (topColors.length > 0) {
+            recommendations.reasoning.push(`Frequently purchased colors: ${topColors.join(', ')}`);
+            
+            // Add category-specific reasoning if available
+            if (productCategory !== 'general') {
+                recommendations.reasoning.push(`Based on your ${productCategory} purchases`);
+            }
+        }
+        
+        callback(null, recommendations);
+    });
+}
+
+/**
+ * Analyze purchase history to extract size and color preferences
+ */
+function analyzePurchaseHistoryForPreferences(customerId, callback) {
+    const transactionsDB = getDatabase(path.join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "transactions.db"));
+    
+    // Get recent transactions with garment data
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    
+    transactionsDB.find({
+        date: { $gte: threeMonthsAgo.toISOString() },
+        status: 1,
+        $or: [
+            { 'items.variant_data': { $exists: true } },
+            { 'items.is_variant': true }
+        ]
+    }, function(err, transactions) {
+        if (err) return callback(err);
+        
+        const analysis = {
+            customerId: customerId,
+            period: '3_months',
+            totalPurchases: 0,
+            sizeAnalysis: {},
+            colorAnalysis: {},
+            categoryPreferences: {},
+            trends: {},
+            generatedAt: new Date().toISOString()
+        };
+        
+        if (!transactions || transactions.length === 0) {
+            analysis.message = 'No recent garment purchases found';
+            return callback(null, analysis);
+        }
+        
+        let totalGarmentPurchases = 0;
+        const sizeCounts = {};
+        const colorCounts = {};
+        const categoryCounts = {};
+        
+        transactions.forEach(transaction => {
+            if (transaction.items && Array.isArray(transaction.items)) {
+                transaction.items.forEach(item => {
+                    // Check if item has variant data (garment with size/color)
+                    if (item.variant_data || item.is_variant) {
+                        totalGarmentPurchases++;
+                        
+                        const category = item.category || 'general';
+                        categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+                        
+                        // Extract size and color from variant data
+                        const variantData = item.variant_data;
+                        if (variantData) {
+                            const size = variantData.size;
+                            const color = variantData.color;
+                            
+                            if (size) {
+                                if (!sizeCounts[category]) sizeCounts[category] = {};
+                                sizeCounts[category][size] = (sizeCounts[category][size] || 0) + 1;
+                            }
+                            
+                            if (color) {
+                                colorCounts[color] = (colorCounts[color] || 0) + 1;
+                            }
+                        }
+                    }
+                });
+            }
+        });
+        
+        analysis.totalPurchases = totalGarmentPurchases;
+        analysis.sizeAnalysis = sizeCounts;
+        analysis.colorAnalysis = colorCounts;
+        analysis.categoryPreferences = categoryCounts;
+        
+        // Calculate trends and insights
+        analysis.insights = [];
+        
+        if (totalGarmentPurchases > 0) {
+            // Most popular category
+            const topCategory = Object.entries(categoryCounts)
+                .sort((a, b) => b[1] - a[1])[0];
+            if (topCategory) {
+                analysis.insights.push(`Most purchased category: ${topCategory[0]} (${topCategory[1]} items)`);
+            }
+            
+            // Most popular size overall
+            const allSizes = {};
+            Object.values(sizeCounts).forEach(categorySizes => {
+                Object.entries(categorySizes).forEach(([size, count]) => {
+                    allSizes[size] = (allSizes[size] || 0) + count;
+                });
+            });
+            
+            const topSize = Object.entries(allSizes)
+                .sort((a, b) => b[1] - a[1])[0];
+            if (topSize) {
+                analysis.insights.push(`Most purchased size: ${topSize[0]} (${topSize[1]} times)`);
+            }
+            
+            // Most popular color
+            const topColor = Object.entries(colorCounts)
+                .sort((a, b) => b[1] - a[1])[0];
+            if (topColor) {
+                analysis.insights.push(`Most purchased color: ${topColor[0]} (${topColor[1]} times)`);
+            }
+        }
+        
+        callback(null, analysis);
+    });
+}
+
+/**
+ * Generate quick selection data for POS interface
+ */
+function generateQuickSelectionData(customerId, productCategory, callback) {
+    customerPreferencesDB.findOne({ customerId: customerId }, function(err, preferences) {
+        if (err) return callback(err);
+        
+        const quickData = {
+            customerId: customerId,
+            category: productCategory,
+            quickSizes: [],
+            quickColors: [],
+            recommendedVariant: null,
+            hasPreferences: false,
+            generatedAt: new Date().toISOString()
+        };
+        
+        if (!preferences) {
+            return callback(null, quickData);
+        }
+        
+        // Get preferred sizes for the category
+        const categorySizes = preferences.sizePreferences?.[productCategory] || {};
+        const allSizes = preferences.sizePreferences?.['all'] || {};
+        
+        // Get top 2 sizes for quick selection
+        const topSizes = Object.entries({...categorySizes, ...allSizes})
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 2)
+            .map(([size]) => size);
+        
+        quickData.quickSizes = topSizes.length > 0 ? topSizes : ['M', 'L'];
+        
+        // Get top 3 colors
+        const topColors = preferences.colorPreferences ? 
+            Object.entries(preferences.colorPreferences)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 3)
+                .map(([color]) => color) : 
+            ['Black', 'Blue', 'White'];
+        
+        quickData.quickColors = topColors;
+        
+        // Generate recommended variant (most common combination)
+        if (quickData.quickSizes.length > 0 && quickData.quickColors.length > 0) {
+            quickData.recommendedVariant = {
+                size: quickData.quickSizes[0],
+                color: quickData.quickColors[0],
+                confidence: 0.8
+            };
+        }
+        
+        quickData.hasPreferences = 
+            (categorySizes && Object.keys(categorySizes).length > 0) ||
+            (allSizes && Object.keys(allSizes).length > 0) ||
+            (preferences.colorPreferences && Object.keys(preferences.colorPreferences).length > 0);
+        
+        callback(null, quickData);
+    });
+}
+
+/**
+ * Update preferences based on customer selection
+ */
+function updatePreferencesFromSelection(selectionData) {
+    const customerId = selectionData.customerId;
+    
+    customerPreferencesDB.findOne({ customerId: customerId }, function(err, preferences) {
+        if (err || !preferences) return;
+        
+        // Update size preferences
+        if (selectionData.size) {
+            if (!preferences.sizePreferences) preferences.sizePreferences = {};
+            if (!preferences.sizePreferences[selectionData.category]) {
+                preferences.sizePreferences[selectionData.category] = {};
+            }
+            preferences.sizePreferences[selectionData.category][selectionData.size] = 
+                (preferences.sizePreferences[selectionData.category][selectionData.size] || 0) + 1;
+        }
+        
+        // Update color preferences
+        if (selectionData.color) {
+            if (!preferences.colorPreferences) preferences.colorPreferences = {};
+            preferences.colorPreferences[selectionData.color] = 
+                (preferences.colorPreferences[selectionData.color] || 0) + 1;
+        }
+        
+        preferences.lastUpdated = new Date().toISOString();
+        
+        // Save updated preferences
+        customerPreferencesDB.update(
+            { customerId: customerId },
+            preferences,
+            {},
+            function(err) {
+                if (err) {
+                    console.error('Error updating preferences from selection:', err);
+                }
+            }
+        );
+    });
 }

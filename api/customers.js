@@ -79,6 +79,19 @@ app.get("/all", function (req, res) {
  */
 app.post("/customer", function (req, res) {
     var newCustomer = req.body;
+    
+    // Initialize garment-specific preferences if not present
+    if (!newCustomer.garmentPreferences) {
+        newCustomer.garmentPreferences = {
+            sizePreferences: {},
+            colorPreferences: {},
+            brandPreferences: [],
+            stylePreferences: [],
+            createdAt: new Date().toISOString(),
+            lastUpdated: new Date().toISOString()
+        };
+    }
+    
     customerDB.insert(newCustomer, function (err, customer) {
         if (err) {
             console.error(err);
@@ -89,6 +102,265 @@ app.post("/customer", function (req, res) {
         } else {
             res.sendStatus(200);
         }
+    });
+});
+
+/**
+ * PUT endpoint: Update customer garment preferences
+ */
+app.put("/preferences/:customerId", function (req, res) {
+    const customerId = req.params.customerId;
+    const preferenceUpdates = req.body;
+    
+    // Validate customer exists
+    customerDB.findOne({ _id: customerId }, function (err, customer) {
+        if (err) {
+            console.error(err);
+            res.status(500).json({
+                error: "Internal Server Error",
+                message: "Failed to find customer"
+            });
+            return;
+        }
+        
+        if (!customer) {
+            res.status(404).json({
+                error: "Not Found",
+                message: "Customer not found"
+            });
+            return;
+        }
+        
+        // Update garment preferences
+        const updateData = {
+            garmentPreferences: {
+                ...customer.garmentPreferences,
+                ...preferenceUpdates,
+                lastUpdated: new Date().toISOString()
+            }
+        };
+        
+        customerDB.update(
+            { _id: customerId },
+            { $set: updateData },
+            {},
+            function (err, numReplaced) {
+                if (err) {
+                    console.error(err);
+                    res.status(500).json({
+                        error: "Internal Server Error",
+                        message: "Failed to update preferences"
+                    });
+                } else {
+                    res.sendStatus(200);
+                }
+            }
+        );
+    });
+});
+
+/**
+ * GET endpoint: Get customer garment preferences
+ */
+app.get("/preferences/:customerId", function (req, res) {
+    const customerId = req.params.customerId;
+    
+    customerDB.findOne({ _id: customerId }, function (err, customer) {
+        if (err) {
+            console.error(err);
+            res.status(500).json({
+                error: "Internal Server Error",
+                message: "Failed to retrieve customer"
+            });
+            return;
+        }
+        
+        if (!customer) {
+            res.status(404).json({
+                error: "Not Found",
+                message: "Customer not found"
+            });
+            return;
+        }
+        
+        // Return garment preferences or default structure
+        const preferences = customer.garmentPreferences || {
+            sizePreferences: {},
+            colorPreferences: {},
+            brandPreferences: [],
+            stylePreferences: [],
+            createdAt: new Date().toISOString(),
+            lastUpdated: new Date().toISOString()
+        };
+        
+        res.send(preferences);
+    });
+});
+
+/**
+ * POST endpoint: Add size preference for a customer
+ */
+app.post("/preferences/:customerId/size", function (req, res) {
+    const customerId = req.params.customerId;
+    const { category, size, preference } = req.body;
+    
+    if (!category || !size) {
+        res.status(400).json({
+            error: "Bad Request",
+            message: "Category and size are required"
+        });
+        return;
+    }
+    
+    customerDB.findOne({ _id: customerId }, function (err, customer) {
+        if (err || !customer) {
+            res.status(404).json({
+                error: "Not Found",
+                message: "Customer not found"
+            });
+            return;
+        }
+        
+        // Initialize preferences if not exists
+        if (!customer.garmentPreferences) {
+            customer.garmentPreferences = {
+                sizePreferences: {},
+                colorPreferences: {},
+                brandPreferences: [],
+                stylePreferences: [],
+                createdAt: new Date().toISOString()
+            };
+        }
+        
+        if (!customer.garmentPreferences.sizePreferences[category]) {
+            customer.garmentPreferences.sizePreferences[category] = {};
+        }
+        
+        // Update or set size preference
+        customer.garmentPreferences.sizePreferences[category][size] = preference || 1;
+        customer.garmentPreferences.lastUpdated = new Date().toISOString();
+        
+        customerDB.update(
+            { _id: customerId },
+            { $set: { garmentPreferences: customer.garmentPreferences } },
+            {},
+            function (err, numReplaced) {
+                if (err) {
+                    console.error(err);
+                    res.status(500).json({
+                        error: "Internal Server Error",
+                        message: "Failed to update size preference"
+                    });
+                } else {
+                    res.sendStatus(200);
+                }
+            }
+        );
+    });
+});
+
+/**
+ * POST endpoint: Add color preference for a customer
+ */
+app.post("/preferences/:customerId/color", function (req, res) {
+    const customerId = req.params.customerId;
+    const { color, preference } = req.body;
+    
+    if (!color) {
+        res.status(400).json({
+            error: "Bad Request",
+            message: "Color is required"
+        });
+        return;
+    }
+    
+    customerDB.findOne({ _id: customerId }, function (err, customer) {
+        if (err || !customer) {
+            res.status(404).json({
+                error: "Not Found",
+                message: "Customer not found"
+            });
+            return;
+        }
+        
+        // Initialize preferences if not exists
+        if (!customer.garmentPreferences) {
+            customer.garmentPreferences = {
+                sizePreferences: {},
+                colorPreferences: {},
+                brandPreferences: [],
+                stylePreferences: [],
+                createdAt: new Date().toISOString()
+            };
+        }
+        
+        if (!customer.garmentPreferences.colorPreferences) {
+            customer.garmentPreferences.colorPreferences = {};
+        }
+        
+        // Update or set color preference
+        customer.garmentPreferences.colorPreferences[color] = preference || 1;
+        customer.garmentPreferences.lastUpdated = new Date().toISOString();
+        
+        customerDB.update(
+            { _id: customerId },
+            { $set: { garmentPreferences: customer.garmentPreferences } },
+            {},
+            function (err, numReplaced) {
+                if (err) {
+                    console.error(err);
+                    res.status(500).json({
+                        error: "Internal Server Error",
+                        message: "Failed to update color preference"
+                    });
+                } else {
+                    res.sendStatus(200);
+                }
+            }
+        );
+    });
+});
+
+/**
+ * GET endpoint: Get customers with preferences for analytics
+ */
+app.get("/with-preferences", function (req, res) {
+    const minPurchases = parseInt(req.query.min_purchases) || 1;
+    
+    customerDB.find({ 
+        'garmentPreferences': { $exists: true }
+    }, function (err, customers) {
+        if (err) {
+            console.error(err);
+            res.status(500).json({
+                error: "Internal Server Error",
+                message: "Failed to retrieve customers"
+            });
+            return;
+        }
+        
+        // Filter customers with meaningful preferences
+        const customersWithPreferences = customers.filter(customer => {
+            const prefs = customer.garmentPreferences;
+            if (!prefs) return false;
+            
+            const hasSizePrefs = Object.keys(prefs.sizePreferences || {}).length > 0;
+            const hasColorPrefs = Object.keys(prefs.colorPreferences || {}).length > 0;
+            const hasBrandPrefs = (prefs.brandPreferences || []).length > 0;
+            
+            return hasSizePrefs || hasColorPrefs || hasBrandPrefs;
+        });
+        
+        res.send({
+            total_customers: customersWithPreferences.length,
+            customers: customersWithPreferences.map(customer => ({
+                _id: customer._id,
+                name: customer.name,
+                phone: customer.phone,
+                email: customer.email,
+                garmentPreferences: customer.garmentPreferences
+            }))
+        });
     });
 });
 

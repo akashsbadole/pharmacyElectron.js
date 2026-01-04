@@ -222,7 +222,10 @@ app.post("/product", function (req, res) {
             lastRestocked: validator.escape(req.body.lastRestocked || "") || null,
             supplierId: validator.escape(req.body.supplierId || "") || null,
             reorderQuantity: validator.escape(req.body.reorderQuantity || "") || 0,
-            // Removed pharmaceutical fields for restaurant conversion
+            // Garment-specific fields
+            garment_specific: parseGarmentSpecific(req.body.garment_specific || '{}'),
+            variant_tracking: parseVariantTracking(req.body.variant_tracking || '{}'),
+            inventory_management: parseInventoryManagement(req.body.inventory_management || '{}'),
             batches: batches
         };
 
@@ -389,7 +392,7 @@ app.put("/product", function (req, res) {
                 stock: req.body.stock === "on" ? 0 : 1,
                 minStock: validator.escape(req.body.minStock || ""),
                 
-                // Restaurant-specific fields
+                // Restaurant-specific fields (for backward compatibility)
                 availability_status: validator.escape(req.body.availability_status || "Available"),
                 preparation_time: parseInt(validator.escape(req.body.preparation_time || "15")),
                 dietary_info: parseDietaryInfo(req.body.dietary_info || "[]"),
@@ -400,6 +403,11 @@ app.put("/product", function (req, res) {
                 seasonal_item: req.body.seasonal_item === "on" ? true : false,
                 popularity_score: parseInt(validator.escape(req.body.popularity_score || "0")),
                 last_ordered: req.body.last_ordered || null,
+                
+                // Garment-specific fields
+                garment_specific: parseGarmentSpecific(req.body.garment_specific || '{}'),
+                variant_tracking: parseVariantTracking(req.body.variant_tracking || '{}'),
+                inventory_management: parseInventoryManagement(req.body.inventory_management || '{}'),
                 
                 // Common fields
                 img: image,
@@ -735,6 +743,128 @@ app.decrementInventory = function (products) {
         );
     });
 };
+
+/**
+ * GET endpoint: Get garment categories for product categorization.
+ *
+ * @param {Object} req request object.
+ * @param {Object} res response object.
+ * @returns {void}
+ */
+app.get("/garment-categories", function (req, res) {
+    // Fetch garment categories from the garment categories API
+    const garmentCategoriesPath = path.join(
+        process.env.APPDATA || 'C:\\Users\\akash\\AppData\\Roaming\\retailspos',
+        process.env.APPNAME || 'retailspos',
+        "server",
+        "databases",
+        "garment_categories.db"
+    );
+    
+    const garmentCategoryDB = getDatabase(garmentCategoriesPath);
+    garmentCategoryDB.find({ "status.is_active": true })
+        .sort({ parent_category: 1, sort_order: 1, name: 1 }, function (err, categories) {
+            if (err) {
+                console.error(err);
+                res.status(500).json({
+                    error: "Internal Server Error",
+                    message: "Failed to fetch garment categories.",
+                });
+            } else {
+                res.send({
+                    categories: categories,
+                    hierarchical: buildGarmentCategoryHierarchy(categories)
+                });
+            }
+        });
+});
+
+/**
+ * GET endpoint: Get recommended sizes for a garment category.
+ *
+ * @param {Object} req request object with category parameter.
+ * @param {Object} res response object.
+ * @returns {void}
+ */
+app.get("/recommended-sizes/:categoryCode", function (req, res) {
+    const categoryCode = req.params.categoryCode;
+    
+    // Fetch garment categories and find the specific category
+    const garmentCategoriesPath = path.join(
+        process.env.APPDATA || 'C:\\Users\\akash\\AppData\\Roaming\\retailspos',
+        process.env.APPNAME || 'retailspos',
+        "server",
+        "databases",
+        "garment_categories.db"
+    );
+    
+    const garmentCategoryDB = getDatabase(garmentCategoriesPath);
+    garmentCategoryDB.findOne({ category_code: categoryCode }, function (err, category) {
+        if (err) {
+            console.error(err);
+            res.status(500).json({
+                error: "Internal Server Error",
+                message: "Failed to fetch category information.",
+            });
+        } else if (!category) {
+            res.status(404).json({
+                error: "Category not found",
+                message: `No category found with code: ${categoryCode}`
+            });
+        } else {
+            // Return recommended sizes based on category configuration
+            const recommendedSizes = category.garment_specific?.common_sizes || [];
+            res.send({
+                category_code: categoryCode,
+                recommended_sizes: recommendedSizes,
+                size_chart: category.garment_specific?.size_chart || null
+            });
+        }
+    });
+});
+
+/**
+ * GET endpoint: Get recommended colors for a garment category.
+ *
+ * @param {Object} req request object with category parameter.
+ * @param {Object} res response object.
+ * @returns {void}
+ */
+app.get("/recommended-colors/:categoryCode", function (req, res) {
+    const categoryCode = req.params.categoryCode;
+    
+    // Fetch garment categories and find the specific category
+    const garmentCategoriesPath = path.join(
+        process.env.APPDATA || 'C:\\Users\\akash\\AppData\\Roaming\\retailspos',
+        process.env.APPNAME || 'retailspos',
+        "server",
+        "databases",
+        "garment_categories.db"
+    );
+    
+    const garmentCategoryDB = getDatabase(garmentCategoriesPath);
+    garmentCategoryDB.findOne({ category_code: categoryCode }, function (err, category) {
+        if (err) {
+            console.error(err);
+            res.status(500).json({
+                error: "Internal Server Error",
+                message: "Failed to fetch category information.",
+            });
+        } else if (!category) {
+            res.status(404).json({
+                error: "Category not found",
+                message: `No category found with code: ${categoryCode}`
+            });
+        } else {
+            // Return recommended colors based on category configuration
+            const recommendedColors = category.garment_specific?.common_colors || [];
+            res.send({
+                category_code: categoryCode,
+                recommended_colors: recommendedColors
+            });
+        }
+    });
+});
 
 /**
  * GET endpoint: Get alternative/similar menu items based on category and dietary info.

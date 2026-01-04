@@ -97,6 +97,18 @@ class CustomersModule {
             if (e.target.matches('.execute-trigger')) {
                 this.executeMarketingTrigger();
             }
+            if (e.target.matches('.save-garment-preferences')) {
+                this.saveGarmentPreferences();
+            }
+            if (e.target.matches('.analyze-purchase-history')) {
+                this.analyzePurchaseHistory();
+            }
+            if (e.target.matches('.get-recommendations')) {
+                this.getGarmentRecommendations();
+            }
+            if (e.target.matches('.quick-size-btn')) {
+                this.setQuickSize(e.target.dataset.size);
+            }
         });
 
         // Handle preference updates
@@ -400,6 +412,13 @@ class CustomersModule {
                                data-tab="preferences" href="#">Preferences</a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link preference-tab ${this.getActiveTab() === 'garment-preferences' ? 'active' : ''}" 
+                               data-tab="garment-preferences" href="#">
+                                <i class="fa fa-tshirt"></i> Garment Preferences
+                                ${this.renderGarmentPreferenceBadge()}
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link preference-tab ${this.getActiveTab() === 'behavior' ? 'active' : ''}" 
                                data-tab="behavior" href="#">Behavior</a>
                         </li>
@@ -471,6 +490,8 @@ class CustomersModule {
                 return this.renderOverviewTab();
             case 'preferences':
                 return this.renderPreferencesTab();
+            case 'garment-preferences':
+                return this.renderGarmentPreferencesTab();
             case 'behavior':
                 return this.renderBehaviorTab();
             case 'segments':
@@ -775,6 +796,226 @@ class CustomersModule {
                 <div class="data-actions">
                     <button class="btn btn-outline-primary export-data">Export My Data</button>
                     <button class="btn btn-outline-danger delete-data">Delete My Data</button>
+                </div>
+            </div>
+        `;
+    }
+
+    renderGarmentPreferencesTab() {
+        const preferences = this.preferences[this.selectedCustomer] || {};
+        const sizePrefs = preferences.sizePreferences || {};
+        const colorPrefs = preferences.colorPreferences || {};
+        
+        return `
+            <div class="garment-preferences-content">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Size Preferences by Category</h6>
+                        <div class="size-preferences">
+                            ${this.renderSizePreferences(sizePrefs)}
+                        </div>
+                        
+                        <h6 class="mt-4">Quick Size Selection</h6>
+                        <div class="quick-size-selection">
+                            ${this.renderQuickSizeSelection()}
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h6>Color Preferences</h6>
+                        <div class="color-preferences">
+                            ${this.renderColorPreferences(colorPrefs)}
+                        </div>
+                        
+                        <h6 class="mt-4">Size/Color Recommendations</h6>
+                        <div class="recommendations-panel">
+                            ${this.renderSizeColorRecommendations()}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        <h6>Manual Preference Management</h6>
+                        <form id="garmentPreferencesForm">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label>Category</label>
+                                        <select name="category" class="form-control" required>
+                                            <option value="">Select category</option>
+                                            <option value="mens_tops">Men's Tops</option>
+                                            <option value="womens_tops">Women's Tops</option>
+                                            <option value="mens_bottoms">Men's Bottoms</option>
+                                            <option value="womens_bottoms">Women's Bottoms</option>
+                                            <option value="dresses">Dresses</option>
+                                            <option value="shoes">Shoes</option>
+                                            <option value="accessories">Accessories</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label>Preferred Size</label>
+                                        <select name="preferredSize" class="form-control">
+                                            <option value="">Select size</option>
+                                            <option value="XS">XS</option>
+                                            <option value="S">S</option>
+                                            <option value="M">M</option>
+                                            <option value="L">L</option>
+                                            <option value="XL">XL</option>
+                                            <option value="XXL">XXL</option>
+                                            <option value="28">28</option>
+                                            <option value="30">30</option>
+                                            <option value="32">32</option>
+                                            <option value="34">34</option>
+                                            <option value="36">36</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label>Preferred Color</label>
+                                        <select name="preferredColor" class="form-control">
+                                            <option value="">Select color</option>
+                                            <option value="Black">Black</option>
+                                            <option value="White">White</option>
+                                            <option value="Blue">Blue</option>
+                                            <option value="Red">Red</option>
+                                            <option value="Green">Green</option>
+                                            <option value="Grey">Grey</option>
+                                            <option value="Brown">Brown</option>
+                                            <option value="Navy">Navy</option>
+                                            <option value="Beige">Beige</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label>&nbsp;</label>
+                                        <button type="button" class="btn btn-primary w-100 save-garment-preferences">
+                                            <i class="fa fa-save"></i> Save Preference
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        <h6>Purchase History Analysis</h6>
+                        <div class="purchase-analysis">
+                            <button class="btn btn-outline-info btn-sm analyze-purchase-history" 
+                                    data-customer-id="${this.selectedCustomer}">
+                                <i class="fa fa-chart-bar"></i> Analyze Purchase History
+                            </button>
+                            <div id="purchaseAnalysisResults" class="mt-3"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    renderGarmentPreferenceBadge() {
+        const preferences = this.preferences[this.selectedCustomer] || {};
+        const sizePrefs = preferences.sizePreferences || {};
+        const colorPrefs = preferences.colorPreferences || {};
+        
+        const hasSizePrefs = Object.keys(sizePrefs).length > 0;
+        const hasColorPrefs = Object.keys(colorPrefs).length > 0;
+        
+        if (hasSizePrefs || hasColorPrefs) {
+            return '<span class="badge badge-success badge-sm"><i class="fa fa-check"></i></span>';
+        }
+        return '';
+    }
+
+    renderSizePreferences(sizePrefs) {
+        if (Object.keys(sizePrefs).length === 0) {
+            return '<p class="text-muted">No size preferences recorded</p>';
+        }
+        
+        return Object.entries(sizePrefs).map(([category, sizes]) => `
+            <div class="size-category mb-3">
+                <h7 class="category-title">${category.replace('_', ' ').toUpperCase()}</h7>
+                <div class="size-chips">
+                    ${Object.entries(sizes).map(([size, count]) => `
+                        <span class="size-chip" data-size="${size}">
+                            ${size} (${count})
+                        </span>
+                    `).join('')}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    renderColorPreferences(colorPrefs) {
+        if (Object.keys(colorPrefs).length === 0) {
+            return '<p class="text-muted">No color preferences recorded</p>';
+        }
+        
+        const colorMap = {
+            'Black': '#000000',
+            'White': '#FFFFFF',
+            'Blue': '#0000FF',
+            'Red': '#FF0000',
+            'Green': '#008000',
+            'Grey': '#808080',
+            'Brown': '#A52A2A',
+            'Navy': '#000080',
+            'Beige': '#F5F5DC'
+        };
+        
+        return Object.entries(colorPrefs)
+            .sort((a, b) => b[1] - a[1])
+            .map(([color, count]) => `
+                <div class="color-preference-item d-flex align-items-center mb-2">
+                    <div class="color-swatch" style="background-color: ${colorMap[color] || '#CCCCCC'}; width: 20px; height: 20px; border-radius: 50%; margin-right: 10px; border: 1px solid #ddd;"></div>
+                    <span class="color-name">${color}</span>
+                    <span class="color-count ml-auto">${count} purchases</span>
+                </div>
+            `).join('');
+    }
+
+    renderQuickSizeSelection() {
+        const commonSizes = ['XS', 'S', 'M', 'L', 'XL'];
+        return `
+            <div class="quick-sizes">
+                <p class="text-muted small">Click to set quick selection sizes:</p>
+                <div class="size-buttons">
+                    ${commonSizes.map(size => `
+                        <button class="btn btn-sm btn-outline-secondary quick-size-btn" 
+                                data-size="${size}">${size}</button>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    renderSizeColorRecommendations() {
+        return `
+            <div class="recommendations-content">
+                <div class="recommendation-item mb-2 p-2 border rounded">
+                    <div class="recommendation-title">Recommended Size</div>
+                    <div class="recommended-size">M (based on purchase history)</div>
+                    <div class="confidence">Confidence: 85%</div>
+                </div>
+                <div class="recommendation-item mb-2 p-2 border rounded">
+                    <div class="recommendation-title">Preferred Colors</div>
+                    <div class="color-tags">
+                        <span class="badge badge-primary">Black</span>
+                        <span class="badge badge-info">Blue</span>
+                        <span class="badge badge-secondary">Grey</span>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <button class="btn btn-sm btn-outline-success get-recommendations" 
+                            data-customer-id="${this.selectedCustomer}">
+                        <i class="fa fa-refresh"></i> Update Recommendations
+                    </button>
                 </div>
             </div>
         `;
@@ -2163,6 +2404,246 @@ class CustomersModule {
         ]);
         
         this.renderCustomerDetail();
+    }
+
+    // Garment Preferences functionality
+    async saveGarmentPreferences() {
+        const form = document.getElementById('garmentPreferencesForm');
+        const formData = new FormData(form);
+        
+        const category = formData.get('category');
+        const preferredSize = formData.get('preferredSize');
+        const preferredColor = formData.get('preferredColor');
+        
+        if (!category) {
+            if (window.notiflix) {
+                window.notiflix.Notify.warning('Validation Required', 'Please select a category');
+            }
+            return;
+        }
+        
+        try {
+            // Save size preference
+            if (preferredSize) {
+                await fetch(`${window.api}customers/preferences/${this.selectedCustomer}/size`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        category: category,
+                        size: preferredSize,
+                        preference: 1
+                    })
+                });
+            }
+            
+            // Save color preference
+            if (preferredColor) {
+                await fetch(`${window.api}customers/preferences/${this.selectedCustomer}/color`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        color: preferredColor,
+                        preference: 1
+                    })
+                });
+            }
+            
+            // Reload preferences
+            await this.loadCustomerPreferences(this.selectedCustomer);
+            
+            if (window.notiflix) {
+                window.notiflix.Notify.success('Preferences Saved', 'Garment preferences updated successfully');
+            }
+            
+            // Refresh the display
+            this.renderCustomerDetail();
+            
+        } catch (error) {
+            console.error('Error saving garment preferences:', error);
+            if (window.notiflix) {
+                window.notiflix.Notify.failure('Save Failed', 'Failed to save garment preferences');
+            }
+        }
+    }
+
+    async analyzePurchaseHistory() {
+        try {
+            if (window.notiflix) {
+                window.notiflix.Block.standard('#purchaseAnalysisResults', 'Analyzing purchase history...');
+            }
+            
+            const response = await fetch(`${window.api}customer_preferences/analyze/${this.selectedCustomer}`, {
+                method: 'POST'
+            });
+            
+            const analysis = await response.json();
+            
+            if (window.notiflix) {
+                window.notiflix.Block.remove('#purchaseAnalysisResults');
+            }
+            
+            // Display analysis results
+            const resultsHtml = `
+                <div class="analysis-results">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="stat-card text-center p-3 border rounded">
+                                <h4 class="text-primary">${analysis.totalPurchases || 0}</h4>
+                                <div class="text-muted">Total Garment Purchases</div>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <h6>Key Insights</h6>
+                            ${analysis.insights ? analysis.insights.map(insight => 
+                                `<div class="insight-item mb-2"><i class="fa fa-lightbulb text-warning"></i> ${insight}</div>`
+                            ).join('') : '<p class="text-muted">No insights available</p>'}
+                        </div>
+                    </div>
+                    
+                    ${Object.keys(analysis.sizeAnalysis || {}).length > 0 ? `
+                        <div class="mt-4">
+                            <h6>Size Analysis by Category</h6>
+                            <div class="size-analysis">
+                                ${Object.entries(analysis.sizeAnalysis).map(([category, sizes]) => `
+                                    <div class="category-analysis mb-3">
+                                        <h7>${category.replace('_', ' ').toUpperCase()}</h7>
+                                        <div class="size-distribution">
+                                            ${Object.entries(sizes).map(([size, count]) => `
+                                                <span class="badge badge-info mr-1">${size}: ${count}</span>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    ${Object.keys(analysis.colorAnalysis || {}).length > 0 ? `
+                        <div class="mt-4">
+                            <h6>Color Preferences</h6>
+                            <div class="color-analysis">
+                                ${Object.entries(analysis.colorAnalysis).map(([color, count]) => `
+                                    <span class="color-chip" style="display: inline-block; padding: 5px 10px; margin: 2px; background: #f8f9fa; border-radius: 15px;">
+                                        ${color}: ${count}
+                                    </span>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            document.getElementById('purchaseAnalysisResults').innerHTML = resultsHtml;
+            
+        } catch (error) {
+            console.error('Error analyzing purchase history:', error);
+            if (window.notiflix) {
+                window.notiflix.Block.remove('#purchaseAnalysisResults');
+                window.notiflix.Notify.failure('Analysis Failed', 'Failed to analyze purchase history');
+            }
+        }
+    }
+
+    async getGarmentRecommendations() {
+        try {
+            if (window.notiflix) {
+                window.notiflix.Notify.info('Generating', 'Generating updated recommendations...');
+            }
+            
+            // Get size recommendations
+            const sizeResponse = await fetch(`${window.api}customer_preferences/sizes/${this.selectedCustomer}/recommendations?category=mens_tops`);
+            const sizeRecs = await sizeResponse.json();
+            
+            // Get color recommendations
+            const colorResponse = await fetch(`${window.api}customer_preferences/colors/${this.selectedCustomer}/recommendations?category=mens_tops`);
+            const colorRecs = await colorResponse.json();
+            
+            // Update the recommendations display
+            this.updateRecommendationsDisplay(sizeRecs, colorRecs);
+            
+            if (window.notiflix) {
+                window.notiflix.Notify.success('Updated', 'Recommendations updated successfully');
+            }
+            
+        } catch (error) {
+            console.error('Error getting garment recommendations:', error);
+            if (window.notiflix) {
+                window.notiflix.Notify.failure('Failed', 'Failed to update recommendations');
+            }
+        }
+    }
+
+    updateRecommendationsDisplay(sizeRecs, colorRecs) {
+        const recommendationsContainer = document.querySelector('.recommendations-panel');
+        if (recommendationsContainer) {
+            recommendationsContainer.innerHTML = `
+                <div class="recommendation-item mb-2 p-2 border rounded">
+                    <div class="recommendation-title">Recommended Size</div>
+                    <div class="recommended-size">${sizeRecs.recommendedSizes?.[0] || 'M'} (${sizeRecs.confidence ? (sizeRecs.confidence * 100).toFixed(0) : 85}% confidence)</div>
+                    <div class="reasoning text-muted small">${sizeRecs.reasoning?.[0] || 'Based on purchase history'}</div>
+                </div>
+                <div class="recommendation-item mb-2 p-2 border rounded">
+                    <div class="recommendation-title">Preferred Colors</div>
+                    <div class="color-tags">
+                        ${(colorRecs.recommendedColors || ['Black', 'Blue', 'Grey']).slice(0, 3).map(color => 
+                            `<span class="badge badge-primary">${color}</span>`
+                        ).join('')}
+                    </div>
+                    <div class="reasoning text-muted small">${colorRecs.reasoning?.[0] || 'Based on color preferences'}</div>
+                </div>
+                <div class="mt-3">
+                    <button class="btn btn-sm btn-outline-success get-recommendations" 
+                            data-customer-id="${this.selectedCustomer}">
+                        <i class="fa fa-refresh"></i> Update Recommendations
+                    </button>
+                </div>
+            `;
+        }
+    }
+
+    async setQuickSize(size) {
+        try {
+            // Set this as the default size for quick selection in POS
+            await fetch(`${window.api}customer_preferences/preferences/${this.selectedCustomer}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    quickSizeSelection: size,
+                    lastUpdated: new Date().toISOString()
+                })
+            });
+            
+            if (window.notiflix) {
+                window.notiflix.Notify.success('Quick Size Set', `${size} set as default for quick selection`);
+            }
+            
+        } catch (error) {
+            console.error('Error setting quick size:', error);
+            if (window.notiflix) {
+                window.notiflix.Notify.failure('Failed', 'Failed to set quick size');
+            }
+        }
+    }
+
+    // Load garment-specific customer data
+    async loadGarmentCustomerData(customerId) {
+        try {
+            // Load garment preferences from customer record
+            const customerResponse = await fetch(`${window.api}customers/preferences/${customerId}`);
+            const garmentPrefs = await customerResponse.json();
+            
+            // Store in preferences for consistency
+            this.preferences[customerId] = {
+                ...this.preferences[customerId],
+                sizePreferences: garmentPrefs.sizePreferences || {},
+                colorPreferences: garmentPrefs.colorPreferences || {},
+                brandPreferences: garmentPrefs.brandPreferences || [],
+                stylePreferences: garmentPrefs.stylePreferences || []
+            };
+            
+        } catch (error) {
+            console.error('Error loading garment customer data:', error);
+        }
     }
 }
 
