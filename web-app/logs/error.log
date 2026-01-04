@@ -1,0 +1,4 @@
+{"error":"password authentication failed for user \"postgres\"","level":"error","message":"Database connection test failed","timestamp":"2026-01-03T20:34:18.326Z"}
+{"error":"password authentication failed for user \"postgres\"","level":"error","message":"Database connection test failed","timestamp":"2026-01-03T20:34:49.624Z"}
+{"error":"password authentication failed for user \"postgres\"","level":"error","message":"Database connection test failed","timestamp":"2026-01-03T20:50:39.598Z"}
+{"error":"Database connection failed","level":"error","message":"Failed to connect to database","timestamp":"2026-01-03T20:56:45.631Z"}

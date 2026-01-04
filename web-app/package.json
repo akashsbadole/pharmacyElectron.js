@@ -1,0 +1,47 @@
+{
+  "name": "pharmamine-web",
+  "version": "1.0.0",
+  "description": "Web application for PharmaMine with PostgreSQL and sync capabilities",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "nodemon server/server.js",
+    "test": "jest",
+    "sync": "node server/sync/sync-engine.js",
+    "migrate": "node server/migrations/migrate.js"
+  },
+  "keywords": ["retail", "pos", "inventory", "sync", "postgresql"],
+  "author": "PharmaMine Team",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "pg": "^8.11.3",
+    "sqlite3": "^5.1.6",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "dotenv": "^16.3.1",
+    "express-rate-limit": "^7.1.5",
+    "express-validator": "^7.0.1",
+    "morgan": "^1.10.0",
+    "winston": "^3.11.0",
+    "compression": "^1.7.4",
+    "multer": "^1.4.5-lts.1",
+    "csv-parser": "^3.0.0",
+    "json2csv": "^6.0.0-alpha",
+    "qrcode": "^1.5.3",
+    "nodemailer": "^6.9.7",
+    "socket.io": "^4.7.4",
+    "sequelize": "^6.35.2",
+    "sequelize-cli": "^6.6.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2",
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

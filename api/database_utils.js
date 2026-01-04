@@ -3,9 +3,21 @@ const path = require("path");
 const archiver = require("archiver");
 const crypto = require("crypto");
 const Datastore = require("@seald-io/nedb");
+const { Pool } = require("pg");
 
 const dbCache = {};
 let currentEncryptionKey = null;
+let postgresPool = null;
+let usePostgreSQL = process.env.USE_POSTGRESQL === 'true';
+
+// PostgreSQL configuration
+const postgresConfig = {
+    host: process.env.DB_HOST || 'localhost',
+    port: process.env.DB_PORT || 5432,
+    database: process.env.DB_NAME || 'garmentpos',
+    user: process.env.DB_USER || 'postgres',
+    password: process.env.DB_PASSWORD || 'root'
+};
 
 /**
  * Database utility functions for NeDB crash recovery and temporary file management
@@ -488,6 +500,247 @@ function setGlobalEncryptionKey(key) {
 }
 
 /**
+ * Initialize PostgreSQL connection pool
+ */
+async function initializePostgreSQL() {
+    if (usePostgreSQL && !postgresPool) {
+        try {
+            postgresPool = new Pool(postgresConfig);
+            
+            // Test connection
+            const result = await postgresPool.query('SELECT NOW() as current_time');
+            console.log(`✅ PostgreSQL connected successfully: ${result.rows[0].current_time}`);
+            
+            return true;
+        } catch (error) {
+            console.error('❌ PostgreSQL connection failed:', error.message);
+            postgresPool = null;
+            return false;
+        }
+    }
+    return true;
+}
+
+/**
+ * Close PostgreSQL connection pool
+ */
+async function closePostgreSQL() {
+    if (postgresPool) {
+        await postgresPool.end();
+        postgresPool = null;
+        console.log('PostgreSQL connection closed');
+    }
+}
+
+/**
+ * Execute PostgreSQL query with error handling
+ * @param {string} text - SQL query text
+ * @param {Array} params - Query parameters
+ * @returns {Promise} - Promise that resolves with query result
+ */
+async function queryPostgreSQL(text, params = []) {
+    if (!usePostgreSQL || !postgresPool) {
+        throw new Error('PostgreSQL is not initialized or not enabled');
+    }
+
+    try {
+        const result = await postgresPool.query(text, params);
+        return {
+            rows: result.rows,
+            rowCount: result.rowCount,
+            command: result.command
+        };
+    } catch (error) {
+        console.error('PostgreSQL query failed:', { text, params, error: error.message });
+        throw error;
+    }
+}
+
+/**
+ * Execute NeDB query with error handling
+ * @param {string} collection - Collection name
+ * @param {Object} query - Query object
+ * @param {Object} options - Query options
+ * @returns {Promise} - Promise that resolves with query result
+ */
+function queryNeDB(collection, query, options = {}) {
+    return new Promise((resolve, reject) => {
+        let cursor = getDatabase(path.join(process.env.APPDATA, process.env.APPNAME, 'server', 'databases', `${collection}.db`)).find(query);
+        
+        if (options.sort) {
+            cursor = cursor.sort(options.sort);
+        }
+        
+        if (options.limit) {
+            cursor = cursor.limit(options.limit);
+        }
+        
+        if (options.skip) {
+            cursor = cursor.skip(options.skip);
+        }
+        
+        cursor.exec((err, docs) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(docs);
+            }
+        });
+    });
+}
+
+/**
+ * Unified query function that works with both NeDB and PostgreSQL
+ * @param {string} collection - Collection/table name
+ * @param {Object} query - Query object (NeDB format)
+ * @param {Object} options - Query options
+ * @returns {Promise} - Promise that resolves with query result
+ */
+async function query(collection, query, options = {}) {
+    if (usePostgreSQL) {
+        // Convert NeDB query to PostgreSQL query
+        const sql = convertQueryToSQL(collection, query, options);
+        return await queryPostgreSQL(sql.text, sql.params);
+    } else {
+        return await queryNeDB(collection, query, options);
+    }
+}
+
+/**
+ * Convert NeDB query to PostgreSQL SQL
+ * @param {string} collection - Collection/table name
+ * @param {Object} query - NeDB query object
+ * @param {Object} options - Query options
+ * @returns {Object} - SQL query object with text and params
+ */
+function convertQueryToSQL(collection, query, options) {
+    // Map collection names to table names
+    const tableMap = {
+        'inventory': 'products',
+        'categories': 'categories',
+        'customers': 'customers',
+        'transactions': 'transactions',
+        'users': 'users',
+        'settings': 'settings',
+        'suppliers': 'suppliers',
+        'purchase_orders': 'purchase_orders'
+    };
+
+    const tableName = tableMap[collection] || collection;
+    let sql = `SELECT * FROM ${tableName}`;
+    const params = [];
+    let paramIndex = 1;
+    
+    if (Object.keys(query).length > 0) {
+        sql += ' WHERE ';
+        const conditions = [];
+        
+        for (const [key, value] of Object.entries(query)) {
+            if (typeof value === 'string') {
+                conditions.push(`${key} = $${paramIndex}`);
+                params.push(value);
+                paramIndex++;
+            } else if (typeof value === 'object' && value.$regex) {
+                conditions.push(`${key} LIKE $${paramIndex}`);
+                params.push(`%${value.$regex}%`);
+                paramIndex++;
+            } else if (typeof value === 'number') {
+                conditions.push(`${key} = $${paramIndex}`);
+                params.push(value);
+                paramIndex++;
+            }
+        }
+        
+        sql += conditions.join(' AND ');
+    }
+    
+    if (options.sort) {
+        const sortFields = Object.entries(options.sort)
+            .map(([field, direction]) => `${field} ${direction === 1 ? 'ASC' : 'DESC'}`)
+            .join(', ');
+        sql += ` ORDER BY ${sortFields}`;
+    }
+    
+    if (options.limit) {
+        sql += ` LIMIT $${paramIndex}`;
+        params.push(options.limit);
+        paramIndex++;
+    }
+    
+    if (options.skip) {
+        sql += ` OFFSET $${paramIndex}`;
+        params.push(options.skip);
+    }
+    
+    return { text: sql, params };
+}
+
+/**
+ * Insert or update record in PostgreSQL
+ * @param {string} table - Table name
+ * @param {Object} data - Data to insert/update
+ * @param {Array} conflictFields - Fields to check for conflicts
+ * @returns {Promise} - Promise that resolves with result
+ */
+async function insertWithConflict(table, data, conflictFields = ['id']) {
+    if (!usePostgreSQL || !postgresPool) {
+        throw new Error('PostgreSQL is not initialized or not enabled');
+    }
+
+    const columns = Object.keys(data);
+    const values = Object.values(data);
+    const conflictClause = conflictFields.map(field => `"${field}"`).join(', ');
+
+    const queryStr = `
+        INSERT INTO ${table} (${columns.map(col => `"${col}"`).join(', ')})
+        VALUES (${values.map((_, i) => `$${i + 1}`).join(', ')})
+        ON CONFLICT (${conflictClause})
+        DO UPDATE SET
+          ${columns.map(col => `"${col}" = EXCLUDED."${col}"`).join(', ')}
+        RETURNING *
+    `;
+
+    return await queryPostgreSQL(queryStr, values);
+}
+
+/**
+ * Get table schema from PostgreSQL
+ * @param {string} table - Table name
+ * @returns {Promise} - Promise that resolves with schema information
+ */
+async function getTableSchema(table) {
+    if (!usePostgreSQL || !postgresPool) {
+        throw new Error('PostgreSQL is not initialized or not enabled');
+    }
+
+    const queryStr = `
+        SELECT column_name, data_type, is_nullable, column_default
+        FROM information_schema.columns
+        WHERE table_name = $1
+        ORDER BY ordinal_position
+    `;
+
+    return await queryPostgreSQL(queryStr, [table]);
+}
+
+/**
+ * Check if table exists in PostgreSQL
+ * @param {string} table - Table name
+ * @returns {Promise} - Promise that resolves with boolean
+ */
+async function tableExists(table) {
+    if (!usePostgreSQL || !postgresPool) {
+        throw new Error('PostgreSQL is not initialized or not enabled');
+    }
+
+    const result = await queryPostgreSQL(
+        'SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = $1)',
+        [table]
+    );
+    return result.rows[0].exists;
+}
+
+/**
  * Gets a cached NeDB database instance for the given path
  * @param {string} dbPath - Path to the database file
  * @param {string} [encryptionKey] - Optional encryption key (overrides global)
@@ -533,5 +786,18 @@ module.exports = {
     deleteBackup,
     getDatabase,
     getEncryptionKey,
-    setGlobalEncryptionKey
+    setGlobalEncryptionKey,
+    // PostgreSQL functions
+    initializePostgreSQL,
+    closePostgreSQL,
+    queryPostgreSQL,
+    queryNeDB,
+    query,
+    convertQueryToSQL,
+    insertWithConflict,
+    getTableSchema,
+    tableExists,
+    // Configuration
+    usePostgreSQL,
+    postgresConfig
 };

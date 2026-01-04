@@ -1,0 +1,330 @@
+/* Sync Status Component Styles */
+
+/* Sync Status Container */
+.sync-status-container {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 999px;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+    min-width: 180px;
+}
+
+.sync-status-container:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-1px);
+}
+
+/* Sync Indicator */
+.sync-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    position: relative;
+}
+
+.sync-indicator i {
+    font-size: 8px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+/* Sync States */
+.sync-status-container.syncing {
+    background: rgba(255, 193, 7, 0.1);
+    border-color: rgba(255, 193, 7, 0.3);
+    animation: pulse-glow 2s infinite;
+}
+
+.sync-status-container.syncing .sync-indicator {
+    background: rgba(255, 193, 7, 0.3);
+    box-shadow: 0 0 10px rgba(255, 193, 7, 0.3);
+}
+
+.sync-status-container.syncing .sync-indicator i {
+    opacity: 1;
+    color: #ffc107;
+    animation: pulse 1s infinite;
+}
+
+.sync-status-container.synced {
+    background: rgba(40, 167, 69, 0.1);
+    border-color: rgba(40, 167, 69, 0.3);
+}
+
+.sync-status-container.synced .sync-indicator {
+    background: rgba(40, 167, 69, 0.3);
+    box-shadow: 0 0 10px rgba(40, 167, 69, 0.2);
+}
+
+.sync-status-container.synced .sync-indicator i {
+    opacity: 1;
+    color: #28a745;
+}
+
+.sync-status-container.error {
+    background: rgba(220, 53, 69, 0.1);
+    border-color: rgba(220, 53, 69, 0.3);
+    animation: shake 0.5s ease-in-out;
+}
+
+.sync-status-container.error .sync-indicator {
+    background: rgba(220, 53, 69, 0.3);
+    box-shadow: 0 0 10px rgba(220, 53, 69, 0.3);
+}
+
+.sync-status-container.error .sync-indicator i {
+    opacity: 1;
+    color: #dc3545;
+}
+
+.sync-status-container.offline {
+    background: rgba(108, 117, 125, 0.1);
+    border-color: rgba(108, 117, 125, 0.3);
+}
+
+.sync-status-container.offline .sync-indicator {
+    background: rgba(108, 117, 125, 0.3);
+}
+
+.sync-status-container.offline .sync-indicator i {
+    opacity: 1;
+    color: #6c757d;
+}
+
+/* Sync Text */
+.sync-text {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    transition: color 0.3s ease;
+}
+
+.sync-status-container.syncing .sync-text {
+    color: #ffc107;
+}
+
+.sync-status-container.synced .sync-text {
+    color: #28a745;
+}
+
+.sync-status-container.error .sync-text {
+    color: #dc3545;
+}
+
+.sync-status-container.offline .sync-text {
+    color: #6c757d;
+}
+
+/* Sync Details */
+.sync-details {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 0.5rem;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 0.5rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    padding: 1rem;
+    min-width: 250px;
+    z-index: 1000;
+    backdrop-filter: blur(5px);
+}
+
+.sync-status-container:hover .sync-details {
+    display: block;
+}
+
+.sync-detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.25rem 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    font-size: 0.875rem;
+}
+
+.sync-detail-item:last-child {
+    border-bottom: none;
+}
+
+.sync-detail-label {
+    color: #6c757d;
+}
+
+.sync-detail-value {
+    font-weight: 600;
+    font-family: 'Courier New', monospace;
+}
+
+/* Sync Progress Bar */
+.sync-progress {
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 0.5rem;
+    display: none;
+}
+
+.sync-status-container.syncing .sync-progress {
+    display: block;
+}
+
+.sync-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #ffc107, #fd7e14);
+    width: 0%;
+    transition: width 0.5s ease;
+}
+
+/* Animations */
+@keyframes pulse-glow {
+    0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.4); }
+    70% { box-shadow: 0 0 20px 10px rgba(255, 193, 7, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
+}
+
+@keyframes pulse {
+    0% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.2); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shake {
+    0% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    50% { transform: translateX(2px); }
+    75% { transform: translateX(-2px); }
+    100% { transform: translateX(0); }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .sync-status-container {
+        min-width: 140px;
+        padding: 0.375rem 0.75rem;
+    }
+    
+    .sync-text {
+        font-size: 0.75rem;
+    }
+    
+    .sync-details {
+        position: fixed;
+        top: auto;
+        bottom: 1rem;
+        right: 1rem;
+        left: 1rem;
+        max-width: none;
+    }
+}
+
+/* Dark Theme Support */
+@media (prefers-color-scheme: dark) {
+    .sync-details {
+        background: rgba(33, 37, 41, 0.95);
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .sync-detail-item {
+        border-bottom-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .sync-detail-label {
+        color: #adb5bd;
+    }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+    .sync-status-container {
+        border-width: 2px;
+        background: transparent;
+    }
+    
+    .sync-status-container.syncing {
+        border-color: #b08d00;
+        color: #b08d00;
+    }
+    
+    .sync-status-container.synced {
+        border-color: #1e5e28;
+        color: #1e5e28;
+    }
+    
+    .sync-status-container.error {
+        border-color: #8a1f2a;
+        color: #8a1f2a;
+    }
+    
+    .sync-status-container.offline {
+        border-color: #495057;
+        color: #495057;
+    }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+    .sync-status-container {
+        animation: none !important;
+        transition: none !important;
+    }
+    
+    .sync-indicator i {
+        animation: none !important;
+    }
+    
+    .sync-progress-bar {
+        transition: none !important;
+    }
+}
+
+/* Accessibility Focus Styles */
+.sync-status-container:focus-within {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* Screen Reader Only Text */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Loading Spinner for Sync */
+.sync-spinner {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+}
+
+.sync-status-container.syncing .sync-spinner {
+    display: inline-block;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
