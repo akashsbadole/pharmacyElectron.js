@@ -43,7 +43,7 @@ module.exports = {
       config: {
         repository: {
           owner: 'akashbadole',
-          name: 'Pharmingo',
+          name: 'garmentpos',
           draft: true,
         },
       },

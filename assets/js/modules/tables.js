@@ -1,8 +1,8 @@
 /**
- * Reports Module - Analytics and reporting for retail POS operations
+ * Table Management Module - Visual table layout and restaurant table operations
  */
 
-class ReportsModule {
+class TableModule {
   constructor(app) {
     this.app = app;
     this.container = null;
@@ -591,8 +591,8 @@ class ReportsModule {
     return `
       <div class="module-container table-module" data-module="tables">
         <div class="module-header">
-          <h1 class="module-title">Reports</h1>
-          <p class="module-subtitle">Analytics and reporting for retail operations</p>
+          <h1 class="module-title">Table Management</h1>
+          <p class="module-subtitle">Visual table layout and restaurant operations</p>
         </div>
         
         ${this.renderControls(currentView, layoutMode)}
@@ -702,8 +702,8 @@ class ReportsModule {
         <div class="table-layout">
           <div class="text-center py-8 text-gray-500">
             <i class="fa fa-table text-4xl mb-4"></i>
-            <div>No reports available</div>
-            <div class="text-sm mt-2">Generate reports to analyze pharmacy operations</div>
+            <div>No tables configured</div>
+            <div class="text-sm mt-2">Add tables to start managing your restaurant</div>
           </div>
         </div>
       `;
@@ -1050,5 +1050,5 @@ class ReportsModule {
   }
 }
 
-// Make ReportsModule available globally
-window.ReportsModule = ReportsModule;
+// Make TableModule available globally
+window.TableModule = TableModule;

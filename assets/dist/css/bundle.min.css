@@ -7373,7 +7373,7 @@ button.close {
     }
 
     .modal-sm {
-        width: 300px
+        width: 400px
     }
 }
 
@@ -8275,7 +8275,7 @@ button.close {
 @import url(https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,600,700,300);
 
 body {
-    background: radial-gradient(circle, #3c2de7, #eee 100%);
+    background:  #f05050 ;
     font-family: 'Noto Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
     margin: 0;
     overflow-x: hidden;
@@ -18924,7 +18924,7 @@ ul.ColVis_collection li {
     content: "\f27b"
 }
 
-.md-local-FoodMine:before {
+.md-local-garmentMine:before {
     content: "\f27c"
 }
 
@@ -29210,7 +29210,7 @@ div.table-responsive>div.dataTables_wrapper>div.row>div[class^=col-]:last-child 
 .login-page {
     height: 100vh;
     min-height: 100%;
-    background: radial-gradient(circle, #3c2de7, #eee 100%)
+    background:  #f05050 
 }
 
 #load {

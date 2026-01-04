@@ -31,7 +31,7 @@ categoryDB.ensureIndex({ fieldName: "_id", unique: true });
  * @returns {void}
  */
 app.get("/", function (req, res) {
-    res.send("Categories API - Product Categories for Retail Store");
+    res.send("Category API");
 });
 
 /**
@@ -65,7 +65,7 @@ app.post("/category", function (req, res) {
                         message: "An unexpected error occurred.",
                     });
                 }
-        else{res.sendStatus(200);}
+            else{res.sendStatus(200);}
     });
 });
 

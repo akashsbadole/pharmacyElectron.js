@@ -19,9 +19,7 @@ $(document).ready(function() {
     function loadPurchaseOrderList() {
         let po_list = "";
         $("#purchase_order_list").empty();
-        if ($.fn.DataTable) {
-            $("#purchaseOrderList").DataTable().destroy();
-        }
+        $("#purchaseOrderList").DataTable().destroy();
 
         allPurchaseOrders.forEach((order, index) => {
             let supplierName = order.supplier ? order.supplier.name : "Unknown";
@@ -46,15 +44,13 @@ $(document).ready(function() {
         });
 
         $("#purchase_order_list").html(po_list);
-        if ($.fn.DataTable) {
-            $("#purchaseOrderList").DataTable({
-                autoWidth: false,
-                info: true,
-                JQueryUI: true,
-                ordering: true,
-                paging: false,
-            });
-        }
+        $("#purchaseOrderList").DataTable({
+            autoWidth: false,
+            info: true,
+            JQueryUI: true,
+            ordering: true,
+            paging: false,
+        });
     }
 
     function getStatusBadge(status) {

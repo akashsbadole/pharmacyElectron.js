@@ -51,18 +51,14 @@ class DashboardModule {
       // Fetch low stock items
       const inventoryResponse = await fetch(`${window.api}inventory/alerts`);
       const lowStockItems = await inventoryResponse.json();
-      
-      // Pharmacy-specific metrics
-      
+            
       return {
         todaySales,
         transactions,
         lowStock: lowStockItems.length,
-        // Removed pendingPrescriptions for restaurant conversion
         salesChange: 0, // TODO: Calculate change from previous day
         transactionChange: 0,
         stockChange: 0,
-        // Removed prescriptionChange for restaurant conversion
         salesData: salesData.slice(0, 10) // Last 10 transactions
       };
       
@@ -72,11 +68,9 @@ class DashboardModule {
         todaySales: 0,
         transactions: 0,
         lowStock: 0,
-        // Removed pendingPrescriptions for restaurant conversion
         salesChange: 0,
         transactionChange: 0,
         stockChange: 0,
-        // Removed prescriptionChange for restaurant conversion
         salesData: []
       };
     }
@@ -115,7 +109,7 @@ class DashboardModule {
           timestamp: new Date(Date.now() - 60 * 60 * 1000), // 1 hour ago
           icon: '👥'
         }
-        // Pharmacy verification activity
+        // Removed prescription verification activity for restaurant conversion
       ];
     } catch (error) {
       console.error('Error loading recent activity:', error);
@@ -128,7 +122,7 @@ class DashboardModule {
       case 'new_sale':
         this.app.switchToModule('pos');
         break;
-      // Pharmacy-specific actions
+      // Removed verify_prescription action for restaurant conversion
       case 'add_menu_item':
         this.app.switchToModule('inventory');
         break;
@@ -189,7 +183,7 @@ class DashboardModule {
             <span class="btn-icon">💰</span>
             New Sale
           </button>
-          <!-- Pharmacy verification handled separately -->
+          <!-- Removed verify prescription button for restaurant conversion -->
           <button class="btn btn-success" onclick="window.pharmaApp.getModule('dashboard').executeQuickAction('add_menu_item')">
             <span class="btn-icon">📦</span>
             Add Menu Item
@@ -235,7 +229,6 @@ class DashboardModule {
             </div>
           </div>
           
-          <!-- Pharmacy-specific metrics displayed -->
         </div>
       </div>
     `;

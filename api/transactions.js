@@ -19,6 +19,14 @@ const { getDatabase } = require('./database_utils');
 
 app.use(bodyParser.json());
 
+// Middleware to log all requests to transactions routes
+app.use((req, res, next) => {
+  console.log(`Transactions request: ${req.method} ${req.path} at ${new Date().toISOString()}`);
+  next();
+});
+
+console.log("Transactions API module loaded.");
+
 module.exports = app;
 
 let transactionsDB = getDatabase(dbPath);
@@ -32,6 +40,7 @@ transactionsDB.ensureIndex({ fieldName: "_id", unique: true });
  * @returns {void}
  */
 app.get("/", function (req, res) {
+  console.log("Transactions API root accessed");
   res.send("Transactions API");
 });
 
@@ -43,6 +52,7 @@ app.get("/", function (req, res) {
  * @returns {void}
  */
 app.get("/all", function (req, res) {
+  console.log("Transactions /all endpoint accessed");
   transactionsDB.find({}, function (err, docs) {
     res.send(docs);
   });
@@ -57,9 +67,13 @@ app.get("/all", function (req, res) {
  */
 app.get("/on-hold", function (req, res) {
   transactionsDB.find(
-    { $and: [{ ref_number: { $ne: "" } }, { status: 0 }] },
+    { $and: [{ ref_number: { $exists: true, $ne: "" } }, { status: 0 }] },
     function (err, docs) {
-      if (docs) res.send(docs);
+      if (err) {
+        console.error("Error in /on-hold query:", err);
+        return res.status(500).json({ error: "Database error" });
+      }
+      res.send(docs || []);
     },
   );
 });
@@ -514,8 +528,118 @@ app.get("/history/customer/:customerId", function (req, res) {
  * POST endpoint: Share invoice (E-Invoicing stub).
  */
 app.post("/share", function (req, res) {
+    console.log('DEBUG: /share endpoint called with body:', JSON.stringify(req.body, null, 2));
     const { transactionId, method, recipient } = req.body;
     console.log(`Sharing invoice ${transactionId} via ${method} to ${recipient}`);
-    // Future integration with Email/WhatsApp API goes here.
-    res.json({ success: true, message: `Invoice shared via ${method}` });
+    
+    // Get transaction details
+    transactionsDB.find({ _id: transactionId }, function (err, docs) {
+        if (err || !docs || docs.length === 0) {
+            console.error("Transaction not found:", err);
+            res.status(404).json({ success: false, message: "Transaction not found" });
+            return;
+        }
+        
+        const transaction = docs[0];
+        
+        if (method === 'whatsapp') {
+            // Implement WhatsApp sharing logic
+            const whatsappMessage = formatInvoiceForWhatsApp(transaction);
+            console.log(`WhatsApp message prepared: ${whatsappMessage}`);
+            
+            // For actual WhatsApp sharing, you would use a WhatsApp API here
+            // This is a placeholder that would be replaced with actual API integration
+            res.json({
+                success: true,
+                message: `Invoice shared via WhatsApp to ${recipient}`,
+                whatsappMessage: whatsappMessage
+            });
+        }
+        else if (method === 'email') {
+            // Implement email sharing logic
+            const emailSubject = `Invoice #${transactionId} from PharmaMine`;
+            const emailBody = formatInvoiceForEmail(transaction);
+            
+            // For actual email sending, you would use nodemailer or similar here
+            // This is a placeholder that would be replaced with actual email integration
+            console.log(`Email prepared - Subject: ${emailSubject}`);
+            console.log(`Email body: ${emailBody}`);
+            
+            res.json({
+                success: true,
+                message: `Invoice shared via Email to ${recipient}`,
+                emailSubject: emailSubject,
+                emailBody: emailBody
+            });
+        }
+        else {
+            res.status(400).json({ success: false, message: "Invalid sharing method" });
+        }
+    });
 });
+
+/**
+ * Format invoice data for WhatsApp sharing
+ * @param {Object} transaction - Transaction object
+ * @returns {string} Formatted WhatsApp message
+ */
+function formatInvoiceForWhatsApp(transaction) {
+    let message = `📄 *INVOICE #${transaction._id}* \n`;
+    message += `📅 *Date:* ${new Date(transaction.date).toLocaleString()}\n`;
+    message += `🛒 *Items:*\n`;
+    
+    if (transaction.items && transaction.items.length > 0) {
+        transaction.items.forEach(item => {
+            message += `  • ${item.name} - ${item.quantity} x ₹${parseFloat(item.price).toFixed(2)} = ₹${(item.quantity * parseFloat(item.price)).toFixed(2)}\n`;
+        });
+    }
+    
+    message += `\n💰 *Total:* ₹${parseFloat(transaction.total).toFixed(2)}\n`;
+    message += `💳 *Paid:* ₹${parseFloat(transaction.paid).toFixed(2)}\n`;
+    message += `🔄 *Change:* ₹${(parseFloat(transaction.paid) - parseFloat(transaction.total)).toFixed(2)}\n`;
+    message += `📝 *Payment Method:* ${transaction.payment_mode}\n`;
+    message += `👤 *Customer:* ${transaction.customer_name || 'Walk-in Customer'}\n`;
+    message += `🏪 *Thank you for shopping with us!*`;
+    
+    return message;
+}
+
+/**
+ * Format invoice data for Email sharing
+ * @param {Object} transaction - Transaction object
+ * @returns {string} Formatted Email body
+ */
+function formatInvoiceForEmail(transaction) {
+    let body = `<html><body>`;
+    body += `<h2>Invoice #${transaction._id}</h2>`;
+    body += `<p><strong>Date:</strong> ${new Date(transaction.date).toLocaleString()}</p>`;
+    body += `<p><strong>Customer:</strong> ${transaction.customer_name || 'Walk-in Customer'}</p>`;
+    body += `<p><strong>Payment Method:</strong> ${transaction.payment_mode}</p>`;
+    body += `<h3>Items:</h3>`;
+    body += `<table border="1" cellpadding="5" style="border-collapse: collapse; width: 100%;">`;
+    body += `<tr><th>Item</th><th>Quantity</th><th>Price</th><th>Total</th></tr>`;
+    
+    if (transaction.items && transaction.items.length > 0) {
+        transaction.items.forEach(item => {
+            const itemTotal = item.quantity * parseFloat(item.price);
+            body += `<tr>`;
+            body += `<td>${item.name}</td>`;
+            body += `<td>${item.quantity}</td>`;
+            body += `<td>₹${parseFloat(item.price).toFixed(2)}</td>`;
+            body += `<td>₹${itemTotal.toFixed(2)}</td>`;
+            body += `</tr>`;
+        });
+    }
+    
+    body += `</table>`;
+    body += `<p style="text-align: right; margin-top: 20px;">`;
+    body += `<strong>Subtotal:</strong> ₹${parseFloat(transaction.subtotal || transaction.total).toFixed(2)}<br/>`;
+    body += `<strong>Total:</strong> ₹${parseFloat(transaction.total).toFixed(2)}<br/>`;
+    body += `<strong>Paid:</strong> ₹${parseFloat(transaction.paid).toFixed(2)}<br/>`;
+    body += `<strong>Change:</strong> ₹${(parseFloat(transaction.paid) - parseFloat(transaction.total)).toFixed(2)}`;
+    body += `</p>`;
+    body += `<p>Thank you for shopping with us!</p>`;
+    body += `</body></html>`;
+    
+    return body;
+}

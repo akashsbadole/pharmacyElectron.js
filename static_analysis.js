@@ -1,5 +1,5 @@
 /**
- * Static Code Analysis for Pharmingo Features
+ * Static Code Analysis for garmentpos Features
  * Analyzes implementation without requiring server to be running
  */
 
@@ -162,19 +162,19 @@ class StaticAnalyzer {
         if (packageContent) {
             const packageJson = JSON.parse(packageContent);
             
-            if (packageJson.name === 'pharmingo') {
+            if (packageJson.name === 'garmentpos') {
                 this.results.branding.implemented++;
                 this.results.branding.total++;
-                this.results.branding.details.push('✅ Package name correctly set to "pharmingo"');
+                this.results.branding.details.push('✅ Package name correctly set to "garmentpos"');
             } else {
                 this.results.branding.total++;
                 this.results.branding.details.push(`❌ Package name incorrect: ${packageJson.name}`);
             }
 
-            if (packageJson.productName === 'Pharmingo') {
+            if (packageJson.productName === 'garmentpos') {
                 this.results.branding.implemented++;
                 this.results.branding.total++;
-                this.results.branding.details.push('✅ Product name correctly set to "Pharmingo"');
+                this.results.branding.details.push('✅ Product name correctly set to "garmentpos"');
             } else {
                 this.results.branding.total++;
                 this.results.branding.details.push(`❌ Product name incorrect: ${packageJson.productName}`);
@@ -185,8 +185,8 @@ class StaticAnalyzer {
         const htmlContent = this.analyzeFile('./index.html', 'branding');
         
         if (htmlContent) {
-            this.checkUIElement(htmlContent, 'Pharmingo', 'branding');
-            this.checkUIElement(htmlContent, 'Food Management System', 'branding');
+            this.checkUIElement(htmlContent, 'garmentpos', 'branding');
+            this.checkUIElement(htmlContent, 'garment Management System', 'branding');
         }
 
         // Check renderer integration
@@ -270,7 +270,7 @@ class StaticAnalyzer {
     }
 
     runAnalysis() {
-        console.log('🔍 Starting Static Code Analysis for Pharmingo Features');
+        console.log('🔍 Starting Static Code Analysis for garmentpos Features');
         console.log('=' .repeat(60));
         
         this.analyzeCSVFeature();

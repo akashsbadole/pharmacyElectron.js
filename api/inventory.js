@@ -195,10 +195,14 @@ app.post("/product", function (req, res) {
         if (batches.length > 0) {
             quantity = batches.reduce((sum, b) => sum + (parseInt(b.quantity) || 0), 0);
             
-            // Find earliest expiry
-            const sortedBatches = batches.filter(b => b.expirationDate).sort((a, b) => new Date(a.expirationDate) - new Date(b.expirationDate));
-            if (sortedBatches.length > 0) {
+            // Find earliest expiry only if any batch has an expiry date
+            const batchesWithExpiry = batches.filter(b => b.expirationDate && b.expirationDate.trim() !== "");
+            if (batchesWithExpiry.length > 0) {
+                const sortedBatches = batchesWithExpiry.sort((a, b) => new Date(a.expirationDate) - new Date(b.expirationDate));
                 expirationDate = sortedBatches[0].expirationDate;
+            } else {
+                // If no batches have expiry dates, keep the expirationDate as is (empty or from form)
+                expirationDate = expirationDate || "";
             }
         }
 
@@ -359,14 +363,18 @@ app.put("/product", function (req, res) {
 
             let quantity = validator.escape(req.body.quantity || "");
             let expirationDate = validator.escape(req.body.expirationDate || "");
-    
+
             if (batches.length > 0) {
                 quantity = batches.reduce((sum, b) => sum + (parseInt(b.quantity) || 0), 0);
                 
-                // Find earliest expiry
-                const sortedBatches = batches.filter(b => b.expirationDate).sort((a, b) => new Date(a.expirationDate) - new Date(b.expirationDate));
-                if (sortedBatches.length > 0) {
+                // Find earliest expiry only if any batch has an expiry date
+                const batchesWithExpiry = batches.filter(b => b.expirationDate && b.expirationDate.trim() !== "");
+                if (batchesWithExpiry.length > 0) {
+                    const sortedBatches = batchesWithExpiry.sort((a, b) => new Date(a.expirationDate) - new Date(b.expirationDate));
                     expirationDate = sortedBatches[0].expirationDate;
+                } else {
+                    // If no batches have expiry dates, keep the expirationDate as is (empty or from form)
+                    expirationDate = expirationDate || "";
                 }
             }
 
@@ -375,7 +383,7 @@ app.put("/product", function (req, res) {
                 sku: req.body.sku || (req.body.barcode ? parseInt(validator.escape(req.body.barcode)) : null),
                 name: validator.escape(req.body.name || ""),
                 price: validator.escape(req.body.price || ""),
-                cost: validator.escape(req.body.cost || req.body.price || ""), // Food cost for margin analysis
+                cost: validator.escape(req.body.cost || req.body.price || ""), // garment cost for margin analysis
                 category: validator.escape(req.body.category || ""),
                 quantity: quantity == "" ? 0 : quantity,
                 stock: req.body.stock === "on" ? 0 : 1,
@@ -605,6 +613,44 @@ app.post("/product/sku", function (req, res) {
 });
 
 /**
+ * POST endpoint: Search products by name or SKU.
+ *
+ * @param {Object} req request object with search term in the body.
+ * @param {Object} res response object.
+ * @returns {void}
+ */
+app.post("/products/search", function (req, res) {
+    let searchTerm = validator.escape(req.body.search || "");
+    let limit = parseInt(req.body.limit) || 10;
+
+    if (!searchTerm || searchTerm.trim().length < 2) {
+        return res.json([]);
+    }
+
+    // Create search query for name and barcode
+    let query = {
+        $or: [
+            { name: { $regex: searchTerm, $options: 'i' } },
+            { barcode: isNaN(searchTerm) ? null : parseInt(searchTerm) }
+        ].filter(condition => condition.barcode !== null || condition.name)
+    };
+
+    inventoryDB.find(query)
+        .limit(limit)
+        .exec(function (err, docs) {
+            if (err) {
+                console.error(err);
+                res.status(500).json({
+                    error: "Internal Server Error",
+                    message: "Search failed.",
+                });
+            } else {
+                res.send(docs);
+            }
+        });
+});
+
+/**
  * Decrement inventory quantities based on a list of products in a transaction.
  *
  * @param {Array} products - List of products in the transaction.
@@ -699,21 +745,21 @@ app.decrementInventory = function (products) {
  */
 app.get("/alternatives/:menuItemId", function (req, res) {
     const menuItemId = parseInt(req.params.menuItemId);
-    
+
     inventoryDB.findOne({ _id: menuItemId }, function (err, menuItem) {
         if (err || !menuItem) {
             return res.status(404).json({ error: "Menu item not found" });
         }
-        
+
         const category = menuItem.category;
         const dietaryInfo = menuItem.dietary_info || [];
-        
+
         if (!category) {
             return res.json([]); // No category, no alternatives
         }
 
         // Find other menu items in same category with overlapping dietary info
-        inventoryDB.find({ 
+        inventoryDB.find({
             category: category,
             _id: { $ne: menuItemId },
             availability_status: { $ne: 'Out of Stock' }
@@ -725,8 +771,8 @@ app.get("/alternatives/:menuItemId", function (req, res) {
                 // Filter by dietary compatibility
                 const compatibleAlternatives = alternatives.filter(item => {
                     const itemDietary = item.dietary_info || [];
-                    return dietaryInfo.length === 0 || 
-                           itemDietary.length === 0 || 
+                    return dietaryInfo.length === 0 ||
+                           itemDietary.length === 0 ||
                            dietaryInfo.some(diet => itemDietary.includes(diet));
                 });
                 res.send(compatibleAlternatives);
@@ -734,6 +780,114 @@ app.get("/alternatives/:menuItemId", function (req, res) {
         });
     });
 });
+
+/**
+ * GET endpoint: Get substitute products based on category and similar name patterns (for garments).
+ * Substitutes are alternative sizes/colors of similar garment types.
+ *
+ * @param {Object} req request object with product ID as parameter.
+ * @param {Object} res response object.
+ * @returns {void}
+ */
+app.get("/substitutes/:productId", function (req, res) {
+    const productId = parseInt(req.params.productId);
+
+    inventoryDB.findOne({ _id: productId }, function (err, product) {
+        if (err || !product) {
+            return res.status(404).json({ error: "Product not found" });
+        }
+
+        const category = product.category;
+        const productName = product.name.toLowerCase();
+
+        if (!category) {
+            return res.json([]); // No category, no substitutes
+        }
+
+        // Find products in same category, excluding current product
+        inventoryDB.find({
+            category: category,
+            _id: { $ne: productId },
+            stock: { $ne: 0 }, // Not out of stock (stock field: 1 = enabled, 0 = disabled)
+            quantity: { $gt: 0 } // Has available quantity
+        }, function (err, products) {
+            if (err) {
+                console.error(err);
+                res.status(500).json({ error: "Internal Server Error" });
+            } else {
+                // Filter products that are likely substitutes based on name similarity
+                const substitutes = products.filter(item => {
+                    const itemName = item.name.toLowerCase();
+
+                    // Check if names are similar (same base name, different sizes/colors)
+                    // This is a simple heuristic: look for common garment patterns
+                    const sizePatterns = /\b(small|medium|large|xl|xxl|xs|s|m|l|2xl|3xl|4xl|extra small|extra large)\b/gi;
+                    const colorPatterns = /\b(black|white|red|blue|green|yellow|orange|purple|pink|gray|grey|brown|beige|navy|maroon|olive|tan|gold|silver|bronze|charcoal|indigo|turquoise|lavender|coral|crimson|teal|mint|violet|peach|burgundy|khaki|aquamarine)\b/gi;
+
+                    // Remove sizes and colors from both names for comparison
+                    const baseProductName = productName.replace(sizePatterns, '').replace(colorPatterns, '').trim();
+                    const baseItemName = itemName.replace(sizePatterns, '').replace(colorPatterns, '').trim();
+
+                    // Consider products as substitutes if they have similar base names
+                    // (allowing for minor differences in spelling or word order)
+                    const similarityThreshold = 0.8;
+                    const similarity = calculateStringSimilarity(baseProductName, baseItemName);
+
+                    return similarity >= similarityThreshold;
+                });
+
+                // Return up to 10 substitutes
+                res.send(substitutes.slice(0, 10));
+            }
+        });
+    });
+});
+
+/**
+ * Helper function to calculate string similarity (simple Levenshtein-based)
+ */
+function calculateStringSimilarity(str1, str2) {
+    const longer = str1.length > str2.length ? str1 : str2;
+    const shorter = str1.length > str2.length ? str2 : str1;
+
+    if (longer.length === 0) {
+        return 1.0;
+    }
+
+    const distance = levenshteinDistance(longer, shorter);
+    return (longer.length - distance) / longer.length;
+}
+
+/**
+ * Calculate Levenshtein distance between two strings
+ */
+function levenshteinDistance(str1, str2) {
+    const matrix = [];
+
+    for (let i = 0; i <= str2.length; i++) {
+        matrix[i] = [i];
+    }
+
+    for (let j = 0; j <= str1.length; j++) {
+        matrix[0][j] = j;
+    }
+
+    for (let i = 1; i <= str2.length; i++) {
+        for (let j = 1; j <= str1.length; j++) {
+            if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+                matrix[i][j] = matrix[i - 1][j - 1];
+            } else {
+                matrix[i][j] = Math.min(
+                    matrix[i - 1][j - 1] + 1, // substitution
+                    matrix[i][j - 1] + 1,     // insertion
+                    matrix[i - 1][j] + 1      // deletion
+                );
+            }
+        }
+    }
+
+    return matrix[str2.length][str1.length];
+}
 
 /**
  * GET endpoint: Check inventory availability for combo components
@@ -1017,6 +1171,19 @@ app.get("/export/csv", function (req, res) {
 });
 
 /**
+ * POST endpoint: Import products (redirect to CSV import)
+ * 
+ * @param {Object} req request object.
+ * @param {Object} res response object.
+ * @returns {void}
+ */
+app.post("/import", function (req, res) {
+    // Redirect to CSV import endpoint
+    req.url = '/import/csv';
+    app.handle(req, res);
+});
+
+/**
  * POST endpoint: Import products from CSV file
  * 
  * @param {Object} req request object with CSV file.
@@ -1064,15 +1231,25 @@ app.post("/import/csv", function (req, res) {
                 });
             }
 
-            // Parse CSV header
-            const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/"/g, '').replace(/\s+/g, ''));
+            // Parse CSV header and normalize it
+            const headers = lines[0].split(',').map(h => {
+                // Remove quotes, convert to lowercase, remove spaces and special characters
+                return h.trim().toLowerCase()
+                        .replace(/"/g, '')
+                        .replace(/\s+/g, '')  // Remove all spaces
+                        .replace(/[^a-z0-9]/g, '');  // Remove special characters except alphanumeric
+            });
             const requiredFields = ['name', 'price'];
 
             // Create header mapping for common variations (restaurant schema)
             const headerMap = {
                 'menuname': 'name',
+                'productname': 'name',  // Added for CSV template compatibility
+                'product': 'name',
                 'name': 'name',
                 'sku': 'sku',
+                'barcode': 'barcode',
+                'barcode/sku': 'barcode',  // Handle combined header
                 'itemcode': 'sku',
                 'price': 'price',
                 'costprice': 'cost',
@@ -1105,7 +1282,9 @@ app.post("/import/csv", function (req, res) {
                 'reorderquantity': 'reorderquantity',
                 'reorder': 'reorderquantity',
                 'imagefile': 'image',
-                'image': 'image'
+                'image': 'image',
+                'requiresprescription': 'requires_prescription',  // For backward compatibility
+                'prescription': 'requires_prescription'
             };
 
             // Validate required fields
@@ -1315,7 +1494,7 @@ app.post("/import/csv", function (req, res) {
 
 /**
  * GET endpoint: Get CSV import template
- * 
+ *
  * @param {Object} req request object.
  * @param {Object} res response object.
  * @returns {void}
@@ -1368,4 +1547,125 @@ app.get("/import/template", function (req, res) {
             message: "Failed to generate import template"
         });
     }
+});
+
+/**
+ * GET endpoint: Generate printable barcode sheet for all products
+ *
+ * @param {Object} req request object.
+ * @param {Object} res response object.
+ * @returns {void}
+ */
+app.get("/barcodes/print", function (req, res) {
+    inventoryDB.find({}, function (err, products) {
+        if (err) {
+            console.error('Barcode generation error:', err);
+            return res.status(500).json({
+                error: "Database Error",
+                message: "Failed to retrieve products for barcode generation"
+            });
+        }
+
+        if (!products || products.length === 0) {
+            return res.status(404).json({
+                error: "No products found",
+                message: "No products available for barcode generation"
+            });
+        }
+
+        // Generate HTML page with barcodes
+        let html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Barcodes</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .barcode-container {
+            display: inline-block;
+            text-align: center;
+            margin: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .barcode-label {
+            margin-top: 5px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .barcode-price {
+            margin-top: 2px;
+            font-size: 10px;
+            color: #666;
+        }
+        @media print {
+            body {
+                margin: 0;
+            }
+            .barcode-container {
+                page-break-inside: avoid;
+                margin: 5px;
+                padding: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Product Barcodes</h1>
+    <p>Generated on ${new Date().toLocaleDateString()}</p>
+    <div id="barcodes">`;
+
+        products.forEach(product => {
+            const barcodeValue = product.barcode || product._id;
+            const price = parseFloat(product.price).toFixed(2);
+            html += `
+        <div class="barcode-container">
+            <svg id="barcode-${product._id}"></svg>
+            <div class="barcode-label">${product.name}</div>
+            <div class="barcode-price">${price}</div>
+        </div>`;
+        });
+
+        html += `
+    </div>
+
+    <script>
+        // Generate barcodes
+        window.addEventListener('load', function() {`;
+
+        products.forEach(product => {
+            const barcodeValue = product.barcode || product._id;
+            html += `
+            JsBarcode("#barcode-${product._id}", "${barcodeValue}", {
+                width: 2,
+                height: 40,
+                fontSize: 14,
+                textMargin: 0,
+                margin: 0
+            });`;
+        });
+
+        html += `
+        });
+
+        // Auto-print when loaded
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                window.print();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>`;
+
+        res.setHeader('Content-Type', 'text/html');
+        res.send(html);
+    });
 });

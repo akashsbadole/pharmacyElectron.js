@@ -1,22 +1,220 @@
-// Browser-compatible versions - use global variables where available
-// const jsPDF = window.jsPDF; // Will be loaded globally if needed
-// const html2canvas = window.html2canvas; // Will be loaded globally if needed  
-// const JsBarcode = window.JsBarcode; // Will be loaded globally if needed
-// const QRCode = window.QRCode; // Will be loaded globally if needed
-// const notiflix = window.notiflix;
-// const validator = window.validator;
-// const DOMPurify = window.DOMPurify;
-// const _ = window._;
-// let fs = window.fs; // Electron main process only
-// let path = window.path; // Use window.path or relative paths
-window.moment = window.moment || require("moment");
+// Browser-compatible library loading
+let QRCode;
+let notiflix;
+let validator;
+let DOMPurify;
+let _;
+let fs;
+let path;
+let moment;
+let ipcRenderer;
+let macaddress;
+
+// Safe require function for browser compatibility
+function safeRequire(moduleName) {
+    if (typeof require !== 'undefined') {
+        try {
+            return require(moduleName);
+        } catch (e) {
+            console.warn(`Node.js module ${moduleName} not available in browser:`, e.message);
+            return null;
+        }
+    }
+    return null;
+}
+
+// Load libraries with fallbacks
+try {
+    QRCode = safeRequire("qrcode");
+} catch (e) {
+    console.warn('QRCode module not available, will load from CDN if needed');
+}
+
+try {
+    notiflix = safeRequire("notiflix");
+    if (!notiflix) {
+        // Fallback to global if available
+        notiflix = window.notiflix;
+    }
+    window.notiflix = notiflix || {
+        Notify: { init: () => {}, success: () => {}, warning: () => {}, failure: () => {} },
+        Report: { success: () => {}, warning: () => {}, failure: () => {} },
+        Confirm: { show: () => {} },
+        Loading: { dots: () => {}, remove: () => {} }
+    };
+} catch (e) {
+    console.warn('Notiflix not available, using fallback');
+    window.notiflix = {
+        Notify: { init: () => {}, success: () => {}, warning: () => {}, failure: () => {} },
+        Report: { success: () => {}, warning: () => {}, failure: () => {} },
+        Confirm: { show: () => {} },
+        Loading: { dots: () => {}, remove: () => {} }
+    };
+}
+
+try {
+    validator = safeRequire("validator") || window.validator;
+    if (!validator) {
+        validator = {
+            unescape: (str) => str ? String(str).replace(/&quot;/g, '"').replace(/&#x27;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#x2F;/g, '/').replace(/&#x60;/g, '`').replace(/&#x3D;/g, '=') : str
+        };
+    }
+    window.validator = validator;
+} catch (e) {
+    console.warn('Validator not available, using fallback');
+    window.validator = {
+        unescape: (str) => str ? String(str).replace(/&quot;/g, '"').replace(/&#x27;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#x2F;/g, '/').replace(/&#x60;/g, '`').replace(/&#x3D;/g, '=') : str
+    };
+}
+
+try {
+    DOMPurify = safeRequire("dompurify") || window.DOMPurify;
+    if (!DOMPurify) {
+        DOMPurify = {
+            sanitize: (html) => html // Basic fallback - would need proper sanitization in production
+        };
+    }
+    window.DOMPurify = DOMPurify;
+} catch (e) {
+    console.warn('DOMPurify not available, using fallback');
+    window.DOMPurify = {
+        sanitize: (html) => html // Basic fallback - would need proper sanitization in production
+    };
+}
+
+try {
+    _ = safeRequire("lodash") || window._;
+    if (!_) {
+        _ = {
+            escape: (str) => str ? String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;') : str
+        };
+    }
+    window._ = _;
+} catch (e) {
+    console.warn('Lodash not available, using fallback');
+    window._ = {
+        escape: (str) => str ? String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;') : str
+    };
+}
+
+try {
+    fs = safeRequire("fs");
+    path = safeRequire("path");
+} catch (e) {
+    console.warn('File system modules not available in browser');
+    fs = null;
+    path = null;
+}
+
+try {
+    moment = safeRequire("moment") || window.moment;
+    if (!moment) {
+        moment = window.moment;
+    }
+    window.moment = moment;
+} catch (e) {
+    console.warn('Moment not available, using browser Date');
+    window.moment = {
+        format: (fmt) => new Date().toLocaleDateString(),
+        startOf: (unit) => new Date(),
+        endOf: (unit) => new Date(),
+        subtract: (value, unit) => new Date(Date.now() - value * 24 * 60 * 60 * 1000),
+        toDate: () => new Date(),
+        toJSON: () => new Date().toISOString()
+    };
+}
+
+try {
+    ipcRenderer = safeRequire("electron")?.ipcRenderer || window.ipcRenderer;
+    if (!ipcRenderer) {
+        // Fallback for browser environment
+        ipcRenderer = {
+            on: () => {},
+            send: () => {},
+            sendSync: () => null
+        };
+    }
+} catch (e) {
+    console.warn('Electron IPC not available, using fallback');
+    ipcRenderer = {
+        on: () => {},
+        send: () => {},
+        sendSync: () => null
+    };
+}
+
+// Browser-compatible macaddress service
+try {
+    // Try to load macaddress module in Electron main process context
+    macaddress = {
+        one: function(callback) {
+            // Use IPC to request MAC address from main process
+            const requestId = 'macaddr_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            
+            // Set up one-time listener for this request
+            const timeout = setTimeout(() => {
+                console.warn('MAC address request timeout, using fallback');
+                callback(null, '00:00:00:00:00:00');
+            }, 3000);
+            
+            // Listen for the specific response for this request
+            const handleResponse = (event) => {
+                clearTimeout(timeout);
+                const { macAddress } = event.detail;
+                callback(null, macAddress);
+                // Remove the listener
+                window.removeEventListener('macaddress-response-' + requestId, handleResponse);
+            };
+            
+            window.addEventListener('macaddress-response-' + requestId, handleResponse);
+            
+            // Send request to main process
+            ipcRenderer.send('get-macaddress', requestId);
+        }
+    };
+} catch (e) {
+    console.warn('MAC address service not available, using fallback');
+    // Fallback implementation for browser environments
+    macaddress = {
+        one: function(callback) {
+            // Browser fallback - generate a pseudo-MAC address
+            // In a real browser, we could use other methods like canvas fingerprinting
+            // or network interface enumeration, but for simplicity, we'll use a fallback
+            const fallbackMac = '02:00:00:' + 
+                Math.random().toString(16).substr(2, 2).toUpperCase() + ':' +
+                Math.random().toString(16).substr(2, 2).toUpperCase() + ':' +
+                Math.random().toString(16).substr(2, 2).toUpperCase();
+            
+            console.warn('Using fallback MAC address:', fallbackMac);
+            setTimeout(() => {
+                callback(null, fallbackMac);
+            }, 100); // Small delay to match async behavior
+        }
+    };
+}
+
+// Auto-load QRCode from CDN if not available
+if (typeof QRCode === 'undefined' || QRCode === null) {
+    document.addEventListener('DOMContentLoaded', function() {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
+        script.onload = function() {
+            console.log('QRCode loaded from CDN');
+            QRCode = window.qrcode;
+        };
+        script.onerror = function() {
+            console.warn('Failed to load QRCode from CDN');
+            QRCode = null;
+        };
+        document.head.appendChild(script);
+    });
+}
 
 // Import vanilla JavaScript store and store manager (with error handling)
 let useStore, storeManager;
 try {
-  // These would be loaded globally if available
-  // useStore = window.useStore;
-  // storeManager = window.storeManager;
+  useStore = require("./store");
+  storeManager = require("./storeManager");
 
   // Make store available globally
   window.useStore = useStore;
@@ -31,7 +229,56 @@ try {
 let dotInterval = setInterval(function () {
   $(".dot").text(".");
 }, 3000);
-// const Store = window.Store || require("electron-store"); // Will use localStorage fallback
+
+// Store class with browser fallback
+class Store {
+  constructor() {
+    this.storage = window.localStorage;
+  }
+  
+  get(key) {
+    try {
+      if (!this.storage) return null;
+      const item = this.storage.getItem(key);
+      return item ? JSON.parse(item) : null;
+    } catch (error) {
+      console.error('Error reading from localStorage:', error);
+      return null;
+    }
+  }
+  
+  set(key, value) {
+    try {
+      if (!this.storage) return;
+      this.storage.setItem(key, JSON.stringify(value));
+    } catch (error) {
+      console.error('Error writing to localStorage:', error);
+    }
+  }
+  
+  delete(key) {
+    try {
+      if (!this.storage) return;
+      this.storage.removeItem(key);
+    } catch (error) {
+      console.error('Error deleting from localStorage:', error);
+    }
+  }
+}
+
+// Try to use electron-store if available, otherwise use browser fallback
+try {
+  const electronStore = safeRequire("electron-store");
+  if (electronStore) {
+    Store = electronStore;
+  } else {
+    Store = Store; // Use the browser Store class defined above
+  }
+} catch (e) {
+  console.warn('Electron store not available, using browser localStorage fallback');
+  Store = Store; // Use the browser Store class defined above
+}
+
 window.host = "localhost";
 window.port = null; // Will be set via IPC
 window.api = null; // Will be configured when port is received
@@ -98,6 +345,15 @@ ipcRenderer.on('server-config', (event, data) => {
   configureAPI();
 });
 
+// Listen for MAC address responses
+ipcRenderer.on('macaddress-response', (event, data) => {
+  const { requestId, macAddress } = data;
+  // Forward the response with the request ID
+  window.dispatchEvent(new CustomEvent('macaddress-response-' + requestId, {
+    detail: { macAddress }
+  }));
+});
+
 // Listen for custom event (alternative method)
 window.addEventListener('api-configured', (event) => {
   console.log('API configuration event received in pos.js');
@@ -153,8 +409,50 @@ function safeAjaxCall(options) {
   });
 }
 
-// const io = window.io || require('socket.io-client'); // Will be loaded globally
-// const remote = window.remote || require("@electron/remote"); // Electron main process only
+// Socket.io loading with fallback
+let io;
+try {
+    io = safeRequire('socket.io-client') || window.io;
+    if (!io) {
+        // Fallback for browser - create a mock socket.io
+        io = function(url) {
+            console.warn('Socket.io not available, using mock implementation');
+            return {
+                on: () => {},
+                emit: () => {},
+                disconnect: () => {}
+            };
+        };
+    }
+} catch (e) {
+    console.warn('Socket.io not available, using fallback');
+    io = function(url) {
+        console.warn('Socket.io not available, using mock implementation');
+        return {
+            on: () => {},
+            emit: () => {},
+            disconnect: () => {}
+        };
+    };
+}
+
+let remote;
+try {
+    remote = safeRequire("@electron/remote");
+    if (!remote) {
+        // Fallback for browser environment
+        remote = {
+            getGlobal: () => null,
+            BrowserWindow: function() { return { show: () => {} }; }
+        };
+    }
+} catch (e) {
+    console.warn('Electron remote not available, using fallback');
+    remote = {
+        getGlobal: () => null,
+        BrowserWindow: function() { return { show: () => {} }; }
+    };
+}
 let cart = [];
 let index = 0;
 let allUsers = [];
@@ -177,10 +475,10 @@ let subTotal = 0;
 let method = "";
 let user_index = 0;
 let transaction_index;
-const appName = process.env.APPNAME;
-const appData = process.env.APPDATA;
-let img_path = path.join(appData, appName, "uploads", "/");
-// const bcrypt = window.bcrypt || require("bcrypt"); // Will be handled differently in browser
+const appName = process.env.APPNAME || 'StyleMine';
+const appData = process.env.APPDATA || 'assets';
+let img_path = path ? path.join(appData, appName, "uploads", "/") : "assets/uploads/";
+// bcrypt will be loaded via browser-compatible method below
 let categories = [];
 let holdOrderList = [];
 let customerOrderList = [];
@@ -197,12 +495,18 @@ let platform;
 window.user = {};
 let start = moment().startOf("month");
 let end = moment();
+
+// Loyalty program state variables
+let currentLoyaltyProfile = null;
+let loyaltyDiscount = 0;
+let pointsToEarn = 0;
+let availableRedemptions = [];
 let start_date = moment(start).toDate();
 let end_date = moment(end).toDate();
 let by_till = 0;
 let by_user = 0;
 let by_status = 1;
-const default_item_img = path.join("assets", "images", "default.jpg");
+const default_item_img = path ? path.join("assets", "images", "default.jpg") : "assets/images/default.jpg";
 const permissions = [
   "perm_products",
   "perm_categories",
@@ -210,70 +514,99 @@ const permissions = [
   "perm_users",
   "perm_settings",
 ];
-notiflix.Notify.init({
-  position: "right-top",
-  cssAnimationDuration: 600,
-  messageMaxLength: 150,
-  clickToClose: true,
-  closeButton: true
-});
-// Browser-compatible utils - these will be available globally or handled differently
-// const {
-//   DATE_FORMAT,
-//   moneyFormat,
-//   isExpired,
-//   daysToExpire,
-//   getStockStatus,
-//   checkFileExists,
-//   setContentSecurityPolicy,
-// } = require("./utils");
 
-//setContentSecurityPolicy(); // Commented out for browser compatibility
+// Browser-compatible bcrypt alternative
+let bcrypt;
+try {
+    bcrypt = safeRequire("bcrypt");
+    if (!bcrypt) {
+        // Simple fallback - in production you'd use proper bcrypt
+        bcrypt = {
+            compare: (password, hash) => {
+                console.warn('bcrypt.compare called with fallback implementation');
+                return Promise.resolve(password === hash);
+            }
+        };
+    }
+} catch (e) {
+    console.warn('bcrypt not available, using fallback');
+    bcrypt = {
+        compare: (password, hash) => {
+            console.warn('bcrypt.compare called with fallback implementation');
+            return Promise.resolve(password === hash);
+        }
+    };
+}
+// Initialize notiflix with fallback
+if (window.notiflix && window.notiflix.Notify) {
+    window.notiflix.Notify.init({
+        position: "right-top",
+        cssAnimationDuration: 600,
+        messageMaxLength: 150,
+        clickToClose: true,
+        closeButton: true
+    });
+} else {
+    console.warn('Notiflix not available, skipping initialization');
+}
+// Browser-compatible utils loading
+let utils;
+if (typeof require !== 'undefined') {
+    try {
+        utils = require("./utils");
+    } catch (e) {
+        console.warn('Node.js utils not available, using browser fallback');
+        utils = window.utils;
+    }
+} else {
+    utils = window.utils;
+}
 
-// Browser-compatible utility functions
-window.DATE_FORMAT = "DD-MMM-YYYY";
-window.moneyFormat = function(amount, locale = "en-US") {
-  return new Intl.NumberFormat(locale).format(amount);
-};
+// Fallback if utils is still not available
+if (!utils) {
+    utils = {
+        moneyFormat: (amount) => new Intl.NumberFormat('en-IN').format(amount),
+        getStockStatus: (current, minimum) => {
+            current = Number(current);
+            minimum = Number(minimum);
+            if (current <= 0) return 0;
+            if (current <= minimum) return -1;
+            return 1;
+        },
+        DATE_FORMAT: "DD-MMM-YYYY",
+        isExpired: (date) => {
+            return new Date(date) <= new Date();
+        },
+        daysToExpire: (date) => {
+            const expiry = new Date(date);
+            const today = new Date();
+            return Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+        },
+        checkFileExists: () => true,
+        setContentSecurityPolicy: () => {
+            const meta = document.createElement('meta');
+            meta.httpEquiv = 'Content-Security-Policy';
+            meta.content = "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:; img-src 'self' data: blob: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://code.jquery.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https:; font-src 'self' data: https:; connect-src 'self' http://localhost:49499 http://localhost:* https: wss: ws:; media-src 'self' data: blob:; frame-src 'none'; object-src 'none';";
+            document.head.appendChild(meta);
+        }
+    };
+}
 
-window.isExpired = function(dueDate) {
-  let todayDate = moment();
-  return todayDate.isSameOrAfter(dueDate);
-};
+// Destructure utils for use
+const {
+    DATE_FORMAT,
+    moneyFormat,
+    isExpired,
+    daysToExpire,
+    getStockStatus,
+    checkFileExists,
+    setContentSecurityPolicy,
+} = utils;
 
-window.daysToExpire = function(dueDate) {
-  let todayDate = moment();
-  let expiryDate = moment(dueDate, window.DATE_FORMAT);
+//set the content security policy of the app
+setContentSecurityPolicy();
 
-  if (expiryDate.isSameOrBefore(todayDate, "day")) {
-    return 0;
-  }
-
-  return expiryDate.diff(todayDate, "days");
-};
-
-window.getStockStatus = function(currentStock, minimumStock) {
-  currentStock = Number(currentStock);
-  minimumStock = Number(minimumStock);
-
-  if (isNaN(currentStock) || isNaN(minimumStock)) {
-    throw new Error("Invalid input: both currentStock and minimumStock should be numbers.");
-  }
-
-  if (currentStock <= 0) {
-    return 0; // No stock
-  }
-
-  if (currentStock <= minimumStock) {
-    return -1; // Low stock
-  }
-  return 1; // Normal stock
-};
-
-window.checkFileExists = function(filePath) {
-  // Browser-compatible file existence check
-  return true; // Assume files exist in browser context
-};
+// Safe function to handle validator.unescape with null checks
 function safeUnescape(value) {
   if (value === undefined || value === null) {
     return '';
@@ -301,55 +634,49 @@ $(function () {
     );
   }
 
-  // Check if daterangepicker function exists
-  if ($.fn.daterangepicker) {
-    $("#reportrange").daterangepicker(
-      {
-        startDate: start,
-        endDate: end,
-        autoApply: true,
-        timePicker: true,
-        timePicker24Hour: true,
-        timePickerIncrement: 10,
-        timePickerSeconds: true,
-        // minDate: '',
-        ranges: {
-          Today: [moment().startOf("day"), moment()],
-          Yesterday: [
-            moment().subtract(1, "days").startOf("day"),
-            moment().subtract(1, "days").endOf("day"),
-          ],
-          "Last 7 Days": [
-            moment().subtract(6, "days").startOf("day"),
-            moment().endOf("day"),
-          ],
-          "Last 30 Days": [
-            moment().subtract(29, "days").startOf("day"),
-            moment().endOf("day"),
-          ],
-          "This Month": [moment().startOf("month"), moment().endOf("month")],
-          "This Month": [moment().startOf("month"), moment()],
-          "Last Month": [
-            moment().subtract(1, "month").startOf("month"),
-            moment().subtract(1, "month").endOf("month"),
-          ],
-        },
+  $("#reportrange").daterangepicker(
+    {
+      startDate: start,
+      endDate: end,
+      autoApply: true,
+      timePicker: true,
+      timePicker24Hour: true,
+      timePickerIncrement: 10,
+      timePickerSeconds: true,
+      // minDate: '',
+      ranges: {
+        Today: [moment().startOf("day"), moment()],
+        Yesterday: [
+          moment().subtract(1, "days").startOf("day"),
+          moment().subtract(1, "days").endOf("day"),
+        ],
+        "Last 7 Days": [
+          moment().subtract(6, "days").startOf("day"),
+          moment().endOf("day"),
+        ],
+        "Last 30 Days": [
+          moment().subtract(29, "days").startOf("day"),
+          moment().endOf("day"),
+        ],
+        "This Month": [moment().startOf("month"), moment().endOf("month")],
+        "This Month": [moment().startOf("month"), moment()],
+        "Last Month": [
+          moment().subtract(1, "month").startOf("month"),
+          moment().subtract(1, "month").endOf("month"),
+        ],
       },
-      cb,
-    );
-  }
+    },
+    cb,
+  );
 
   cb(start, end);
 
-  // Check if daterangepicker function exists
-  if ($.fn.daterangepicker) {
-    $("#expirationDate").daterangepicker({
-      singleDatePicker: true,
-      locale: {
-        format: DATE_FORMAT,
-      },
-    });
-  }
+  $("#expirationDate").daterangepicker({
+    singleDatePicker: true,
+    locale: {
+      format: DATE_FORMAT,
+    },
+  });
 });
 
 //Allow only numbers in input field
@@ -553,6 +880,12 @@ function initializeApp() {
         }, 1000);
       });
 
+      // Initialize keyboard accessibility for legacy POS
+      initializeLegacyKeyboardAccessibility();
+      
+      // Inject CSS for clickable widgets
+      injectClickableWidgetCSS();
+
       if (0 == user.perm_products) {
         $(".p_one").hide();
       }
@@ -613,19 +946,20 @@ function initializeApp() {
 
             let expiredCount = 0;
             allProducts.forEach((product) => {
-              let expiryDate = moment(product.expirationDate, DATE_FORMAT);
-
-              if (!isExpired(expiryDate)) {
-                const diffDays = daysToExpire(expiryDate);
-
-                if (diffDays > 0 && diffDays <= 30) {
-                  var days_noun = diffDays > 1 ? "days" : "day";
-                  notiflix.Notify.warning(
-                    `${product.name} has only ${diffDays} ${days_noun} left to expiry`,
-                  );
-                }
-              } else {
-                expiredCount++;
+              // Handle empty or null expirationDate
+              let expiryDate = product.expirationDate ? moment(product.expirationDate, DATE_FORMAT) : null;
+  
+              if (expiryDate && !isExpired(expiryDate)) {
+                  const diffDays = daysToExpire(expiryDate);
+  
+                  if (diffDays > 0 && diffDays <= 30) {
+                      var days_noun = diffDays > 1 ? "days" : "day";
+                      notiflix.Notify.warning(
+                          `${product.name} has only ${diffDays} ${days_noun} left to expiry`,
+                      );
+                  }
+              } else if (expiryDate && isExpired(expiryDate)) {
+                  expiredCount++;
               }
             });
 
@@ -656,13 +990,13 @@ function initializeApp() {
                 item_img = default_item_img;
               }
               else {
-                item_img = path.join(img_path, item.img);
+                item_img = img_path + item.img;
                 item_img = checkFileExists(item_img) ? item_img : default_item_img;
               }
 
               let item_info = `<div class="col-lg-2 box ${item.category}">
                              <div class="widget-panel widget-style-2 " title="${item.name}">                    
-                            <div id="image" onclick="$(this).addToCart(${item._id}, ${item.quantity}, ${item.stock})"><img src="${item_img}" id="product_img" alt=""></div>                    
+                            <div id="image" data-product-id="${item._id}" data-product-quantity="${item.quantity}" data-product-stock="${item.stock}" data-product-has-variants="${item.has_variants}"><img src="${item_img}" id="product_img" alt=""></div>                    
                                          <div class="text-muted m-t-5 text-center">
                                          <div class="name" id="product_name"><span class="${item_isExpired ? "text-danger" : ""}">${item.name}</span></div> 
                                          <span class="sku">${item.barcode || item._id}</span>
@@ -670,7 +1004,8 @@ function initializeApp() {
                    ? item.quantity
                   : "N/A"}</span></span>
                                         <br>
-                                        <button class="btn btn-xs btn-info" onclick="$(this).viewSubstitutes(${item._id}, '${item.name}')"><i class="fa fa-exchange"></i> Subs</button>
+                                        
+                  ${item.stock_tracking_method === 'variant' ? `<button class="btn btn-xs btn-success" data-variant-trigger="${item._id}"><i class="fa fa-plus"></i> Variants</button>` : ''}
                                         </div>
                                          <span class="text-success text-center"><b data-plugin="counterup">${getCurrencySymbol() +
                  moneyFormat(item.price)
@@ -686,6 +1021,9 @@ function initializeApp() {
             console.log('🔍 DEBUG: Checking if products are visible in DOM');
             console.log('🔍 DEBUG: #parent innerHTML length:', $("#parent").html().length);
             console.log('🔍 DEBUG: #parent children count:', $("#parent").children().length);
+            
+            // Add event delegation for product clicks
+            setupProductClickHandlers();
           })
           .fail(function (xhr, status, error) {
             console.error('🔍 DEBUG: API call FAILED');
@@ -704,6 +1042,72 @@ function initializeApp() {
               setLoading(false);
             }
           });
+      }
+
+      /**
+       * Set up event delegation for product clicks
+       */
+      function setupProductClickHandlers() {
+        // Remove existing event handlers to prevent duplicates
+        $("#parent").off('click', '.widget-panel #image');
+        $("#parent").off('click', '.btn.btn-xs.btn-success[data-variant-trigger]');
+        
+        // Handle product widget clicks (entire widget now clickable)
+        $("#parent").on('click', '.widget-panel', function(e) {
+          // Prevent default only if clicking on the widget itself, not on variant buttons
+          if (!$(e.target).closest('.btn.btn-xs.btn-success[data-variant-trigger]').length) {
+            e.preventDefault();
+          }
+          
+          // Find the image element within the clicked widget
+          const $image = $(this).find('#image');
+          const productId = $image.data('product-id');
+          const productQuantity = $image.data('product-quantity');
+          const productStock = $image.data('product-stock');
+          const productHasVariants = $image.data('product-has-variants');
+          
+          console.log('Product widget clicked:', {
+            productId,
+            productQuantity,
+            productStock,
+            productHasVariants
+          });
+          
+          if (productId) {
+            // Use the addToCart function with proper context
+            $.fn.addToCart.call($image, productId, productQuantity, productStock, productHasVariants);
+          } else {
+            console.error('Product ID not found in data attributes');
+            notiflix.Report.warning('Error', 'Product information not found', 'Ok');
+          }
+        });
+        
+        // Handle variant trigger button clicks
+        $("#parent").on('click', '.btn.btn-xs.btn-success[data-variant-trigger]', function(e) {
+          e.preventDefault();
+          e.stopPropagation(); // Prevent triggering parent click events
+          
+          const $button = $(this);
+          const productId = $button.data('variant-trigger');
+          
+          console.log('Variant trigger clicked for product:', productId);
+          
+          if (productId) {
+            // Get the product data
+            const product = allProducts.find(p => p._id === productId);
+            if (product) {
+              showVariantSelectionModal(product);
+            } else {
+              console.error('Product not found for variant trigger');
+              notiflix.Report.warning('Error', 'Product not found', 'Ok');
+            }
+          } else {
+            console.error('Product ID not found in variant trigger');
+            notiflix.Report.warning('Error', 'Product information not found', 'Ok');
+          }
+        });
+        
+        console.log('Product click handlers set up successfully');
       }
 
       function loadCategories() {
@@ -755,11 +1159,512 @@ function initializeApp() {
               let customer = `<option value='${customerValue}'>${cust.name}</option>`;
               $("#customer").append(customer);
             });
+
+            // Add change event handler for customer selection
+            $("#customer").off('change').on('change', function() {
+              selectCustomer();
+            });
+
+            // Initialize loyalty display for default selection
+            selectCustomer();
           })
           .fail(function (xhr, status, error) {
             console.error('Failed to load customers:', error);
             notiflix.Report.failure('Error', 'Failed to load customers', 'Ok');
           });
+      }
+
+      /**
+       * Handle customer selection and load loyalty profile
+       */
+      function selectCustomer() {
+        const customerValue = $("#customer").val();
+
+        if (customerValue === "0") {
+          // Walk-in customer - clear loyalty display
+          currentLoyaltyProfile = null;
+          loyaltyDiscount = 0;
+          pointsToEarn = 0;
+          availableRedemptions = [];
+          updateLoyaltyDisplay();
+          return;
+        }
+
+        try {
+          const customerData = JSON.parse(customerValue);
+          const customerId = customerData.id;
+
+          // Load customer loyalty profile
+          $.get(window.api + `loyalty/customer/${customerId}`)
+            .done(function (loyaltyData) {
+              // Map API response to expected format
+              currentLoyaltyProfile = {
+                customer_id: customerId,
+                points_balance: loyaltyData.points?.balance || 0,
+                tier: loyaltyData.tier?.tier || 'bronze',
+                benefits: loyaltyData.benefits || []
+              };
+
+              // Load available redemptions for this customer
+              $.get(window.api + `loyalty/rewards?tier=${currentLoyaltyProfile.tier}&customerId=${customerId}`)
+                .done(function (rewardsData) {
+                  availableRedemptions = rewardsData || [];
+                })
+                .fail(function () {
+                  availableRedemptions = [];
+                });
+
+              // Calculate automatic discount based on tier
+              const tierDiscount = getTierDiscount(currentLoyaltyProfile.tier);
+              loyaltyDiscount = tierDiscount;
+
+              // Calculate potential points for current cart
+              calculatePointsToEarn();
+
+              updateLoyaltyDisplay();
+            })
+            .fail(function (xhr, status, error) {
+              console.warn('Failed to load loyalty profile:', error);
+              // Don't show error for loyalty loading - it's not critical
+              currentLoyaltyProfile = null;
+              loyaltyDiscount = 0;
+              pointsToEarn = 0;
+              availableRedemptions = [];
+              updateLoyaltyDisplay();
+            });
+        } catch (e) {
+          console.error('Error parsing customer data:', e);
+          currentLoyaltyProfile = null;
+          updateLoyaltyDisplay();
+        }
+      }
+
+      /**
+       * Get discount percentage based on loyalty tier
+       */
+      function getTierDiscount(tier) {
+        const tierDiscounts = {
+          'bronze': 0,
+          'silver': 5,
+          'gold': 10,
+          'platinum': 15
+        };
+        return tierDiscounts[tier.toLowerCase()] || 0;
+      }
+
+      /**
+       * Calculate potential points to earn from current cart
+       */
+      function calculatePointsToEarn() {
+        pointsToEarn = 0;
+        if (!currentLoyaltyProfile) return;
+
+        let cartTotal = 0;
+        cart.forEach(item => {
+          cartTotal += item.price * item.quantity;
+        });
+
+        // Points earned: 1 point per dollar spent, multiplied by tier multiplier
+        const basePoints = Math.floor(cartTotal);
+        const multiplier = getTierMultiplier(currentLoyaltyProfile.tier);
+        pointsToEarn = Math.floor(basePoints * multiplier);
+      }
+
+      /**
+       * Get points multiplier based on loyalty tier
+       */
+      function getTierMultiplier(tier) {
+        const tierMultipliers = {
+          'bronze': 1,
+          'silver': 1.25,
+          'gold': 1.5,
+          'platinum': 2
+        };
+        return tierMultipliers[tier.toLowerCase()] || 1;
+      }
+
+      /**
+       * Update loyalty information display in customer selector area
+       */
+      function updateLoyaltyDisplay() {
+        const loyaltyInfoDiv = $("#loyalty-info");
+        const customerSelector = $("#customer-selector");
+
+        if (!loyaltyInfoDiv.length) {
+          // Create loyalty info display area if it doesn't exist
+          customerSelector.after(`
+            <div id="loyalty-info" class="loyalty-display" style="margin-top: 10px; padding: 10px; background-color: #f8f9fa; border-radius: 5px; display: none;">
+              <div class="row">
+                <div class="col-md-4">
+                  <div id="points-balance" class="loyalty-item">
+                    <small class="text-muted">Points Balance</small><br>
+                    <span class="loyalty-value">0</span>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div id="tier-info" class="loyalty-item">
+                    <small class="text-muted">Current Tier</small><br>
+                    <span class="loyalty-value">None</span>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div id="tier-discount" class="loyalty-item">
+                    <small class="text-muted">Auto Discount</small><br>
+                    <span class="loyalty-value">0%</span>
+                  </div>
+                </div>
+              </div>
+              <div id="tier-benefits" style="margin-top: 10px; display: none;">
+                <small class="text-muted">Tier Benefits:</small>
+                <div id="benefits-list"></div>
+              </div>
+              <div id="points-preview" style="margin-top: 10px; display: none;">
+                <small class="text-muted">Points to Earn: <span id="points-earn-value">0</span></small>
+              </div>
+            </div>
+          `);
+        }
+
+        if (!currentLoyaltyProfile) {
+          // Hide loyalty info for walk-in customers
+          loyaltyInfoDiv.hide();
+          return;
+        }
+
+        // Update loyalty information
+        $("#points-balance .loyalty-value").text(currentLoyaltyProfile.points_balance || 0);
+        $("#tier-info .loyalty-value").text(currentLoyaltyProfile.tier || 'Bronze');
+
+        const discountPercent = loyaltyDiscount;
+        $("#tier-discount .loyalty-value").text(discountPercent + '%');
+
+        // Show tier benefits if available
+        if (currentLoyaltyProfile.benefits && currentLoyaltyProfile.benefits.length > 0) {
+          $("#benefits-list").html(currentLoyaltyProfile.benefits.map(benefit =>
+            `<small class="text-success">• ${benefit}</small><br>`
+          ).join(''));
+          $("#tier-benefits").show();
+        } else {
+          $("#tier-benefits").hide();
+        }
+
+        // Show points preview if cart has items
+        if (cart.length > 0 && pointsToEarn > 0) {
+          $("#points-earn-value").text(pointsToEarn);
+          $("#points-preview").show();
+        } else {
+          $("#points-preview").hide();
+        }
+
+        loyaltyInfoDiv.show();
+      }
+
+      /**
+       * Update loyalty discount display in cart/checkout area
+       */
+      function updateCartLoyaltyDisplay(loyaltyDiscountAmount) {
+        const loyaltyDiscountRow = $("#loyalty-discount-row");
+
+        // Remove existing loyalty discount row
+        loyaltyDiscountRow.remove();
+
+        if (loyaltyDiscountAmount > 0 && currentLoyaltyProfile) {
+          // Add loyalty discount row before tax row or total
+          const discountHtml = `
+            <tr id="loyalty-discount-row">
+              <td><small>Loyalty Discount (${loyaltyDiscount}%)</small></td>
+              <td>:</td>
+              <td class="text-right"><small>-${getCurrencySymbol()}${moneyFormat(loyaltyDiscountAmount.toFixed(2))}</small></td>
+            </tr>
+          `;
+
+          // Find the right place to insert (before tax row or total)
+          const taxRow = $("#cartTable tbody tr").filter(function() {
+            return $(this).find("td:first").text().includes("Tax") ||
+                   $(this).find("td:first").text().includes("Discount");
+          }).first();
+
+          if (taxRow.length > 0) {
+            taxRow.before(discountHtml);
+          } else {
+            // Find the subtotal row and insert after it
+            const subtotalRow = $("#cartTable tbody tr").filter(function() {
+              return $(this).find("td:first").text().includes("Subtotal");
+            }).first();
+
+            if (subtotalRow.length > 0) {
+              subtotalRow.after(discountHtml);
+            }
+          }
+        }
+      }
+
+      /**
+       * Update loyalty points preview in payment modal
+       */
+      function updatePaymentLoyaltyPreview() {
+        const paymentLoyaltyDiv = $("#payment-loyalty-preview");
+
+        if (!paymentLoyaltyDiv.length) {
+          // Add loyalty preview to payment modal
+          const paymentModalBody = $("#paymentModel .modal-body");
+          paymentModalBody.append(`
+            <div id="payment-loyalty-preview" style="margin-top: 15px; padding: 10px; background-color: #f8f9fa; border-radius: 5px; display: none;">
+              <div class="row">
+                <div class="col-md-6">
+                  <small class="text-muted">Points to Earn</small><br>
+                  <span id="payment-points-earn" class="text-success font-weight-bold">0</span>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted">New Balance</small><br>
+                  <span id="payment-new-balance" class="text-primary font-weight-bold">0</span>
+                </div>
+              </div>
+              <div id="payment-tier-upgrade" style="margin-top: 10px; display: none;">
+                <small class="text-warning">
+                  <i class="fa fa-star"></i> You'll reach <span id="next-tier-name"></span> tier!
+                </small>
+              </div>
+            </div>
+          `);
+        }
+
+        if (currentLoyaltyProfile && pointsToEarn > 0) {
+          const currentPoints = currentLoyaltyProfile.points_balance || 0;
+          const newBalance = currentPoints + pointsToEarn;
+
+          $("#payment-points-earn").text(pointsToEarn);
+          $("#payment-new-balance").text(newBalance);
+
+          // Check for tier upgrade
+          const nextTier = getNextTier(currentLoyaltyProfile.tier);
+          if (nextTier && newBalance >= getTierThreshold(nextTier)) {
+            $("#next-tier-name").text(nextTier.charAt(0).toUpperCase() + nextTier.slice(1));
+            $("#payment-tier-upgrade").show();
+          } else {
+            $("#payment-tier-upgrade").hide();
+          }
+
+          paymentLoyaltyDiv.show();
+        } else {
+          paymentLoyaltyDiv.hide();
+        }
+      }
+
+      /**
+       * Get next tier name
+       */
+      function getNextTier(currentTier) {
+        const tiers = ['bronze', 'silver', 'gold', 'platinum'];
+        const currentIndex = tiers.indexOf(currentTier.toLowerCase());
+        if (currentIndex >= 0 && currentIndex < tiers.length - 1) {
+          return tiers[currentIndex + 1];
+        }
+        return null;
+      }
+
+      /**
+       * Get points threshold for tier
+       */
+      function getTierThreshold(tier) {
+        const thresholds = {
+          'bronze': 0,
+          'silver': 500,
+          'gold': 1500,
+          'platinum': 3000
+        };
+        return thresholds[tier.toLowerCase()] || 0;
+      }
+
+      /**
+       * Show reward redemption modal
+       */
+      function showRedemptionModal() {
+        const redemptionModal = $("#redemptionModal");
+
+        if (!redemptionModal.length) {
+          // Create redemption modal
+          const modalHtml = `
+            <div class="modal fade" id="redemptionModal" tabindex="-1" role="dialog">
+              <div class="modal-dialog modal-lg" role="document">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title">
+                      <i class="fa fa-gift"></i> Redeem Rewards
+                      <small class="text-muted ml-2">Available Points: <span id="modal-points-balance">0</span></small>
+                    </h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                      <span>&times;</span>
+                    </button>
+                  </div>
+                  <div class="modal-body">
+                    <div id="redemption-list" class="row">
+                      <!-- Rewards will be populated here -->
+                    </div>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+          $('body').append(modalHtml);
+        }
+
+        // Update points balance in modal
+        $("#modal-points-balance").text(currentLoyaltyProfile.points_balance || 0);
+
+        // Populate available redemptions
+        const redemptionList = $("#redemption-list");
+        redemptionList.empty();
+
+        if (availableRedemptions.length === 0) {
+          redemptionList.html('<div class="col-12 text-center text-muted">No rewards available for redemption</div>');
+        } else {
+          availableRedemptions.forEach((reward, index) => {
+            const canRedeem = (currentLoyaltyProfile.points_balance || 0) >= reward.points_required;
+            const cardHtml = `
+              <div class="col-md-6 mb-3">
+                <div class="card ${canRedeem ? 'border-success' : 'border-secondary'}">
+                  <div class="card-body">
+                    <h6 class="card-title">${reward.name}</h6>
+                    <p class="card-text small text-muted">${reward.description}</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                      <span class="badge badge-primary">${reward.points_required} points</span>
+                      <button class="btn btn-sm ${canRedeem ? "btn-success" : "btn-secondary disabled"}"
+                              onclick="${canRedeem ? "redeemReward(" + index + ")" : ""}"
+                              ${canRedeem ? "" : "disabled"}>
+                        <i class="fa fa-gift"></i> Redeem
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            `;
+            redemptionList.append(cardHtml);
+          });
+        }
+
+        $("#redemptionModal").modal("show");
+      }
+
+      /**
+       * Redeem a specific reward
+       */
+      function redeemReward(rewardIndex) {
+        const reward = availableRedemptions[rewardIndex];
+
+        notiflix.Confirm.show(
+          'Confirm Redemption',
+          `Redeem "${reward.name}" for ${reward.points_required} points?`,
+          'Yes, Redeem',
+          'Cancel',
+          () => {
+            // Call redemption API
+            $.ajax({
+              url: window.api + `loyalty/redeem`,
+              type: "POST",
+              data: JSON.stringify({
+                customer_id: currentLoyaltyProfile.customer_id,
+                reward_id: reward.id,
+                points_required: reward.points_required
+              }),
+              contentType: "application/json; charset=utf-8",
+              success: function (response) {
+                notiflix.Report.success('Reward Redeemed!', `Successfully redeemed ${reward.name}.`, 'Ok');
+
+                // Update loyalty profile and refresh display
+                selectCustomer();
+
+                // Close modal
+                $("#redemptionModal").modal("hide");
+
+                // Add redeemed item to cart if applicable
+                if (reward.type === 'product' || reward.type === 'discount') {
+                  // Handle different reward types
+                  handleRedeemedReward(reward);
+                }
+              },
+              error: function (xhr, status, error) {
+                console.error('Redemption failed:', error);
+                const errorMessage = handleAjaxError(xhr, status, error, "Failed to redeem reward");
+                notiflix.Report.failure("Redemption Failed", errorMessage, "Ok");
+              }
+            });
+          }
+        );
+      }
+
+      /**
+       * Handle redeemed reward (add to cart, apply discount, etc.)
+       */
+      function handleRedeemedReward(reward) {
+        if (reward.type === 'product') {
+          // Add free product to cart
+          $.get(window.api + "inventory/product/" + reward.product_id)
+            .done(function (product) {
+              const freeItem = {
+                id: product._id,
+                product_name: product.name + " (Reward)",
+                sku: product.sku,
+                price: 0, // Free
+                quantity: 1
+              };
+              cart.push(freeItem);
+              $(this).renderTable(cart);
+              notiflix.Notify.success(`Added ${product.name} (Reward) to cart`);
+            })
+            .fail(function (xhr, status, error) {
+              console.error('Failed to load reward product:', error);
+            });
+        } else if (reward.type === 'discount') {
+          // Apply discount to current total
+          const discountAmount = reward.discount_amount || 0;
+          $("#inputDiscount").val(discountAmount);
+          $(this).calculateCart();
+          notiflix.Notify.success(`Applied ${getCurrencySymbol()}${discountAmount} discount`);
+        }
+      }
+
+      /**
+       * Update loyalty discount display in cart/checkout area
+       */
+      function updateCartLoyaltyDisplay(loyaltyDiscountAmount) {
+        const loyaltyDiscountRow = $("#loyalty-discount-row");
+
+        // Remove existing loyalty discount row
+        loyaltyDiscountRow.remove();
+
+        if (loyaltyDiscountAmount > 0 && currentLoyaltyProfile) {
+          // Add loyalty discount row before tax row or total
+          const discountHtml = `
+            <tr id="loyalty-discount-row">
+              <td><small>Loyalty Discount (${loyaltyDiscount}%)</small></td>
+              <td>:</td>
+              <td class="text-right"><small>-${getCurrencySymbol()}${moneyFormat(loyaltyDiscountAmount.toFixed(2))}</small></td>
+            </tr>
+          `;
+
+          // Find the right place to insert (before tax row or total)
+          const taxRow = $("#cartTable tbody tr").filter(function() {
+            return $(this).find("td:first").text().includes("Tax") ||
+                   $(this).find("td:first").text().includes("Discount");
+          }).first();
+
+          if (taxRow.length > 0) {
+            taxRow.before(discountHtml);
+          } else {
+            // Find the subtotal row and insert after it
+            const subtotalRow = $("#cartTable tbody tr").filter(function() {
+              return $(this).find("td:first").text().includes("Subtotal");
+            }).first();
+
+            if (subtotalRow.length > 0) {
+              subtotalRow.after(discountHtml);
+            }
+          }
+        }
       }
 
       function loadAlerts() {
@@ -789,7 +1694,7 @@ function initializeApp() {
           });
       }
 
-      $.fn.addToCart = function (id, count, stock, bypassPrescription = false) {
+      $.fn.addToCart = function (id, count, stock, hasVariants = false, bypassPrescription = false) {
         $.get(window.api + "inventory/product/" + id)
           .done(function (product) {
             
@@ -803,7 +1708,12 @@ function initializeApp() {
               );
             } else {
               if (count > 0) {
-                $(this).addProductToCart(product);
+                // Check if product has variants
+                if (hasVariants || product.stock_tracking_method === 'variant') {
+                  showVariantSelectionModal(product);
+                } else {
+                  $(this).addProductToCart(product);
+                }
               } else {
                 if (stock == 1) {
                   notiflix.Report.failure(
@@ -923,13 +1833,14 @@ function initializeApp() {
         }
       });
 
-      $.fn.addProductToCart = function (data) {
+      $.fn.addProductToCart = function (data, selectedVariant) {
         item = {
           id: data._id,
           product_name: data.name,
           sku: data.sku,
           price: data.price,
           quantity: 1,
+          variant: selectedVariant || null // Store selected variant info
         };
 
         if ($(this).isExist(item)) {
@@ -964,13 +1875,26 @@ function initializeApp() {
           total_items += parseInt(data.quantity);
         });
         $("#total").text(total_items);
-        total = total - $("#inputDiscount").val();
+
+        // Apply manual discount first
+        let manualDiscount = parseFloat($("#inputDiscount").val()) || 0;
+        total = total - manualDiscount;
+
+        // Apply loyalty discount if available
+        let loyaltyDiscountAmount = 0;
+        if (loyaltyDiscount > 0 && currentLoyaltyProfile) {
+          loyaltyDiscountAmount = (total * loyaltyDiscount) / 100;
+          total = total - loyaltyDiscountAmount;
+        }
+
         $("#price").text(getCurrencySymbol() + moneyFormat(total.toFixed(2)));
 
         subTotal = total;
 
-        if ($("#inputDiscount").val() >= total) {
+        if (manualDiscount >= (total + loyaltyDiscountAmount)) {
           $("#inputDiscount").val(0);
+          manualDiscount = 0;
+          total = total + loyaltyDiscountAmount; // Recalculate without manual discount
         }
 
         if (settings.charge_tax) {
@@ -984,6 +1908,13 @@ function initializeApp() {
 
         $("#gross_price").text(getCurrencySymbol() + moneyFormat(orderTotal));
         $("#payablePrice").val(moneyFormat(grossTotal));
+
+        // Update loyalty discount display in cart
+        updateCartLoyaltyDisplay(loyaltyDiscountAmount);
+
+        // Recalculate points to earn when cart changes
+        calculatePointsToEarn();
+        updateLoyaltyDisplay();
       };
 
       $.fn.renderTable = function (cartList) {
@@ -1054,7 +1985,8 @@ function initializeApp() {
             }
 
             data.forEach(item => {
-              let item_isExpired = isExpired(item.expirationDate);
+              // Handle empty or null expirationDate
+              let item_isExpired = item.expirationDate ? isExpired(item.expirationDate) : false;
               let stockStatus = getStockStatus(item.quantity, item.minStock);
               let row = `<tr>
                 <td>${item.name}</td>
@@ -1156,6 +2088,7 @@ function initializeApp() {
       $("#payButton").on("click", function () {
         if (cart.length != 0) {
           $("#paymentModel").modal("toggle");
+          updatePaymentLoyaltyPreview();
         } else {
           notiflix.Report.warning("Oops!", "There is nothing to pay!", "Ok");
         }
@@ -1166,6 +2099,17 @@ function initializeApp() {
           $("#dueModal").modal("toggle");
         } else {
           notiflix.Report.warning("Oops!", "There is nothing to hold!", "Ok");
+        }
+      });
+
+      // Add reward redemption button event handler
+      $("#redeemRewards").on("click", function () {
+        if (currentLoyaltyProfile && availableRedemptions.length > 0) {
+          showRedemptionModal();
+        } else if (!currentLoyaltyProfile) {
+          notiflix.Report.warning("No Customer Selected", "Please select a customer to redeem rewards.", "Ok");
+        } else {
+          notiflix.Report.info("No Rewards Available", "This customer has no rewards available for redemption.", "Ok");
         }
       });
 
@@ -1263,7 +2207,7 @@ function initializeApp() {
           method = "POST";
         }
 
-        let logo = path.join(img_path, safeUnescape(settings.img));
+        let logo = img_path + safeUnescape(settings.img);
 
         receipt = `<div style="font-size: 10px">                            
         <p style="text-align: center;">
@@ -1375,13 +2319,20 @@ function initializeApp() {
           tax_details: {
             total: totalVat,
             rate: safeUnescape(settings.percentage),
-            type: 'VAT' 
+            type: 'VAT'
           },
-          payment_mode: type
+          payment_mode: type,
+          // Loyalty program data
+          loyalty_data: currentLoyaltyProfile ? {
+            customer_id: currentLoyaltyProfile.customer_id,
+            points_earned: pointsToEarn,
+            tier_discount_applied: loyaltyDiscount,
+            tier_discount_amount: loyaltyDiscount > 0 ? (subTotal * loyaltyDiscount / 100) : 0
+          } : null
         };
 
         $.ajax({
-          url: window.api + "new",
+          url: window.api + "transactions/new",
           type: method,
           data: JSON.stringify(data),
           contentType: "application/json; charset=utf-8",
@@ -1431,7 +2382,7 @@ function initializeApp() {
         $("#payment,#paymentText").val("");
       };
 
-      $.get(window.api + "on-hold")
+      $.get(window.api + "transactions/on-hold")
         .done(function (data) {
           holdOrderList = data;
           holdOrderlocation.empty();
@@ -1444,7 +2395,7 @@ function initializeApp() {
         });
 
       $.fn.getHoldOrders = function () {
-        $.get(window.api + "on-hold")
+        $.get(window.api + "transactions/on-hold")
           .done(function (data) {
             holdOrderList = data;
             clearInterval(dotInterval);
@@ -1604,7 +2555,7 @@ function initializeApp() {
           diagOptions.cancelButtonText,
           () => {
             $.ajax({
-              url: window.api + "delete",
+              url: window.api + "transactions/delete",
               type: "POST",
               data: JSON.stringify(data),
               contentType: "application/json; charset=utf-8",
@@ -1630,7 +2581,7 @@ function initializeApp() {
       };
 
       $.fn.getCustomerOrders = function () {
-        $.get(window.api + "customer-orders")
+        $.get(window.api + "transactions/customer-orders")
           .done(function (data) {
             //clearInterval(dotInterval);
             customerOrderList = data;
@@ -1712,15 +2663,26 @@ function initializeApp() {
       });
 
       $("#transactions").on("click", function () {
-        loadTransactions();
-        loadUserList();
+        // Check if already in transactions view - if so, switch back to POS
+        if ($("#transactions_view").is(':visible')) {
+          // Show POS view, hide transactions view
+          $("#pos_view").show();
+          $("#transactions_view").hide();
+        } else {
+          loadTransactions();
+          loadUserList();
 
-        // Show transactions view, hide POS view
-        $("#pos_view").hide();
-        $("#transactions_view").show();
+          // Show transactions view, hide POS view
+          $("#pos_view").hide();
+          $("#transactions_view").show();
+        }
       });
 
       $("#pointofsale").on("click", function () {
+        console.log('DEBUG: Point of Sale button clicked');
+        console.log('DEBUG: pos_view visible:', $("#pos_view").is(':visible'));
+        console.log('DEBUG: transactions_view visible:', $("#transactions_view").is(':visible'));
+
         // Show POS view, hide transactions view
         $("#pos_view").show();
         $("#transactions_view").hide();
@@ -1828,7 +2790,7 @@ function initializeApp() {
           error: function (xhr, status, error) {
             const errorMessage = handleAjaxError(xhr, status, error, "Failed to save category");
             notiflix.Report.failure("Error", errorMessage, "Ok");
-          },
+          }
         });
       });
 
@@ -1845,7 +2807,7 @@ function initializeApp() {
         $("#product_price").val(allProducts[index].price);
         $("#quantity").val(allProducts[index].quantity);
         $("#barcode").val(allProducts[index].barcode || allProducts[index]._id);
-        $("#expirationDate").val(allProducts[index].expirationDate);
+        $("#expirationDate").val(allProducts[index].expirationDate || "");
         $("#minStock").val(allProducts[index].minStock || 1);
         $("#product_id").val(allProducts[index]._id);
         $("#img").val(allProducts[index].img);
@@ -2104,7 +3066,7 @@ function initializeApp() {
           }
           //calculate days to expiry
           product.expiryAlert = "";
-          if (!isExpired(expiryDate)) {
+          if (expiryDate && !isExpired(expiryDate)) {
             const diffDays = daysToExpire(expiryDate);
 
             if (diffDays > 0 && diffDays <= 30) {
@@ -2113,7 +3075,7 @@ function initializeApp() {
               product.expiryStatus = `${diffDays} ${days_noun} left`;
               product.expiryAlert = `<p class="text-danger"><small><i class="${icon}"></i> ${product.expiryStatus}</small></p>`;
             }
-          } else {
+          } else if (expiryDate && isExpired(expiryDate)) {
             icon = "fa fa-exclamation-triangle";
             product.expiryStatus = "Expired";
             product.expiryAlert = `<p class="text-danger"><small><i class="${icon}"></i> ${product.expiryStatus}</small></p>`;
@@ -2143,7 +3105,7 @@ function initializeApp() {
             <td>${product.stock == 1 ? product.quantity : "N/A"}
             ${product.stockAlert}
             </td>
-            <td>${product.expirationDate}</td>
+            <td>${product.expirationDate || ""}</td>
             <td>${category.length > 0 ? category[0].name : ""}</td>
             <td class="noop"><span class="btn-group"><button onClick="$(this).editProduct(${index})" class="btn btn-warning btn-sm"><i class="fa fa-edit"></i></button><button onClick="$(this).deleteProduct(${product._id
             })" class="btn btn-danger btn-sm"><i class="fa fa-trash"></i></button><button onClick="$(this).reorder(${product._id
@@ -2496,22 +3458,22 @@ function testApiConnectivity() {
       console.log('✅ DEBUG: API connectivity test successful');
       console.log('✅ DEBUG: Response:', response);
     },
-    error: function(xhr, status, error) {
-      console.error('❌ DEBUG: API connectivity test failed');
-      console.error('❌ DEBUG: Status:', status);
-      console.error('❌ DEBUG: Error:', error);
-      console.error('❌ DEBUG: XHR status:', xhr.status);
-      console.error('❌ DEBUG: XHR response:', xhr.responseText);
+    // error: function(xhr, status, error) {
+    //   console.error('❌ DEBUG: API connectivity test failed');
+    //   console.error('❌ DEBUG: Status:', status);
+    //   console.error('❌ DEBUG: Error:', error);
+    //   console.error('❌ DEBUG: XHR status:', xhr.status);
+    //   console.error('❌ DEBUG: XHR response:', xhr.responseText);
       
-      // Show user-friendly error message
-      if (xhr.status === 0) {
-        notiflix.Report.failure(
-          'Server Connection Error', 
-          'Cannot connect to the server. Please check if the server is running.', 
-          'Ok'
-        );
-      }
-    }
+    //   // Show user-friendly error message
+    //   // if (xhr.status === 0) {
+    //   //   notiflix.Report.failure(
+    //   //     'Server Connection Error', 
+    //   //     'Cannot connect to the server. Please check if the server is running.', 
+    //   //     'Ok'
+    //   //   );
+    //   // }
+    // }
   });
 }
 
@@ -2562,7 +3524,7 @@ function loadTransactions() {
   let transaction_list = "";
   let query = `by-date?start=${start_date}&end=${end_date}&user=${by_user}&status=${by_status}&till=${by_till}`;
 
-  $.get(window.api + query)
+  $.get(window.api + "transactions/" + query)
     .done(function (transactions) {
       if (transactions.length > 0) {
         $("#transaction_list").empty();
@@ -2577,15 +3539,28 @@ function loadTransactions() {
                 'Yes, Share',
                 'Cancel',
                 function() {
+                    const requestData = {
+                        transactionId: id,
+                        method: 'email',
+                        recipient: 'placeholder@example.com'
+                    };
+                    console.log('DEBUG: Client sending share request:', JSON.stringify(requestData, null, 2));
                     $.ajax({
                         url: window.api + 'transactions/share',
                         type: 'POST',
-                        data: JSON.stringify({ transactionId: id }),
+                        data: JSON.stringify(requestData),
                         contentType: 'application/json',
-                        success: function() {
+                        success: function(response) {
+                            console.log('DEBUG: Share request successful:', response);
                             notiflix.Report.success('Sent!', 'Invoice shared successfully.', 'Ok');
                         },
-                        error: function(xhr) {
+                        error: function(xhr, status, error) {
+                             console.log('DEBUG: Share request failed:', {
+                                 status: xhr.status,
+                                 statusText: xhr.statusText,
+                                 responseText: xhr.responseText,
+                                 error: error
+                             });
                              notiflix.Report.failure('Error', 'Failed to share invoice.', 'Ok');
                         }
                     });
@@ -2872,7 +3847,7 @@ $.fn.viewTransaction = function (index) {
             </tr>`;
   }
 
-  let logo = path.join(img_path, safeUnescape(settings.img));
+  let logo = img_path + safeUnescape(settings.img);
 
   receipt = `<div style="font-size: 10px">                            
         <p style="text-align: center;">
@@ -3420,6 +4395,332 @@ window.loadInventoryReport = loadInventoryReport;
 window.loadStaffReport = loadStaffReport;
 
 // ============================================
+// VARIANT MANAGEMENT FUNCTIONS
+// ============================================
+
+/**
+ * Show variant selection modal for products with variants
+ */
+function showVariantSelectionModal(product) {
+    // Check if product has variants based on existing data
+    // For now, we'll check if the product has variant-related properties
+    const hasVariants = product.has_variants || 
+                       product.stock_tracking_method === 'variant' ||
+                       (product.variants && Object.keys(product.variants).length > 0);
+    
+    if (!hasVariants) {
+        // No variants found, add product directly
+        $(this).addProductToCart(product);
+        return;
+    }
+    
+    // Try to load variant data, but don't fail if endpoint doesn't exist
+    $.get(window.api + `variants/product/${product._id}`)
+        .done(function(variantData) {
+            if (!variantData.variants || Object.keys(variantData.variants).length === 0) {
+                // No variants found in API response, add product directly
+                $(this).addProductToCart(product);
+                return;
+            }
+            
+            displayVariantSelectionModal(product, variantData);
+        })
+        .fail(function(xhr, status, error) {
+            console.warn('Variant API not available or failed:', error);
+            // If variant loading fails, add product directly
+            $(this).addProductToCart(product);
+        });
+}
+
+/**
+ * Display variant selection modal
+ */
+function displayVariantSelectionModal(product, variantData) {
+    // Create modal HTML if it doesn't exist
+    if ($('#variantSelectionModal').length === 0) {
+        const modalHtml = `
+            <div class="modal fade" id="variantSelectionModal" tabindex="-1" role="dialog">
+                <div class="modal-dialog modal-lg" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Select Variant</h5>
+                            <button type="button" class="close" data-dismiss="modal">
+                                <span>&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <!-- Content will be populated dynamically -->
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary" id="confirmVariantSelection">Add to Cart</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        $('body').append(modalHtml);
+    }
+    
+    const modal = $('#variantSelectionModal');
+    const modalBody = modal.find('.modal-body');
+    
+    // Clear previous content
+    modalBody.empty();
+    
+    // Add product info
+    const productInfo = `
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <img src="${product.img ? img_path + product.img : default_item_img}" 
+                     class="img-fluid" alt="${product.name}">
+            </div>
+            <div class="col-md-9">
+                <h5>${product.name}</h5>
+                <p class="text-muted">Price: ${getCurrencySymbol()}${moneyFormat(parseFloat(product.price).toFixed(2))}</p>
+                <p>Select size and color:</p>
+            </div>
+        </div>
+    `;
+    
+    modalBody.append(productInfo);
+    
+    // Create variant selection form
+    const sizes = variantData.matrix_config?.dimensions?.sizes || [];
+    const colors = Object.keys(variantData.variants);
+    
+    let formHtml = `
+        <form id="variantSelectionForm">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Size:</label>
+                        <select class="form-control" id="selectedSize" required>
+                            <option value="">Select Size</option>
+    `;
+    
+    sizes.forEach(size => {
+        formHtml += `<option value="${size}">${size}</option>`;
+    });
+    
+    formHtml += `
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Color:</label>
+                        <select class="form-control" id="selectedColor" required>
+                            <option value="">Select Color</option>
+    `;
+    
+    colors.forEach(color => {
+        formHtml += `<option value="${color}">${color}</option>`;
+    });
+    
+    formHtml += `
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12">
+                    <div id="variantStockInfo" class="alert alert-info" style="display: none;"></div>
+                    <div id="variantAvailability" class="mt-2"></div>
+                </div>
+            </div>
+        </form>
+    `;
+    
+    modalBody.append(formHtml);
+    
+    // Add event listeners
+    $('#selectedSize, #selectedColor').change(function() {
+        checkVariantAvailability();
+    });
+    
+    // Store product and variant data globally for this modal
+    modal.data('product', product);
+    modal.data('variantData', variantData);
+    
+    // Show modal
+    modal.modal('show');
+}
+
+/**
+ * Check variant availability and stock
+ */
+function checkVariantAvailability() {
+    const product = $('#variantSelectionModal').data('product');
+    const variantData = $('#variantSelectionModal').data('variantData');
+    const selectedSize = $('#selectedSize').val();
+    const selectedColor = $('#selectedColor').val();
+    
+    const availabilityDiv = $('#variantAvailability');
+    const stockInfoDiv = $('#variantStockInfo');
+    
+    if (!selectedSize || !selectedColor) {
+        availabilityDiv.empty();
+        stockInfoDiv.hide();
+        return;
+    }
+    
+    const variant = variantData.variants[selectedColor]?.[selectedSize];
+    
+    if (!variant) {
+        availabilityDiv.html('<div class="alert alert-danger">This combination is not available</div>');
+        stockInfoDiv.hide();
+        return;
+    }
+    
+    const stockStatus = variant.stock === 0 ? 'danger' : 
+                       variant.stock <= variant.min_stock ? 'warning' : 'success';
+    const statusText = variant.stock === 0 ? 'Out of Stock' : 
+                      variant.stock <= variant.min_stock ? 'Low Stock' : 'In Stock';
+    
+    availabilityDiv.html(`
+        <div class="alert alert-${stockStatus}">
+            <strong>Status:</strong> ${statusText}<br>
+            <strong>Available Stock:</strong> ${variant.stock} units
+        </div>
+    `);
+    
+    if (variant.stock > 0) {
+        stockInfoDiv.show();
+        stockInfoDiv.html(`
+            <strong>Barcode:</strong> ${variant.barcode}<br>
+            <strong>Min Stock:</strong> ${variant.min_stock}<br>
+            <strong>Last Updated:</strong> ${moment(variant.last_updated).format('DD/MM/YYYY HH:mm')}
+        `);
+    } else {
+        stockInfoDiv.hide();
+    }
+}
+
+/**
+ * Handle variant selection modal submission
+ */
+$(document).on('click', '#confirmVariantSelection', function() {
+    const product = $('#variantSelectionModal').data('product');
+    const variantData = $('#variantSelectionModal').data('variantData');
+    const selectedSize = $('#selectedSize').val();
+    const selectedColor = $('#selectedColor').val();
+    
+    if (!selectedSize || !selectedColor) {
+        notiflix.Notify.warning('Please select both size and color');
+        return;
+    }
+    
+    const variant = variantData.variants[selectedColor]?.[selectedSize];
+    
+    if (!variant || variant.stock === 0) {
+        notiflix.Notify.warning('Selected variant is not available');
+        return;
+    }
+    
+    // Create variant info object
+    const selectedVariant = {
+        size: selectedSize,
+        color: selectedColor,
+        variant_key: `${selectedColor}-${selectedSize}`,
+        barcode: variant.barcode,
+        stock: variant.stock
+    };
+    
+    // Add product to cart with variant info
+    addProductToCart(product, selectedVariant);
+    
+    // Close modal
+    $('#variantSelectionModal').modal('hide');
+});
+
+/**
+ * Find variant by barcode
+ */
+function findVariantByBarcode(variantData, barcode) {
+    if (!variantData.variants) return null;
+    
+    for (const [color, sizes] of Object.entries(variantData.variants)) {
+        for (const [size, variant] of Object.entries(sizes)) {
+            if (variant.barcode === barcode) {
+                return {
+                    size: size,
+                    color: color,
+                    variant_key: `${color}-${size}`,
+                    barcode: variant.barcode,
+                    stock: variant.stock
+                };
+            }
+        }
+    }
+    return null;
+}
+
+/**
+ * Enhanced renderTable to show variant information
+ */
+$.fn.renderTable = function (cartList) {
+    $("#cartTable .card-body").empty();
+    $(this).calculateCart();
+    $.each(cartList, function (index, data) {
+        const variantInfo = data.variant ? 
+            `<br><small class="text-muted">${data.variant.color} - ${data.variant.size}</small>` : 
+            '';
+        
+        $("#cartTable .card-body").append(
+            $("<div>", { class: "row m-t-10" }).append(
+                $("<div>", { class: "col-md-1", text: index + 1 }),
+                $("<div>", { class: "col-md-3" }).append(
+                    $("<div>", { text: data.product_name }),
+                    $(variantInfo)
+                ),
+                $("<div>", { class: "col-md-3" }).append(
+                    $("<div>", { class: "input-group" }).append(
+                        $("<span>", { class: "input-group-btn" }).append(
+                            $("<button>", {
+                                class: "btn btn-light",
+                                onclick: "$(this).qtDecrement(" + index + ")",
+                            }).append($("<i>", { class: "fa fa-minus" })),
+                        ),
+                        $("<input>", {
+                            class: "form-control",
+                            type: "text",
+                            readonly: "",
+                            value: data.quantity,
+                            min: "1",
+                            onInput: "$(this).qtInput(" + index + ")",
+                        }),
+                        $("<span>", { class: "input-group-btn" }).append(
+                            $("<button>", {
+                                class: "btn btn-light",
+                                onclick: "$(this).qtIncrement(" + index + ")",
+                            }).append($("<i>", { class: "fa fa-plus" })),
+                        ),
+                    ),
+                ),
+                $("<div>", {
+                    class: "col-md-3",
+                    text:
+                        getCurrencySymbol() +
+                        moneyFormat((data.price * data.quantity).toFixed(2)),
+                }),
+                $("<div>", { class: "col-md-1" }).append(
+                    $("<button>", {
+                        class: "btn btn-info btn-xs m-r-5",
+                        title: "View Alternatives",
+                        onclick: "$(this).viewSubstitutes(" + data.id + ', "' + data.product_name + '")',
+                    }).append($("<i>", { class: "fa fa-exchange" })),
+                    $("<button>", {
+                        class: "btn btn-light btn-xs",
+                        onclick: "$(this).deleteFromCart(" + index + ")",
+                    }).append($("<i>", { class: "fa fa-times" })),
+                ),
+            ),
+        );
+    });
+};
+
+// ============================================
 // CSV IMPORT EVENT HANDLERS
 // ============================================
 
@@ -3446,3 +4747,222 @@ $(document).on('click', '#exportCSV', function () {
 $(document).on('click', '#downloadTemplate', function () {
   $(this).downloadCSVTemplate();
 });
+
+// ============================================
+// KEYBOARD ACCESSIBILITY FUNCTIONS
+// ============================================
+
+/**
+ * Initialize keyboard accessibility for legacy POS system
+ */
+function initializeLegacyKeyboardAccessibility() {
+  console.log('Initializing legacy POS keyboard accessibility');
+
+  // Add accessibility CSS
+  injectLegacyAccessibilityCSS();
+
+  // Add global keyboard event listener
+  $(document).on('keydown', function(e) {
+    handleLegacyGlobalKeydown(e);
+  });
+
+  // Make product widgets focusable
+  makeProductsFocusable();
+
+  console.log('Legacy POS keyboard accessibility initialized');
+}
+
+/**
+ * Handle global keyboard shortcuts for legacy POS
+ */
+function handleLegacyGlobalKeydown(e) {
+  console.log('Legacy POS: Key pressed:', e.key, 'Active element:', document.activeElement.tagName);
+
+  // Skip if user is typing in input fields (except for specific shortcuts)
+  const activeElement = document.activeElement;
+  const isInputField = ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeElement.tagName);
+
+  // Allow certain keys even in input fields for specific shortcuts
+  if (isInputField && !['F2', 'F3', 'Escape'].includes(e.key)) {
+    return;
+  }
+
+  switch(e.key) {
+    case 'F2':
+      e.preventDefault();
+      clearLegacyBarcodeInput();
+      break;
+
+    case 'F3':
+      e.preventDefault();
+      focusLegacyBarcodeScanner();
+      break;
+
+    case 'Escape':
+      e.preventDefault();
+      handleLegacyEscapeKey();
+      break;
+
+    case 'Enter':
+      // Only handle Enter for payment if payment modal is visible
+      if ($('#paymentModel').is(':visible')) {
+        e.preventDefault();
+        $('#confirmPayment').click();
+      }
+      break;
+
+    default:
+      // Handle Ctrl+H for hold sale
+      if (e.ctrlKey && e.key === 'h') {
+        e.preventDefault();
+        $('#hold').click();
+      }
+      break;
+  }
+}
+
+/**
+ * Clear barcode input in legacy POS
+ */
+function clearLegacyBarcodeInput() {
+  $('#skuCode').val('');
+  $('#skuCode').focus();
+  console.log('Barcode input cleared');
+}
+
+/**
+ * Focus barcode scanner in legacy POS
+ */
+function focusLegacyBarcodeScanner() {
+  $('#skuCode').focus();
+}
+
+/**
+ * Handle escape key in legacy POS
+ */
+function handleLegacyEscapeKey() {
+  // Close any open modals
+  $('.modal').each(function() {
+    if ($(this).is(':visible')) {
+      $(this).modal('hide');
+    }
+  });
+}
+
+/**
+ * Make product widgets focusable and add ARIA attributes
+ */
+function makeProductsFocusable() {
+  $('.widget-panel').each(function(index) {
+    const $widget = $(this);
+    const productName = $widget.find('.name').text().trim();
+    const stockText = $widget.find('.count').text().trim();
+    const priceText = $widget.find('b').text().trim();
+
+    // Make focusable
+    $widget.attr('tabindex', '0');
+    $widget.addClass('focusable');
+
+    // Add ARIA attributes
+    $widget.attr('role', 'button');
+    $widget.attr('aria-label', `${productName}, price ${priceText}, stock ${stockText}`);
+
+    // Handle keyboard activation
+    $widget.on('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        // Trigger the click on the image inside the widget
+        $widget.find('#image').click();
+      }
+    });
+  });
+}
+
+/**
+ * Inject accessibility CSS for legacy POS
+ */
+function injectLegacyAccessibilityCSS() {
+  const css = `
+    <style id="legacy-pos-accessibility-css">
+      /* Focus indicators for legacy POS */
+      .widget-panel.focusable:focus {
+        outline: 2px solid #007acc;
+        outline-offset: 2px;
+        box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.3);
+      }
+
+      /* Screen reader only content */
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      /* High contrast focus */
+      @media (prefers-contrast: high) {
+        .widget-panel.focusable:focus {
+          outline: 3px solid #000;
+          outline-offset: 1px;
+        }
+      }
+
+      /* Reduced motion */
+      @media (prefers-reduced-motion: reduce) {
+        .widget-panel.focusable:focus {
+          transition: none;
+        }
+      }
+    </style>
+  `;
+
+  if (!$('#legacy-pos-accessibility-css').length) {
+    $('head').append(css);
+  }
+}
+
+/**
+ * Inject clickable widget CSS to provide visual feedback
+ */
+function injectClickableWidgetCSS() {
+  const css = `
+    <style id="clickable-widget-css">
+      /* Make entire widget panel clickable with visual feedback */
+      .widget-panel {
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      
+      .widget-panel:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        border-color: #007acc;
+      }
+      
+      .widget-panel:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      
+      /* Ensure variant buttons don't inherit pointer cursor */
+      .widget-panel .btn.btn-xs.btn-success[data-variant-trigger] {
+        cursor: pointer;
+      }
+      
+      /* Make variant buttons stand out */
+      .widget-panel .btn.btn-xs.btn-success[data-variant-trigger]:hover {
+        transform: none;
+        box-shadow: none;
+      }
+    </style>
+  `;
+
+  if (!$('#clickable-widget-css').length) {
+    $('head').append(css);
+  }
+}

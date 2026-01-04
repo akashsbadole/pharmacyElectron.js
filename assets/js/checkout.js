@@ -1,5 +1,29 @@
-// Browser-compatible utils - use global utils object
-// const QRCode = require("qrcode"); // We'll handle QR code generation differently
+// Browser-compatible utils loading
+let checkoutUtils;
+if (typeof require !== 'undefined') {
+    try {
+        checkoutUtils = require("./utils");
+    } catch (e) {
+        console.warn('Node.js utils not available, using browser fallback');
+        checkoutUtils = window.utils;
+    }
+} else {
+    checkoutUtils = window.utils;
+}
+
+// Fallback if utils is still not available
+if (!checkoutUtils) {
+    checkoutUtils = {
+        moneyFormat: (amount) => new Intl.NumberFormat('en-IN').format(amount),
+        getStockStatus: (current, minimum) => {
+            current = Number(current);
+            minimum = Number(minimum);
+            if (current <= 0) return 0;
+            if (current <= minimum) return -1;
+            return 1;
+        }
+    };
+}
 
 /** CheckOut Functions **/
 $(document).ready(function () {
@@ -14,7 +38,7 @@ $(document).ready(function () {
       $("#refNumber").val($("#refNumber").val() + "" + value);
     } else {
       paymentAmount = paymentAmount + "" + value;
-      $("#paymentText").val(window.moneyFormat ? window.moneyFormat(paymentAmount) : paymentAmount);
+      $("#paymentText").val(checkoutUtils.moneyFormat(paymentAmount));
       $("#payment").val(paymentAmount);
       $(this).calculateChange();
     }
@@ -25,7 +49,7 @@ $(document).ready(function () {
    */
   $.fn.digits = function () {
     let paymentAmount = $("#payment").val();
-    $("#paymentText").val(window.moneyFormat ? window.moneyFormat(paymentAmount) : paymentAmount);
+    $("#paymentText").val(checkoutUtils.moneyFormat(paymentAmount));
     $("#payment").val(paymentAmount + ".");
     $(this).calculateChange();
   };
@@ -38,7 +62,7 @@ $(document).ready(function () {
     var payment = $("#payment").val().replace(",", "");
     var change = payablePrice - payment;
     if (change <= 0) {
-      $("#change").text(window.moneyFormat ? window.moneyFormat(Math.abs(change.toFixed(2))) : Math.abs(change.toFixed(2)));
+      $("#change").text(checkoutUtils.moneyFormat(Math.abs(change.toFixed(2))));
       $("#confirmPayment").show();
     } else {
       $("#change").text("0");
@@ -51,7 +75,7 @@ $(document).ready(function () {
     const isdue = $(this).data("isdue");
     switch(key)
     {
-    case "del" : { 
+    case "del" : {
       if(isdue)
       {
         $('#refNumber').val((i, val) => val.slice(0, -1));
@@ -59,8 +83,8 @@ $(document).ready(function () {
       else
       {
         $("#payment").val((i, val) => val.slice(0, -1));
-      //re-format displayed amount after deletion 
-      $("#paymentText").val((i, val) => window.moneyFormat ? window.moneyFormat($("#payment").val()) : $("#payment").val());
+      //re-format displayed amount after deletion
+      $("#paymentText").val((i, val) => checkoutUtils.moneyFormat($("#payment").val()));
       }
       $(this).calculateChange()
     }; break;
@@ -75,7 +99,7 @@ $(document).ready(function () {
         $('#payment,#paymentText').val('');
         $(this).calculateChange();
       }
-       
+
     };break;
 
   case "point": {
@@ -85,6 +109,14 @@ $(document).ready(function () {
    default: $(this).keypadBtnPressed(key, isdue); break;
   }
 });
+
+  // Handle direct input on payment field
+  $("#paymentText").on("input", function() {
+    let inputVal = $(this).val().replace(/,/g, '').replace(/[^\d.]/g, ''); // remove commas and non-numeric except .
+    let numVal = parseFloat(inputVal) || 0;
+    $("#payment").val(numVal);
+    $(this).calculateChange();
+  });
 
   /** Switch Views for Payment Options **/
   var $list = $(".list-group-item").on("click", function () {

@@ -1,4 +1,17 @@
-const useStore = require('./store');
+// Browser-compatible Store Manager
+// Graceful degradation for Node.js dependencies
+
+let useStore;
+if (typeof require !== 'undefined') {
+    try {
+        useStore = require('./store');
+    } catch (e) {
+        console.warn('Node.js store not available, using browser fallback');
+        useStore = window.useStore;
+    }
+} else {
+    useStore = window.useStore;
+}
 
 /**
  * Store Manager - Bridges between vanilla store and existing POS functionality

@@ -80,24 +80,32 @@ express.get('/config', function(req, res) {
 });
 
 express.use("/api/inventory", require("./api/inventory"));
+express.use("/api/inventory-matrix", require("./api/inventory_matrix"));
 express.use("/api/customers", require("./api/customers"));
 express.use("/api/categories", require("./api/categories"));
 express.use("/api/settings", require("./api/settings"));
 express.use("/api/contact", require("./api/contact"));
 express.use("/api/users", require("./api/users"));
-// express.use("/api/prescriptions", require("./api/prescriptions")); // Removed for restaurant conversion
 express.use("/api/suppliers", require("./api/suppliers"));
 express.use("/api/purchase_orders", require("./api/purchase_orders"));
 express.use("/api/session-logs", require("./api/session_logs"));
 express.use("/api/backup", require("./api/backup"));
-express.use("/api", require("./api/transactions"));
+console.log("Mounting transactions routes...");
+try {
+    const transactionsRoutes = require("./api/transactions");
+    express.use("/api/transactions", transactionsRoutes);
+    console.log("Transactions routes mounted successfully.");
+} catch (error) {
+    console.error("Failed to mount transactions routes:", error);
+}
 express.use("/api/integration", require("./api/integration"));
 express.use("/api/notifications", require("./api/notifications"));
 express.use("/api/audit-logs", require("./api/audit_logs"));
-
-express.use("/api/tables", require("./api/tables"));
-express.use("/api/combos", require("./api/combos"));
-express.use("/api/todos", require("./api/todos"));
+express.use("/api/analytics", require("./api/analytics"));
+express.use("/api/advanced_analytics", require("./api/advanced_analytics"));
+express.use("/api/share", require("./api/share"));
+express.use("/api/loyalty", require("./api/loyalty_system"));
+// Restaurant APIs removed for Garments focus
 
 global.io = io;
 
@@ -121,6 +129,7 @@ server.listen(PORT, () => {
     // Set up periodic cleanup of temporary database files
     const dbPaths = [
         require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "inventory.db"),
+        require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "inventory_matrix.db"),
         require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "session_logs.db"),
         require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "users.db"),
         require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "transactions.db"),
@@ -128,14 +137,11 @@ server.listen(PORT, () => {
         require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "customers.db"),
         require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "categories.db"),
         require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "settings.db"),
-
-        require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "reports.db"), // Added for reports
-        require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "prescriptions.db"), // Added for prescriptions
-        require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "todos.db"), // Added for todo management
-        // require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "prescriptions.db"), // Removed for restaurant conversion
         require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "purchase_orders.db"),
         require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "contact.db"),
-        require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "audit_logs.db")
+        require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "audit_logs.db"),
+        require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "analytics.db"),
+        require('path').join(process.env.APPDATA, process.env.APPNAME, "server", "databases", "advanced_analytics.db")
     ];
     
     // Run cleanup every 10 minutes (increased from 5)

@@ -1,16 +1,16 @@
 {
-  "name": "retailpos",
-  "productName": "Retail POS",
+  "name": "garmentpos",
+  "productName": "garmentpos",
   "version": "1.5.1",
-  "description": "Easy Point of Sale for Retail & Grocery Stores",
+  "description": "Easy Point of Sale for garment",
   "author": "Akash Badole",
-  "website": "https://akash.com/retailpos",
+  "website": "https://devbitpos.com/garmentpos",
   "credits": "electronjs.org",
   "license": "MIT",
   "private": true,
   "main": "start.js",
   "build": {
-    "appId": "com.akash.retailpos",
+    "appId": "com.devbitpos.garmentpos",
     "directories": {
       "buildResources": "assets"
     }
@@ -45,21 +45,23 @@
     "macaddress": "^0.5.3",
     "moment": "^2.29.4",
     "multer": "^2.0.2",
+    "nodemailer": "^7.0.12",
     "notiflix": "^3.2.5",
     "print-js": "^1.6.0",
     "qrcode": "^1.5.4",
     "sanitize": "^2.1.2",
     "sanitize-filename": "^1.6.3",
     "socket.io": "^4.8.0",
+    "twilio": "^5.11.1",
     "unzipper": "^0.12.3",
     "up": "^1.0.2",
     "validator": "^13.15.23",
     "xmlhttprequest": "^1.8.0"
   },
   "scripts": {
-    "electron": "cross-env NODE_ENV=dev nodemon --exec \"electron .\"",
+    "electron": "cross-env NODE_ENV=dev nodemon --exec \"\"electron .\"\"",
     "electron-build": "electron-builder",
-    "package-win": "electron-packager . \"Retail POS\" --overwrite --asar=false --platform=win32 --arch=x64 --icon=assets/images/icon.ico --prune=true --out=release-builds --version-string.ProductName=\"Retail POS\"",
+    "package-win": "electron-packager . garmentpos --overwrite --asar=false --platform=win32 --arch=x64 --icon=assets/images/icon.ico --prune=true --out=release-builds --version-string.ProductName=\"garmentpos\"",
     "start": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",

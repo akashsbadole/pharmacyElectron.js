@@ -23,7 +23,7 @@ function loadSupplierList() {
     $("#supplier_list").empty();
 
     // Check if DataTable exists before destroying
-    if ($.fn.DataTable && $.fn.DataTable.isDataTable('#supplierList')) {
+    if ($.fn.DataTable.isDataTable('#supplierList')) {
         $("#supplierList").DataTable().destroy();
     }
 
@@ -43,15 +43,13 @@ function loadSupplierList() {
     });
 
     $("#supplier_list").html(supplier_list);
-    if ($.fn.DataTable) {
-        $("#supplierList").DataTable({
-            autoWidth: false,
-            info: true,
-            JQueryUI: true,
-            ordering: true,
-            paging: false,
-        });
-    }
+    $("#supplierList").DataTable({
+        autoWidth: false,
+        info: true,
+        JQueryUI: true,
+        ordering: true,
+        paging: false,
+    });
 }
 
 // Load suppliers into dropdowns
@@ -111,12 +109,20 @@ $(document).ready(function () {
         let method = formData.id ? "PUT" : "POST";
         let url = formData.id ? window.api + "suppliers/" + formData.id : window.api + "suppliers";
 
-        delete formData.id; // Remove id from body for PUT
+        // Map form field names to API expected names
+        let data = {
+            name: formData.supplierName,
+            contact_person: formData.contactPerson,
+            phone: formData.supplierPhone,
+            email: formData.supplierEmail,
+            address: formData.supplierAddress,
+            payment_terms: formData.paymentTerms
+        };
 
         $.ajax({
             url: url,
             type: method,
-            data: JSON.stringify(formData),
+            data: JSON.stringify(data),
             contentType: "application/json; charset=utf-8",
             cache: false,
             processData: false,

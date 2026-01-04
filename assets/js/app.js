@@ -1,5 +1,5 @@
 /**
- * foodMine Main Application Controller
+ * garmentMine Main Application Controller
  * Modern tab-based interface with centralized state management
  */
 
@@ -38,7 +38,7 @@ class EventEmitter {
 }
 
 // Browser-compatible Store implementation using localStorage
-class Store {
+class AppStore {
   constructor() {
     this.storage = window.localStorage;
   }
@@ -115,7 +115,7 @@ class AppState extends EventEmitter {
           salesChange: 0,
           transactionChange: 0,
           stockChange: 0,
-          // Pharmacy-focused metrics
+          // Removed prescriptionChange for restaurant conversion
           salesData: []
         },
         alerts: [],
@@ -123,47 +123,6 @@ class AppState extends EventEmitter {
         loading: false
       },
 
-
-
-
-
-      tables: {
-        tables: [],
-        tableOrders: [],
-        metrics: {},
-        currentView: 'layout',
-        layoutMode: false,
-        selectedTable: null,
-        selectedTableData: null,
-        loading: false,
-        lastUpdated: null,
-        soundEnabled: true
-      },
-
-      combos: {
-        combos: [],
-        categories: [],
-        menuItems: [],
-        currentCombo: null,
-        selectedCombos: [],
-        filteredCombos: [],
-        filters: {},
-        analytics: {},
-        loading: false
-      },
-
-      analytics: {
-        currentView: 'dashboard',
-        dateRange: {
-          start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-          end: new Date()
-        },
-        data: {},
-        loading: false,
-        refreshInterval: null
-      },
-
-      // Removed prescriptions module for restaurant conversion
 
       pos: {
         currentSale: {},
@@ -183,8 +142,6 @@ class AppState extends EventEmitter {
         loading: false,
         alertCount: 0
       },
-
-      // Removed prescriptions module for restaurant conversion
 
       customers: {
         list: [],
@@ -207,19 +164,6 @@ class AppState extends EventEmitter {
         loading: false
       },
 
-      todos: {
-        list: [],
-        filteredTodos: [],
-        currentFilter: {
-          status: 'all',
-          category: 'all', 
-          priority: 'all',
-          search: ''
-        },
-        selectedTodos: [],
-        loading: false
-      },
-
       settings: {
         general: {},
         network: {},
@@ -229,7 +173,7 @@ class AppState extends EventEmitter {
     };
 
     // Initialize storage (localStorage)
-    this.storage = (window.localStorage && typeof window.localStorage !== 'undefined') ? new Store() : null;
+    this.storage = (window.localStorage && typeof window.localStorage !== 'undefined') ? new AppStore() : null;
     this.loadPersistedState();
   }
 
@@ -352,8 +296,8 @@ class ViewManager {
   constructor() {
     console.log('=== INITIALIZING VIEWMANAGER ===');
 
-    // Check for module containers in DOM (pharmacy-focused modules)
-    const moduleIds = ['dashboard', 'pos', 'inventory', 'tables', 'combos', 'analytics', 'customers', 'suppliers', 'reports', 'settings', 'todos'];
+    // Check for module containers in DOM (Garments modules only)
+    const moduleIds = ['dashboard', 'pos', 'inventory', 'customers', 'suppliers', 'reports', 'settings'];
 
     this.modules = new Map();
     moduleIds.forEach(id => {
@@ -370,15 +314,9 @@ class ViewManager {
       'dashboard': 'Dashboard',
       'pos': 'Point of Sale',
       'inventory': 'Inventory Management',
-
-      'tables': 'Reports',
-      'combos': 'Product Bundles',
-      'analytics': 'Analytics',
-      // 'prescriptions': 'Prescription Management', // Removed for restaurant conversion
       'customers': 'Customer Management',
       'suppliers': 'Supplier Management',
       'reports': 'Reports & Analytics',
-      'todos': 'Todo Management',
       'settings': 'Settings'
     };
 
@@ -478,7 +416,7 @@ class ViewManager {
   updateContentTitle(moduleId) {
     const contentTitle = document.getElementById('content-title');
     if (contentTitle) {
-      contentTitle.textContent = this.moduleTitles[moduleId] || 'foodMine';
+      contentTitle.textContent = this.moduleTitles[moduleId] || 'garmentMine';
     }
   }
 
@@ -740,7 +678,7 @@ const posActions = {
     dispatch({ type: 'POS_SET_LOADING', payload: { loading: true } });
 
     try {
-      const response = await fetch(window.api + 'new', {
+      const response = await fetch(window.api + 'transactions/new', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -768,7 +706,6 @@ const posActions = {
     }
   }
 };
-
 
 
 // Inventory actions
@@ -923,17 +860,15 @@ async function fetchDashboardMetrics() {
     const inventoryResponse = await fetch(`${window.api}inventory/alerts`);
     const lowStockItems = await inventoryResponse.json();
 
-    // Pharmacy-specific data
-
     return {
       todaySales,
       transactions,
       lowStock: lowStockItems.length,
-      // Removed pendingPrescriptions for restaurant conversion
+      pendingPrescriptions: 0, // Garments-specific metric
       salesChange: 0, // TODO: Calculate change from previous day
       transactionChange: 0,
       stockChange: 0,
-      // Removed prescriptionChange for restaurant conversion
+      prescriptionChange: 0, // Garments-specific metric
       salesData: salesData.slice(0, 10) // Last 10 transactions
     };
 
@@ -943,11 +878,11 @@ async function fetchDashboardMetrics() {
       todaySales: 0,
       transactions: 0,
       lowStock: 0,
-      // Removed pendingPrescriptions for restaurant conversion
+      pendingPrescriptions: 0, // Garments-specific metric
       salesChange: 0,
       transactionChange: 0,
       stockChange: 0,
-      // Removed prescriptionChange for restaurant conversion
+      prescriptionChange: 0, // Garments-specific metric
       salesData: []
     };
   }
@@ -986,7 +921,12 @@ async function loadRecentActivity() {
         timestamp: new Date(Date.now() - 60 * 60 * 1000), // 1 hour ago
         icon: '👥'
       },
-      // Pharmacy verification activity
+      {
+        type: 'prescription_verified',
+        message: 'Prescription verified - Dr. Smith',
+        timestamp: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
+        icon: '📋'
+      }
     ];
   } catch (error) {
     console.error('Error loading recent activity:', error);
@@ -995,9 +935,9 @@ async function loadRecentActivity() {
 }
 
 // Main App Controller
-class foodMineApp {
+class garmentMineApp {
   constructor() {
-    console.log('=== INITIALIZING foodMine APP ===');
+    console.log('=== INITIALIZING garmentMine APP ===');
     this.state = new AppState();
     this.modules = new Map();
     this.eventHandlers = new Map();
@@ -1011,7 +951,7 @@ class foodMineApp {
     console.log('Initializing modules...');
     this.initializeModuleInstances();
 
-    console.log('=== foodMine APP CONSTRUCTION COMPLETE ===');
+    console.log('=== garmentMine APP CONSTRUCTION COMPLETE ===');
   }
 
   // Initialize the application
@@ -1029,10 +969,10 @@ class foodMineApp {
       // Set up global event handlers
       this.setupGlobalEventHandlers();
 
-      console.log('foodMine app initialized successfully');
+      console.log('garmentMine app initialized successfully');
 
     } catch (error) {
-      console.error('Failed to initialize foodMine app:', error);
+      console.error('Failed to initialize garmentMine app:', error);
       this.state.setState({ error: error.message }, 'app');
     }
   }
@@ -1197,13 +1137,10 @@ class foodMineApp {
       DashboardModule: !!window.DashboardModule,
       POSModule: !!window.POSModule,
       InventoryModule: !!window.InventoryModule,
-      ReportsModule: !!window.ReportsModule,
-      CombosModule: !!window.CombosModule,
       CustomersModule: !!window.CustomersModule,
       SuppliersModule: !!window.SuppliersModule,
       ReportsModule: !!window.ReportsModule,
-      SettingsModule: !!window.SettingsModule,
-      TodoModule: !!window.TodoModule
+      SettingsModule: !!window.SettingsModule
     });
 
     // Register core modules if classes are available
@@ -1211,11 +1148,9 @@ class foodMineApp {
       ['dashboard', window.DashboardModule],
       ['pos', window.POSModule],
       ['inventory', window.InventoryModule],
-      ['analytics', window.AnalyticsModule],
       ['customers', window.CustomersModule],
       ['suppliers', window.SuppliersModule],
       ['reports', window.ReportsModule],
-      ['todos', window.TodoModule],
       ['settings', window.SettingsModule]
     ];
 
@@ -1375,8 +1310,6 @@ class foodMineApp {
         }
         break;
 
-
-
       default:
         console.warn('Unknown action type:', action.type);
     }
@@ -1389,50 +1322,25 @@ window.appActions = {
   app: appActions,
   dashboard: dashboardActions,
   pos: posActions,
-  inventory: inventoryActions,
-
-  combos: {
-    loadCombos: () => async (dispatch) => {
-      dispatch({ type: 'COMBOS_SET_LOADING', payload: { loading: true } });
-      try {
-        const response = await fetch(window.api + 'combos/combos');
-        const combos = await response.json();
-        dispatch({ type: 'COMBOS_SET_COMBOS', payload: { combos } });
-      } catch (error) {
-        dispatch({ type: 'APP_SET_ERROR', payload: { error: error.message } });
-      } finally {
-        dispatch({ type: 'COMBOS_SET_LOADING', payload: { loading: false } });
-      }
-    },
-    loadMenuItems: () => async (dispatch) => {
-      try {
-        const response = await fetch(window.api + 'inventory/products');
-        const menuItems = await response.json();
-        dispatch({ type: 'COMBOS_SET_MENU_ITEMS', payload: { menuItems } });
-      } catch (error) {
-        console.error('Error loading menu items:', error);
-      }
-    }
-  }
+  inventory: inventoryActions
 };
 
 // Initialize app when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('Initializing foodMine app...');
-  window.pharmaApp = new foodMineApp();
+  console.log('Initializing garmentMine app...');
+  window.pharmaApp = new garmentMineApp();
 });
 
 // Export for use in other modules and Node.js
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
-    foodMineApp,
+    garmentMineApp,
     AppState,
     ViewManager,
     navigationActions,
     appActions,
     dashboardActions,
     posActions,
-    inventoryActions,
-    // Removed kitchenActions for pharmacy conversion
+    inventoryActions
   };
 }

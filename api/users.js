@@ -331,6 +331,102 @@ app.get("/check", function (req, res) {
 });
 
 /**
+ * GET endpoint: Check user permissions and status (for application validation).
+ *
+ * @param {Object} req request object.
+ * @param {Object} res response object.
+ * @returns {void}
+ */
+app.get("/check/", function (req, res) {
+    // This endpoint is used by the application to validate user permissions
+    // Return basic user info without sensitive data
+    usersDB.findOne(
+        {
+            _id: 1,
+        },
+        function (err, docs) {
+            if (err) {
+                console.error(err);
+                res.status(500).json({
+                    error: "Internal Server Error",
+                    message: "An unexpected error occurred.",
+                });
+            } else {
+                if (!docs) {
+                    // Initialize default admin user if not exists
+                    bcrypt
+                        .hash("admin", saltRounds)
+                        .then((hash) => {
+                            let user = {
+                                _id: 1,
+                                username: "admin",
+                                fullname: "Administrator",
+                                perm_products: 1,
+                                perm_categories: 1,
+                                perm_transactions: 1,
+                                perm_users: 1,
+                                perm_settings: 1,
+                                status: "",
+                            };
+                            user.password = hash;
+                            usersDB.insert(user, function (err, user) {
+                                if (err) {
+                                    console.error(err);
+                                    res.status(500).json({
+                                        error: "Internal Server Error",
+                                        message: "Failed to create default admin user.",
+                                    });
+                                } else {
+                                    res.json({
+                                        success: true,
+                                        message: "Default admin user created",
+                                        user: {
+                                            _id: user._id,
+                                            username: user.username,
+                                            fullname: user.fullname,
+                                            permissions: {
+                                                products: user.perm_products,
+                                                categories: user.perm_categories,
+                                                transactions: user.perm_transactions,
+                                                users: user.perm_users,
+                                                settings: user.perm_settings
+                                            }
+                                        }
+                                    });
+                                }
+                            });
+                        })
+                        .catch((err) => {
+                            console.error(err);
+                            res.status(500).json({
+                                error: "Internal Server Error",
+                                message: "Failed to create default admin user.",
+                            });
+                        });
+                } else {
+                    // Return existing user info
+                    res.json({
+                        success: true,
+                        user: {
+                            _id: docs._id,
+                            username: docs.username,
+                            fullname: docs.fullname,
+                            permissions: {
+                                products: docs.perm_products,
+                                categories: docs.perm_categories,
+                                transactions: docs.perm_transactions,
+                                users: docs.perm_users,
+                                settings: docs.perm_settings
+                            }
+                        }
+                    });
+                }
+            }
+        },
+    );
+});
+
+/**
  * Get all users (for reporting functions)
  *
  * @param {Function} callback - Callback function to receive users data

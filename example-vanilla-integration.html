@@ -126,11 +126,10 @@
                 <label for="category-filter">Filter by Category:</label>
                 <select id="category-filter">
                     <option value="all">All Categories</option>
-                    <option value="Fresh Produce">Fresh Produce</option>
-                    <option value="Dairy">Dairy</option>
-                    <option value="Meat/Seafood">Meat/Seafood</option>
-                    <option value="Bakery">Bakery</option>
-                    <option value="Beverages">Beverages</option>
+                    <option value="Vitamins">Vitamins</option>
+                    <option value="Supplements">Supplements</option>
+                    <option value="Analgesics">Analgesics</option>
+                    <option value="Antibiotics">Antibiotics</option>
                 </select>
             </div>
 
@@ -221,60 +220,60 @@
             const sampleProducts = [
                 {
                     _id: 1,
-                    name: "Fresh Apples (1 lb)",
+                    name: "Vitamin D3 1000IU Tablets",
                     barcode: "1122334455667",
-                    price: "2.99",
-                    category: "Fresh Produce",
-                    quantity: 150,
-                    minStock: 20,
+                    price: "12.99",
+                    category: "Vitamins",
+                    quantity: 250,
+                    minStock: 30,
                     stock: 1,
-                    expirationDate: "2025-01-10",
+                    expirationDate: "2026-03-15",
                     img: ""
                 },
                 {
                     _id: 2,
-                    name: "Whole Milk (1 Gallon)",
+                    name: "Iron Ferrous Sulfate 200mg",
                     barcode: "2233445566778",
-                    price: "3.49",
-                    category: "Dairy",
-                    quantity: 45, // Low stock
-                    minStock: 30,
+                    price: "7.99",
+                    category: "Supplements",
+                    quantity: 5, // Low stock
+                    minStock: 25,
                     stock: 1,
-                    expirationDate: "2025-01-08",
+                    expirationDate: "2025-11-22",
                     img: ""
                 },
                 {
                     _id: 3,
-                    name: "Ground Beef (1 lb)",
+                    name: "Calcium Carbonate 500mg",
                     barcode: "3344556677889",
-                    price: "5.99",
-                    category: "Meat/Seafood",
+                    price: "9.49",
+                    category: "Supplements",
                     quantity: 0, // Out of stock
-                    minStock: 25,
+                    minStock: 20,
                     stock: 1,
-                    expirationDate: "2025-01-06",
+                    expirationDate: "2025-12-08",
                     img: ""
                 },
                 {
                     _id: 4,
-                    name: "Sourdough Bread",
+                    name: "Expired Multivitamin",
                     barcode: "4455667788990",
-                    price: "4.25",
-                    category: "Bakery",
-                    quantity: 24,
-                    minStock: 12,
+                    price: "16.99",
+                    category: "Vitamins",
+                    quantity: 120,
+                    minStock: 15,
                     stock: 1,
-                    expirationDate: "2025-01-05", // Expiring soon
+                    expirationDate: "2023-04-30", // Expired
                     img: ""
                 }
             ];
 
             // Sample categories
             const sampleCategories = [
-                { _id: 1, name: "Fresh Produce" },
-                { _id: 2, name: "Dairy" },
-                { _id: 3, name: "Meat/Seafood" },
-                { _id: 4, name: "Bakery" }
+                { _id: 1, name: "Vitamins" },
+                { _id: 2, name: "Supplements" },
+                { _id: 3, name: "Analgesics" },
+                { _id: 4, name: "Antibiotics" }
             ];
 
             // Sample settings
@@ -282,7 +281,7 @@
                 symbol: "$",
                 percentage: "10",
                 charge_tax: true,
-                store: "Sample FoodMine"
+                store: "Sample garmentMine"
             };
 
             setAllProducts(sampleProducts);
