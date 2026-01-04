@@ -24,10 +24,10 @@ Module.prototype.require = function(request) {
 
 // Set fixed port for testing
 process.env.PORT = 8001;
-process.env.APPNAME = 'garmentpos_Test'; // Use a test app name to avoid messing with real DB if possible, but user asked for features so maybe use real one?
+process.env.APPNAME = 'retailspos_Test'; // Use a test app name to avoid messing with real DB if possible, but user asked for features so maybe use real one?
 // Wait, if I change APPNAME, I won't see existing data. But I am adding new features.
-// Use 'garmentpos' as in package.json to match real environment behavior?
-// package.json name is "garmentpos".
+// Use 'retailspos' as in package.json to match real environment behavior?
+// package.json name is "retailspos".
 // server.js uses pkg.name.
 const pkg = require("./package.json"); 
 process.env.APPNAME = pkg.name; // Keep it real to ensure we test against real DB structure (NeDB files)

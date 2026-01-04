@@ -3,7 +3,7 @@ const express = require('express');
 const Datastore = require('@seald-io/nedb');
 
 // Mock environment variables
-process.env.APPNAME = 'garmentpos';
+process.env.APPNAME = 'retailspos';
 process.env.APPDATA = 'C:/temp'; // Use a temp path for tests
 
 // Mock the database_utils

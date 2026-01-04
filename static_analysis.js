@@ -1,5 +1,5 @@
 /**
- * Static Code Analysis for garmentpos Features
+ * Static Code Analysis for retailspos Features
  * Analyzes implementation without requiring server to be running
  */
 
@@ -162,19 +162,19 @@ class StaticAnalyzer {
         if (packageContent) {
             const packageJson = JSON.parse(packageContent);
             
-            if (packageJson.name === 'garmentpos') {
+            if (packageJson.name === 'retailspos') {
                 this.results.branding.implemented++;
                 this.results.branding.total++;
-                this.results.branding.details.push('✅ Package name correctly set to "garmentpos"');
+                this.results.branding.details.push('✅ Package name correctly set to "retailspos"');
             } else {
                 this.results.branding.total++;
                 this.results.branding.details.push(`❌ Package name incorrect: ${packageJson.name}`);
             }
 
-            if (packageJson.productName === 'garmentpos') {
+            if (packageJson.productName === 'retailspos') {
                 this.results.branding.implemented++;
                 this.results.branding.total++;
-                this.results.branding.details.push('✅ Product name correctly set to "garmentpos"');
+                this.results.branding.details.push('✅ Product name correctly set to "retailspos"');
             } else {
                 this.results.branding.total++;
                 this.results.branding.details.push(`❌ Product name incorrect: ${packageJson.productName}`);
@@ -185,7 +185,7 @@ class StaticAnalyzer {
         const htmlContent = this.analyzeFile('./index.html', 'branding');
         
         if (htmlContent) {
-            this.checkUIElement(htmlContent, 'garmentpos', 'branding');
+            this.checkUIElement(htmlContent, 'retailspos', 'branding');
             this.checkUIElement(htmlContent, 'garment Management System', 'branding');
         }
 
@@ -270,7 +270,7 @@ class StaticAnalyzer {
     }
 
     runAnalysis() {
-        console.log('🔍 Starting Static Code Analysis for garmentpos Features');
+        console.log('🔍 Starting Static Code Analysis for retailspos Features');
         console.log('=' .repeat(60));
         
         this.analyzeCSVFeature();

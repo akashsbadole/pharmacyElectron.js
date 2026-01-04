@@ -64,10 +64,10 @@
       "total": 8,
       "details": [
         "✅ File exists: ./package.json",
-        "✅ Package name correctly set to \"garmentpos\"",
-        "✅ Product name correctly set to \"garmentpos\"",
+        "✅ Package name correctly set to \"retailspos\"",
+        "✅ Product name correctly set to \"retailspos\"",
         "✅ File exists: ./index.html",
-        "✅ UI Element found: garmentpos",
+        "✅ UI Element found: retailspos",
         "✅ UI Element found: garment Management System",
         "✅ File exists: ./renderer.js",
         "✅ Function found: backup.js"
