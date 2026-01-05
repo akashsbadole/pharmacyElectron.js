@@ -227,8 +227,8 @@ app.post("/product", function (req, res) {
         };
 
         if (validator.escape(req.body.id || "") === "") {
-            MenuItem._id = Math.floor(Date.now() / 1000);
-            inventoryDB.insert(MenuItem, function (err, menuItem) {
+            Product._id = Math.floor(Date.now() / 1000);
+            inventoryDB.insert(Product, function (err, menuItem) {
                 if (err) {
                     console.error(err);
                     res.status(500).json({
@@ -244,7 +244,7 @@ app.post("/product", function (req, res) {
                 {
                     _id: parseInt(validator.escape(req.body.id || "")),
                 },
-                MenuItem,
+                Product,
                 {},
                 function (err, numReplaced, menuItem) {
                     if (err) {
@@ -887,6 +887,51 @@ function levenshteinDistance(str1, str2) {
     }
 
     return matrix[str2.length][str1.length];
+}
+
+/**
+ * Helper function to parse dietary info from JSON string
+ */
+function parseDietaryInfo(dietaryInfoStr) {
+    try {
+        if (!dietaryInfoStr || dietaryInfoStr === "[]") {
+            return [];
+        }
+        return JSON.parse(dietaryInfoStr);
+    } catch (e) {
+        console.warn('Failed to parse dietary_info:', e);
+        return [];
+    }
+}
+
+/**
+ * Helper function to parse allergens from JSON string
+ */
+function parseAllergens(allergensStr) {
+    try {
+        if (!allergensStr || allergensStr === "[]") {
+            return [];
+        }
+        return JSON.parse(allergensStr);
+    } catch (e) {
+        console.warn('Failed to parse allergens:', e);
+        return [];
+    }
+}
+
+/**
+ * Helper function to parse combo items from JSON string
+ */
+function parseComboItems(comboItemsStr) {
+    try {
+        if (!comboItemsStr || comboItemsStr === "[]") {
+            return [];
+        }
+        return JSON.parse(comboItemsStr);
+    } catch (e) {
+        console.warn('Failed to parse combo_items:', e);
+        return [];
+    }
 }
 
 /**

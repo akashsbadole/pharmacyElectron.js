@@ -925,10 +925,332 @@ class POSModule {
       
       ${this.showPayment ? this.renderPaymentInterface(totals) : ''}
       
-      <!-- Devbit POS Footer -->
-      ${this.renderDevbitFooter()}
+      <!-- Appivo.in POS Footer -->
     </div>
   `;
+  }
+  
+  /**
+   * Search customers by phone number - called on keyup with debounce
+   */
+  async searchCustomersByPhone(phoneInput) {
+    const phone = phoneInput.value.trim();
+    const resultsContainer = document.getElementById('customer-search-results');
+    
+    // Clear results if less than 3 characters
+    if (phone.length < 3) {
+      if (resultsContainer) {
+        resultsContainer.innerHTML = '';
+        resultsContainer.style.display = 'none';
+      }
+      return;
+    }
+    
+    // Show loading indicator
+    if (resultsContainer) {
+      resultsContainer.innerHTML = `
+        <div class="p-3 text-center text-muted">
+          <i class="fa fa-spinner fa-spin"></i> Searching...
+        </div>
+      `;
+      resultsContainer.style.display = 'block';
+    }
+    
+    try {
+      const response = await fetch(`${window.api}customers/search/phone/${encodeURIComponent(phone)}`);
+      const customers = await response.json();
+      
+      this.displayCustomerSearchResults(customers, phone);
+    } catch (error) {
+      console.error('Error searching customers by phone:', error);
+      if (resultsContainer) {
+        resultsContainer.innerHTML = `
+          <div class="p-3 text-center text-danger">
+            <i class="fa fa-exclamation-triangle"></i> Search failed. Please try again.
+          </div>
+        `;
+      }
+    }
+  }
+  
+  /**
+   * Display customer search results in dropdown
+   */
+  displayCustomerSearchResults(customers, searchPhone) {
+    const resultsContainer = document.getElementById('customer-search-results');
+    if (!resultsContainer) return;
+    
+    if (!customers || customers.length === 0) {
+      // No customers found - show create new option
+      resultsContainer.innerHTML = `
+        <div class="customer-search-no-results p-3">
+          <div class="text-center text-muted mb-2">
+            <i class="fa fa-user-plus"></i> No customer found with this number
+          </div>
+          <button class="btn btn-success btn-sm btn-block" 
+                  onclick="window.pharmaApp.getModule('pos').createNewCustomerWithPhone('${searchPhone}')">
+            <i class="fa fa-plus"></i> Create new customer with ${searchPhone}
+          </button>
+        </div>
+      `;
+      resultsContainer.style.display = 'block';
+      return;
+    }
+    
+    if (customers.length === 1) {
+      // Single customer found - auto-select
+      this.selectCustomerByData(customers[0]);
+      resultsContainer.innerHTML = '';
+      resultsContainer.style.display = 'none';
+      
+      // Clear search input
+      const searchInput = document.getElementById('customer-phone-search');
+      if (searchInput) searchInput.value = '';
+      
+      if (window.notiflix) {
+        window.notiflix.Notify.success(`Customer "${customers[0].name}" selected`);
+      }
+      return;
+    }
+    
+    // Multiple customers found - show list for selection
+    const currentCustomerId = this.app.state.getModuleState('pos').currentCustomer?._id;
+    
+    resultsContainer.innerHTML = `
+      <div class="customer-search-results-list">
+        <div class="p-2 bg-light border-bottom">
+          <small class="text-muted">${customers.length} customers found</small>
+        </div>
+        ${customers.map(customer => `
+          <div class="customer-search-result-item p-3 border-bottom cursor-pointer hover-bg-light ${currentCustomerId === customer._id ? 'bg-success-light' : ''}" 
+               onclick="window.pharmaApp.getModule('pos').selectCustomerByData(${JSON.stringify(customer).replace(/"/g, '&quot;')})">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <div class="font-medium">${customer.name}</div>
+                <div class="text-sm text-muted">
+                  <i class="fa fa-phone"></i> ${customer.phone || 'N/A'}
+                  ${customer.email ? `<span class="ml-2"><i class="fa fa-envelope"></i> ${customer.email}</span>` : ''}
+                </div>
+              </div>
+              <div class="text-right">
+                ${customer.loyalty_program?.tier ? 
+                  `<span class="badge badge-warning"><i class="fa fa-star"></i> ${customer.loyalty_program.tier}</span>` : ''
+                }
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    resultsContainer.style.display = 'block';
+  }
+  
+  /**
+   * Select customer from search results and update state
+   */
+  async selectCustomerByData(customerData) {
+    // Store selected customer data
+    this.app.state.updateModule('pos', { currentCustomer: customerData });
+    
+    // Load loyalty profile if customer is selected
+    if (customerData && customerData._id) {
+      await this.loadCustomerLoyaltyProfile(customerData._id);
+    } else {
+      this.currentLoyaltyProfile = null;
+      this.loyaltyDiscount = 0;
+      this.pointsToEarn = 0;
+      this.availableRedemptions = [];
+    }
+    
+    // Clear search results
+    const resultsContainer = document.getElementById('customer-search-results');
+    if (resultsContainer) {
+      resultsContainer.innerHTML = '';
+      resultsContainer.style.display = 'none';
+    }
+    
+    // Clear search input
+    const searchInput = document.getElementById('customer-phone-search');
+    if (searchInput) searchInput.value = '';
+    
+    // Re-render to show updated selection
+    this.render();
+    
+    if (window.notiflix) {
+      window.notiflix.Notify.success(`Customer "${customerData.name}" selected`);
+    }
+  }
+  
+  /**
+   * Create new customer with phone number from search
+   */
+  async createNewCustomerWithPhone(phone) {
+    try {
+      if (window.notiflix) {
+        window.notiflix.Notify.info('Creating new customer...', `Phone: ${phone}`);
+      }
+      
+      // Show the new customer modal with phone pre-filled
+      const customerModalHtml = `
+        <div class="customer-quick-create-modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" 
+             id="customerQuickCreateModal">
+          <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-lg font-semibold">
+                <i class="fa fa-user-plus text-success"></i> Create New Customer
+              </h3>
+              <button onclick="window.pharmaApp.getModule('pos').hideCustomerQuickCreateModal()" class="text-gray-500">
+                <i class="fa fa-times"></i>
+              </button>
+            </div>
+            
+            <form id="quickCreateCustomerForm" onsubmit="window.pharmaApp.getModule('pos').handleQuickCreateCustomer(event)">
+              <input type="hidden" id="quickCustomerPhone" value="${phone}">
+              
+              <div class="form-group mb-3">
+                <label class="form-label">Customer Name *</label>
+                <input type="text" class="form-input" id="quickCustomerName" required 
+                       placeholder="Enter customer name">
+              </div>
+              
+              <div class="form-group mb-3">
+                <label class="form-label">Phone Number *</label>
+                <input type="text" class="form-input" id="quickCustomerPhoneDisplay" 
+                       value="${phone}" readonly>
+              </div>
+              
+              <div class="form-group mb-3">
+                <label class="form-label">Email</label>
+                <input type="email" class="form-input" id="quickCustomerEmail" 
+                       placeholder="Enter email (optional)">
+              </div>
+              
+              <div class="form-group mb-3">
+                <label class="form-label">Address</label>
+                <textarea class="form-input" id="quickCustomerAddress" rows="2" 
+                          placeholder="Enter address (optional)"></textarea>
+              </div>
+              
+              <div class="flex gap-3 mt-4">
+                <button type="button" class="btn btn-secondary flex-1" 
+                        onclick="window.pharmaApp.getModule('pos').hideCustomerQuickCreateModal()">
+                  Cancel
+                </button>
+                <button type="submit" class="btn btn-success flex-1">
+                  <i class="fa fa-check"></i> Create Customer
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      `;
+      
+      document.body.insertAdjacentHTML('beforeend', customerModalHtml);
+      
+      // Clear search results
+      const resultsContainer = document.getElementById('customer-search-results');
+      if (resultsContainer) {
+        resultsContainer.innerHTML = '';
+        resultsContainer.style.display = 'none';
+      }
+      
+      // Focus on name input
+      setTimeout(() => {
+        document.getElementById('quickCustomerName')?.focus();
+      }, 100);
+      
+    } catch (error) {
+      console.error('Error creating customer modal:', error);
+    }
+  }
+  
+  /**
+   * Hide the quick customer create modal
+   */
+  hideCustomerQuickCreateModal() {
+    const modal = document.getElementById('customerQuickCreateModal');
+    if (modal) {
+      modal.remove();
+    }
+  }
+  
+  /**
+   * Handle quick customer creation form submission
+   */
+  async handleQuickCreateCustomer(event) {
+    event.preventDefault();
+    
+    const name = document.getElementById('quickCustomerName').value.trim();
+    const phone = document.getElementById('quickCustomerPhone').value.trim();
+    const email = document.getElementById('quickCustomerEmail').value.trim();
+    const address = document.getElementById('quickCustomerAddress').value.trim();
+    
+    if (!name || !phone) {
+      if (window.notiflix) {
+        window.notiflix.Report.warning('Missing Information', 'Name and phone are required', 'Ok');
+      }
+      return;
+    }
+    
+    try {
+      if (window.notiflix) {
+        window.notiflix.Block.standard('#customerQuickCreateModal .modal-content', 'Creating customer...');
+      }
+      
+      const response = await fetch(`${window.api}customers/new`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: name,
+          phone: phone,
+          email: email,
+          address: address
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to create customer');
+      }
+      
+      const newCustomer = await response.json();
+      
+      if (window.notiflix) {
+        window.notiflix.Block.remove('#customerQuickCreateModal .modal-content');
+      }
+      
+      // Hide modal
+      this.hideCustomerQuickCreateModal();
+      
+      // Select the newly created customer
+      await this.selectCustomerByData(newCustomer);
+      
+      // Refresh customer list
+      await this.loadCustomers();
+      
+      if (window.notiflix) {
+        window.notiflix.Notify.success('Customer Created', `"${newCustomer.name}" has been added successfully`);
+      }
+      
+    } catch (error) {
+      console.error('Error creating customer:', error);
+      if (window.notiflix) {
+        window.notiflix.Block.remove('#customerQuickCreateModal .modal-content');
+        window.notiflix.Report.failure('Error', 'Failed to create customer: ' + error.message, 'Ok');
+      }
+    }
+  }
+  
+  /**
+   * Close search results when clicking outside
+   */
+  closeCustomerSearchResults() {
+    const resultsContainer = document.getElementById('customer-search-results');
+    if (resultsContainer) {
+      resultsContainer.innerHTML = '';
+      resultsContainer.style.display = 'none';
+    }
   }
   
   renderCustomerSelector(currentCustomer) {
@@ -939,27 +1261,116 @@ class POSModule {
         <div class="card">
           <div class="card-body">
             <label class="form-label">Customer</label>
+            
+            <!-- Phone Search Input -->
+            <div class="customer-phone-search mb-3 position-relative">
+              <div class="input-group input-group-sm">
+                <span class="input-group-addon"><i class="fa fa-phone"></i></span>
+                <input type="text" 
+                       id="customer-phone-search"
+                       class="form-control" 
+                       placeholder="Search by mobile number..."
+                       onkeyup="window.pharmaApp.getModule('pos').handlePhoneSearchKeyup(event)"
+                       onblur="window.pharmaApp.getModule('pos').handlePhoneSearchBlur()"
+                       autocomplete="off">
+                <span class="input-group-addon bg-light">
+                  <i class="fa fa-search text-muted"></i>
+                </span>
+              </div>
+              
+              <!-- Search Results Dropdown -->
+              <div id="customer-search-results" 
+                   class="customer-search-results-dropdown position-absolute w-100 bg-white border rounded shadow-lg mt-1" 
+                   style="display: none; z-index: 1000; max-height: 300px; overflow-y: auto;">
+              </div>
+            </div>
+            
+            <!-- Customer Selection Dropdown -->
             <div class="input-group">
-              <select class="form-select" onchange="window.pharmaApp.getModule('pos').selectCustomer(this.value)">
+              <select class="form-select" id="customer-select" onchange="window.pharmaApp.getModule('pos').selectCustomer(this.value)">
                 <option value="">Walk in customer</option>
                 ${customers.map(customer => 
                   `<option value="${customer._id}" ${currentCustomer?._id === customer._id ? 'selected' : ''}>
-                    ${customer.name}
+                    ${customer.name} ${customer.phone ? `(${customer.phone})` : ''}
                   </option>`
                 ).join('')}
               </select>
-              <button class="btn btn-info" onclick="window.pharmaApp.getModule('pos').viewCustomerDetails()">
+              <button class="btn btn-info" onclick="window.pharmaApp.getModule('pos').viewCustomerDetails()" title="View Details">
                 <i class="fa fa-eye"></i>
               </button>
-              <button class="btn btn-success" onclick="window.pharmaApp.getModule('pos').addNewCustomer()">
+              <button class="btn btn-success" onclick="window.pharmaApp.getModule('pos').addNewCustomer()" title="Add New Customer">
                 <i class="fa fa-plus"></i>
               </button>
             </div>
+            
+            <!-- Selected Customer Info -->
+            ${currentCustomer ? `
+              <div class="selected-customer-info mt-3 p-2 bg-success-light rounded">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <strong><i class="fa fa-user"></i> ${currentCustomer.name}</strong>
+                    ${currentCustomer.phone ? `<span class="text-muted ml-2"><i class="fa fa-phone"></i> ${currentCustomer.phone}</span>` : ''}
+                  </div>
+                  <button class="btn btn-sm btn-outline-danger" onclick="window.pharmaApp.getModule('pos').clearCustomerSelection()">
+                    <i class="fa fa-times"></i> Clear
+                  </button>
+                </div>
+              </div>
+            ` : ''}
+            
             ${this.renderLoyaltyInfo()}
           </div>
         </div>
       </div>
     `;
+  }
+  
+  /**
+   * Handle phone search keyup with debounce
+   */
+  handlePhoneSearchKeyup(event) {
+    // Clear previous debounce
+    if (this.phoneSearchDebounce) {
+      clearTimeout(this.phoneSearchDebounce);
+    }
+    
+    const input = event.target;
+    
+    // Debounce search - wait 300ms after typing stops
+    this.phoneSearchDebounce = setTimeout(() => {
+      this.searchCustomersByPhone(input);
+    }, 300);
+  }
+  
+  /**
+   * Handle blur - close results if not clicking on them
+   */
+  handlePhoneSearchBlur() {
+    // Small delay to allow click events on results
+    setTimeout(() => {
+      this.closeCustomerSearchResults();
+    }, 200);
+  }
+  
+  /**
+   * Clear customer selection
+   */
+  clearCustomerSelection() {
+    this.app.state.updateModule('pos', { currentCustomer: null });
+    this.currentLoyaltyProfile = null;
+    this.loyaltyDiscount = 0;
+    this.pointsToEarn = 0;
+    this.availableRedemptions = [];
+    
+    // Reset select dropdown
+    const select = document.getElementById('customer-select');
+    if (select) select.value = '';
+    
+    this.render();
+    
+    if (window.notiflix) {
+      window.notiflix.Notify.info('Customer Cleared', 'Customer selection has been cleared');
+    }
   }
   
   renderProductSearch() {

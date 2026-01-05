@@ -56,16 +56,59 @@ app.get("/all", function (req, res) {
  */
 app.post("/category", function (req, res) {
     let newCategory = req.body;
-    newCategory._id = Math.floor(Date.now() / 1000);
-    categoryDB.insert(newCategory, function (err, category) {
+    
+    // Validate required fields
+    if (!newCategory || !newCategory.name || newCategory.name.trim() === "") {
+        return res.status(400).json({
+            success: false,
+            error: "Validation Error",
+            message: "Category name is required and cannot be empty."
+        });
+    }
+    
+    // Trim whitespace from name
+    newCategory.name = newCategory.name.trim();
+    
+    // Check for duplicate category name (case-insensitive)
+    categoryDB.findOne({ name: { $regex: new RegExp('^' + newCategory.name + '$', 'i') } }, function (err, existingCategory) {
+        if (err) {
+            console.error('Database error while checking for duplicate category:', err);
+            return res.status(500).json({
+                success: false,
+                error: "Database Error",
+                message: "Failed to check for duplicate category name."
+            });
+        }
+        
+        if (existingCategory) {
+            return res.status(409).json({
+                success: false,
+                error: "Duplicate Category",
+                message: "A category with this name already exists."
+            });
+        }
+        
+        // Proceed with insertion
+        newCategory._id = Math.floor(Date.now() / 1000);
+        newCategory.createdAt = new Date().toISOString();
+        
+        categoryDB.insert(newCategory, function (err, category) {
             if (err) {
-                    console.error(err);
-                    res.status(500).json({
-                        error: "Internal Server Error",
-                        message: "An unexpected error occurred.",
-                    });
-                }
-            else{res.sendStatus(200);}
+                console.error('Database error while inserting category:', err);
+                return res.status(500).json({
+                    success: false,
+                    error: "Database Error",
+                    message: "Failed to create category. Please try again."
+                });
+            }
+            
+            // Return success response with created category data
+            res.status(201).json({
+                success: true,
+                message: "Category created successfully.",
+                category: category
+            });
+        });
     });
 });
 

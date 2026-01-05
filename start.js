@@ -4,7 +4,7 @@ const setupEvents = require("./installers/setupEvents");
 if (setupEvents.handleSquirrelEvent()) {
     return;
 }
-const { app, BrowserWindow, ipcMain, screen } = require("electron");
+const { app, BrowserWindow, ipcMain, screen, shell } = require("electron");
 const serverModule = require('./server');
 const { restartServer, io } = serverModule;
 const path = require("path");
@@ -38,6 +38,23 @@ function createWindow() {
     mainWindow.show();
 
     mainWindow.loadURL(`file://${path.join(__dirname, "index.html")}`);
+
+    // Handle external links - open them in default browser
+    mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+        shell.openExternal(url);
+        return { action: 'deny' };
+    });
+
+    // Alternative: Listen for will-navigate event for anchor tags
+    mainWindow.webContents.on('will-navigate', (event, navigationUrl) => {
+        const parsedUrl = new URL(navigationUrl);
+        
+        // Only allow navigation to external URLs, block internal navigation
+        if (parsedUrl.origin !== 'file://') {
+            event.preventDefault();
+            shell.openExternal(navigationUrl);
+        }
+    });
 
     mainWindow.on("closed", () => {
         mainWindow = null;

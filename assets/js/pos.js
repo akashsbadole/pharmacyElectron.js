@@ -2764,10 +2764,13 @@ function initializeApp() {
           type: method,
           url: window.api + "categories/category",
           data: $(this).serialize(),
-          success: function () {
+          success: function (response) {
+            notiflix.Loading.remove();
+            
             $("#saveCategory").get(0).reset();
             loadCategories();
             loadProducts();
+            
             diagOptions = {
               title: "Category Saved",
               text: "Select an option below to continue.",
@@ -2780,15 +2783,42 @@ function initializeApp() {
               diagOptions.text,
               diagOptions.okButtonText,
               diagOptions.cancelButtonText,
-              () => { },
-
+              () => { 
+                // Add another - keep modal open and clear form
+                $("#categoryName").val("");
+                $("#category_id").val("");
+              },
               () => {
                 $("#newCategory").modal("hide");
               },
             );
           },
           error: function (xhr, status, error) {
-            const errorMessage = handleAjaxError(xhr, status, error, "Failed to save category");
+            notiflix.Loading.remove();
+            
+            let errorMessage = "Failed to save category";
+            
+            // Handle different error scenarios
+            if (xhr.status === 400) {
+              // Validation error from server
+              try {
+                const response = JSON.parse(xhr.responseText);
+                if (response.errors && response.errors.name) {
+                  errorMessage = response.errors.name[0];
+                } else if (response.message) {
+                  errorMessage = response.message;
+                }
+              } catch (e) {
+                errorMessage = "Invalid category name format";
+              }
+            } else if (xhr.status === 409) {
+              errorMessage = "A category with this name already exists";
+            } else if (xhr.status === 500) {
+              errorMessage = "Server error occurred while saving category";
+            } else {
+              errorMessage = handleAjaxError(xhr, status, error, "Failed to save category");
+            }
+            
             notiflix.Report.failure("Error", errorMessage, "Ok");
           }
         });
