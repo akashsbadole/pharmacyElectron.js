@@ -784,10 +784,10 @@ a:focus {
 /* =============
    Bootstrap-custom
 ============= */
-/*.row {
-  margin-right: -15px;
-  margin-left: -15px;
-}*/
+.row {
+  margin-right: 0px !important;
+  margin-left: 0px !important;
+}
 /*.col-lg-1,
 .col-lg-10,
 .col-lg-11,
