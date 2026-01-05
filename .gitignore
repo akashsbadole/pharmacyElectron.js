@@ -1,0 +1,10 @@
+node_modules*
+notes.txt
+package.*.json
+TODO
+out/
+.gitignore
+LICENSE
+coverage
+*.old*""  
+"release-builds/" 

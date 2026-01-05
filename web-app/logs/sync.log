@@ -1310,3 +1310,492 @@
 {"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-04T09:49:41.297Z"}
 {"error":"Error","level":"warn","message":"Failed to get changes from NeDB","service":"sync-engine","timestamp":"2026-01-04T09:49:41.299Z"}
 {"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-04T09:49:41.300Z"}
+{"level":"info","message":"Initializing sync engine","service":"sync-engine","timestamp":"2026-01-05T18:11:23.701Z"}
+{"level":"info","message":"Sync log table already exists","service":"sync-engine","timestamp":"2026-01-05T18:11:23.730Z"}
+{"interval":"30000","level":"info","message":"Periodic sync started","service":"sync-engine","timestamp":"2026-01-05T18:11:23.731Z"}
+{"level":"info","message":"Sync engine initialized successfully","service":"sync-engine","timestamp":"2026-01-05T18:11:23.731Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:11:53.747Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:11:53.781Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:11:53.782Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:11:53.782Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:11:53.801Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:12:23.758Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:12:23.761Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:12:23.762Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:12:23.762Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:12:23.763Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:12:53.773Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:12:53.778Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:12:53.778Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:12:53.778Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:12:53.780Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:13:23.784Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:13:23.788Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:13:23.789Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:13:23.789Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:13:23.791Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:13:53.795Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:13:53.804Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:13:53.805Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:13:53.806Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:13:53.812Z"}
+{"level":"info","message":"Periodic sync stopped","service":"sync-engine","timestamp":"2026-01-05T18:14:13.008Z"}
+{"level":"info","message":"Initializing sync engine","service":"sync-engine","timestamp":"2026-01-05T18:31:55.059Z"}
+{"level":"info","message":"Sync log table already exists","service":"sync-engine","timestamp":"2026-01-05T18:31:55.066Z"}
+{"interval":"30000","level":"info","message":"Periodic sync started","service":"sync-engine","timestamp":"2026-01-05T18:31:55.067Z"}
+{"level":"info","message":"Sync engine initialized successfully","service":"sync-engine","timestamp":"2026-01-05T18:31:55.067Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:32:25.083Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:32:25.100Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:32:25.100Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:32:25.100Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:32:25.104Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:32:55.096Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:32:55.102Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:32:55.102Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:32:55.102Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:32:55.103Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:33:25.097Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:33:25.100Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:33:25.100Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:33:25.100Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:33:25.101Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:33:55.106Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:33:55.108Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:33:55.109Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:33:55.109Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:33:55.109Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:34:25.119Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:34:25.122Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:34:25.122Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:34:25.122Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:34:25.123Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:34:55.130Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:34:55.133Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:34:55.133Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:34:55.133Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:34:55.134Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:35:25.138Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:35:25.141Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:35:25.141Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:35:25.141Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:35:25.142Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:35:55.145Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:35:55.150Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:35:55.151Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:35:55.151Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:35:55.154Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:36:25.152Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:36:25.155Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:36:25.155Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:36:25.155Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:36:25.156Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:36:55.158Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:36:55.160Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:36:55.160Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:36:55.160Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:36:55.161Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:37:25.170Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:37:25.171Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:37:25.172Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:37:25.172Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:37:25.172Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:37:55.174Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:37:55.176Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:37:55.176Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:37:55.176Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:37:55.177Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:38:25.174Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:38:25.176Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:38:25.177Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:38:25.177Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:38:25.178Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:38:55.175Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:38:55.182Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:38:55.182Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:38:55.183Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:38:55.186Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:39:25.177Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:39:25.179Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:39:25.179Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:39:25.179Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:39:25.180Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:39:55.178Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:39:55.181Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:39:55.181Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:39:55.181Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:39:55.182Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:40:25.182Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:40:25.189Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:40:25.189Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:40:25.190Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:40:25.192Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:40:55.196Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:40:55.202Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:40:55.203Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:40:55.203Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:40:55.206Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:41:25.203Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:41:25.208Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:41:25.209Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:41:25.209Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:41:25.212Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:41:55.216Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:41:55.222Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:41:55.223Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:41:55.223Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:41:55.226Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:42:25.223Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:42:25.231Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:42:25.231Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:42:25.232Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:42:25.234Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:42:55.238Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:42:55.240Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:42:55.240Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:42:55.241Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:42:55.242Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:43:25.250Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:43:25.252Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:43:25.252Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:43:25.252Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:43:25.253Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:43:55.250Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:43:55.256Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:43:55.257Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:43:55.257Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:43:55.259Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:44:25.260Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:44:25.263Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:44:25.263Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:44:25.263Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:44:25.264Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:44:55.264Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:44:55.272Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:44:55.272Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:44:55.273Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:44:55.275Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:45:25.267Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:45:25.269Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:45:25.269Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:45:25.269Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:45:25.270Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:45:55.273Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:45:55.275Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:45:55.275Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:45:55.275Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:45:55.276Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:46:25.280Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:46:25.282Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:46:25.282Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:46:25.282Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:46:25.284Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:46:55.287Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:46:55.288Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:46:55.288Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:46:55.288Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:46:55.289Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:47:25.298Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:47:25.300Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:47:25.300Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:47:25.300Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:47:25.301Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:47:55.299Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:47:55.300Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:47:55.301Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:47:55.301Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:47:55.301Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:48:25.313Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:48:25.315Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:48:25.315Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:48:25.315Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:48:25.316Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:48:55.326Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:48:55.329Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:48:55.329Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:48:55.330Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:48:55.331Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:49:25.334Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:49:25.336Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:49:25.336Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:49:25.336Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:49:25.337Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:49:55.349Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:49:55.351Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:49:55.351Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:49:55.352Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:49:55.353Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:50:25.361Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:50:25.363Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:50:25.364Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:50:25.364Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:50:25.365Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:50:55.375Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:50:55.377Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:50:55.377Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:50:55.377Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:50:55.378Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:51:25.384Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:51:25.386Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:51:25.386Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:51:25.386Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:51:25.387Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:51:55.389Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:51:55.391Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:51:55.391Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:51:55.391Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:51:55.392Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:52:25.394Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:52:25.396Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:52:25.396Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:52:25.396Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:52:25.398Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:52:55.408Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:52:55.412Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:52:55.412Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:52:55.412Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:52:55.414Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:53:25.414Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:53:25.420Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:53:25.421Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:53:25.421Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:53:25.424Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:53:55.420Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:53:55.426Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:53:55.426Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:53:55.427Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:53:55.427Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:54:25.433Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:54:25.435Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:54:25.435Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:54:25.435Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:54:25.436Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:54:55.440Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:54:55.442Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:54:55.442Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:54:55.442Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:54:55.443Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:55:25.444Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:55:25.451Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:55:25.451Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:55:25.451Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:55:25.454Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:55:55.457Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:55:55.459Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:55:55.459Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:55:55.459Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:55:55.460Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:56:25.461Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:56:25.464Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:56:25.464Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:56:25.464Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:56:25.466Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:56:55.466Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:56:55.469Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:56:55.469Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:56:55.470Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:56:55.471Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:57:25.471Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:57:25.473Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:57:25.473Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:57:25.473Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:57:25.474Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:57:55.486Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:57:55.489Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:57:55.489Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:57:55.489Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:57:55.491Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:58:25.488Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:58:25.490Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:58:25.491Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:58:25.491Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:58:25.492Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:58:55.502Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:58:55.508Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:58:55.509Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:58:55.509Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:58:55.512Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:59:25.515Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:59:25.518Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:59:25.519Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:59:25.519Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:59:25.520Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T18:59:55.522Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T18:59:55.529Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T18:59:55.529Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T18:59:55.530Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T18:59:55.532Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:00:25.527Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:00:25.529Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:00:25.530Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:00:25.530Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:00:25.530Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:00:55.539Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:00:55.545Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:00:55.546Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:00:55.546Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:00:55.548Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:01:25.542Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:01:25.549Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:01:25.549Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:01:25.549Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:01:25.552Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:01:55.545Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:01:55.547Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:01:55.547Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:01:55.547Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:01:55.548Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:02:25.553Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:02:25.555Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:02:25.555Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:02:25.555Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:02:25.556Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:02:55.555Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:02:55.559Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:02:55.560Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:02:55.560Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:02:55.561Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:03:25.564Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:03:25.574Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:03:25.575Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:03:25.575Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:03:25.577Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:03:55.575Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:03:55.644Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:03:55.658Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:03:55.659Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:03:55.696Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:04:25.584Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:04:25.590Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:04:25.591Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:04:25.591Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:04:25.593Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:04:55.593Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:04:55.598Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:04:55.598Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:04:55.599Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:04:55.608Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:05:25.594Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:05:25.596Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:05:25.596Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:05:25.596Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:05:25.597Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:05:55.634Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:05:55.686Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:05:55.687Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:05:55.687Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:05:55.690Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:06:25.655Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:06:25.663Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:06:25.663Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:06:25.663Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:06:25.665Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:06:55.664Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:06:55.670Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:06:55.671Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:06:55.671Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:06:55.673Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:07:25.675Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:07:25.679Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:07:25.679Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:07:25.679Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:07:25.681Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:07:55.674Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:07:55.678Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:07:55.678Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:07:55.678Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:07:55.687Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:08:25.679Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:08:25.682Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:08:25.682Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:08:25.682Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:08:25.683Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:08:55.693Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:08:55.694Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:08:55.695Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:08:55.695Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:08:55.696Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:09:25.702Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:09:25.707Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:09:25.708Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:09:25.708Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:09:25.710Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:09:55.704Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:09:55.712Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:09:55.713Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:09:55.713Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:09:55.717Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:10:25.710Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:10:25.711Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:10:25.711Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:10:25.711Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:10:25.712Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:10:55.718Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:10:55.724Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:10:55.724Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:10:55.725Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:10:55.728Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:11:25.748Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:11:25.750Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:11:25.750Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:11:25.750Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:11:25.751Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:11:55.758Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:11:55.763Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:11:55.763Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:11:55.763Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:11:55.764Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:12:25.765Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:12:25.767Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:12:25.767Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:12:25.767Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:12:25.768Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:12:55.779Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:12:55.786Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:12:55.787Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:12:55.787Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:12:55.790Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:13:25.792Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:13:25.794Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:13:25.794Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:13:25.795Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:13:25.795Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:13:55.803Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:13:55.809Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:13:55.809Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:13:55.810Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:13:55.811Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:14:25.817Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:14:25.819Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:14:25.819Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:14:25.819Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:14:25.820Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:14:55.830Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:14:55.837Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:14:55.838Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:14:55.838Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:14:55.839Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:15:25.846Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:15:25.848Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:15:25.848Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:15:25.848Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:15:25.849Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:15:55.856Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:15:55.861Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:15:55.861Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:15:55.862Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:15:55.864Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:16:25.866Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:16:25.868Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:16:25.868Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:16:25.868Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:16:25.869Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:16:55.874Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:16:55.881Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:16:55.881Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:16:55.882Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:16:55.884Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:17:25.888Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:17:25.890Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:17:25.890Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:17:25.890Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:17:25.891Z"}

@@ -4,6 +4,7 @@
 const appState = {
     user: null,
     isAuthenticated: false,
+    isDemoMode: false,
     cart: [],
     products: [],
     categories: [],
@@ -20,8 +21,26 @@ const appState = {
 
 // API Configuration
 const apiConfig = {
-    baseUrl: process.env.API_BASE_URL || 'http://localhost:3001/api',
+    baseUrl: (window.API_BASE_URL) || 'http://localhost:3001/api',
     timeout: 10000
+};
+
+// Demo Mode Initialization
+const initDemoMode = () => {
+    if (demoMode && demoMode.isEnabled()) {
+        appState.isDemoMode = true;
+        appState.isAuthenticated = true;
+        appState.user = mockData.user;
+        
+        // Setup demo API override
+        if (window.demoApi) {
+            window.demoApi.setup();
+        }
+        
+        console.log('Demo mode enabled');
+        return true;
+    }
+    return false;
 };
 
 // Utility Functions
@@ -134,18 +153,58 @@ const utils = {
         const token = localStorage.getItem('authToken');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
+            console.log(`🔑 Using auth token for ${endpoint}`);
+        } else {
+            console.warn(`⚠️ No auth token available for ${endpoint} - this may cause 401 errors`);
         }
 
+        console.log(`🌐 API Request: ${options.method || 'GET'} ${url}`);
+        
         try {
             const response = await fetch(url, config);
             
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                if (response.status === 401) {
+                    console.error(`🔒 401 Unauthorized error for ${endpoint}`);
+                    console.error('💡 This indicates missing or invalid authentication token');
+                    
+                    // If we're in demo mode, provide demo data instead
+                    if (appState.isDemoMode) {
+                        console.log('🎭 Using demo data fallback for', endpoint);
+                        return demoApi.getFallbackData(endpoint);
+                    }
+                    
+                    // Show user-friendly error message
+                    utils.showToast('Please login to access this feature', 'warning');
+                    
+                    // Store the failed request to retry after login
+                    if (!window.failedRequests) window.failedRequests = [];
+                    window.failedRequests.push({ endpoint, options });
+                    
+                    throw new Error('Authentication required');
+                } else if (response.status === 403) {
+                    console.error(`🚫 403 Forbidden error for ${endpoint}`);
+                    console.error('💡 This indicates valid token but insufficient permissions');
+                    utils.showToast('You do not have permission to access this resource', 'error');
+                    throw new Error('Insufficient permissions');
+                } else {
+                    console.error(`❌ HTTP error! status: ${response.status} for ${endpoint}`);
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
             }
             
-            return await response.json();
+            const data = await response.json();
+            console.log(`✅ API Response success for ${endpoint}:`, data);
+            return data;
         } catch (error) {
-            console.error('API Request failed:', error);
+            console.error(`💥 API Request failed for ${endpoint}:`, error);
+            
+            // If we're in demo mode and the error is auth-related, try demo fallback
+            if (appState.isDemoMode && (error.message.includes('Authentication') || error.message.includes('401'))) {
+                console.log('🎭 Attempting demo fallback for failed request:', endpoint);
+                return demoApi.getFallbackData(endpoint);
+            }
+            
             throw error;
         }
     }
@@ -155,6 +214,11 @@ const utils = {
 const auth = {
     // Check if user is authenticated
     checkAuth: async () => {
+        // If demo mode is enabled, skip authentication
+        if (initDemoMode()) {
+            return true;
+        }
+        
         const token = localStorage.getItem('authToken');
         if (!token) {
             return false;
@@ -220,10 +284,17 @@ const auth = {
 
     // Logout user
     logout: () => {
-        localStorage.removeItem('authToken');
+        if (appState.isDemoMode) {
+            demoMode.disable();
+            utils.showToast('Exited demo mode', 'info');
+        } else {
+            localStorage.removeItem('authToken');
+            utils.showToast('Logged out successfully', 'info');
+        }
+        
         appState.user = null;
         appState.isAuthenticated = false;
-        utils.showToast('Logged out successfully', 'info');
+        appState.isDemoMode = false;
         window.location.reload();
     }
 };
@@ -232,7 +303,13 @@ const auth = {
 const sync = {
     // Initialize sync monitoring
     init: () => {
-        // Start sync status polling
+        // Note: sync polling is started after authentication check
+        // to prevent 401 errors
+    },
+
+    // Start sync monitoring (called after authentication)
+    startMonitoring: () => {
+        // Start sync status polling only after authentication
         setInterval(sync.updateStatus, 5000);
         
         // Initial status update
@@ -317,8 +394,7 @@ const navigation = {
             section.style.display = 'none';
         });
 
-        // Show POS section by default
-        navigation.switchSection('pos');
+        // Note: Default section loading is delayed until after authentication
     },
 
     // Switch between sections
@@ -344,19 +420,57 @@ const navigation = {
             activeLink.classList.add('active');
         }
 
-        // Load section data
+        // Check authentication before loading section data
+        const isAuthenticated = appState.isAuthenticated || appState.isDemoMode;
+        
+        if (!isAuthenticated) {
+            console.log(`⚠️ Cannot load ${sectionId} data - not authenticated`);
+            utils.showToast('Please login to access this section', 'warning');
+            return;
+        }
+
+        // Load section data only if authenticated
+        console.log(`🔄 Loading section data for: ${sectionId}`);
         switch(sectionId) {
             case 'pos':
-                pos.load();
+                console.log('📦 Loading POS data...');
+                pos.load().then(() => {
+                    console.log('✅ POS data loaded successfully');
+                    pos.renderProducts();
+                }).catch(error => {
+                    console.error('❌ Failed to load POS data:', error);
+                    utils.showToast('Failed to load POS data', 'error');
+                });
                 break;
             case 'inventory':
-                inventory.load();
+                console.log('📊 Loading inventory data...');
+                inventory.load().then(() => {
+                    console.log('✅ Inventory data loaded successfully');
+                    inventory.renderProducts();
+                }).catch(error => {
+                    console.error('❌ Failed to load inventory data:', error);
+                    utils.showToast('Failed to load inventory data', 'error');
+                });
                 break;
             case 'customers':
-                customers.load();
+                console.log('👥 Loading customers data...');
+                customers.load().then(() => {
+                    console.log('✅ Customers data loaded successfully');
+                    customers.renderCustomers();
+                }).catch(error => {
+                    console.error('❌ Failed to load customers data:', error);
+                    utils.showToast('Failed to load customers data', 'error');
+                });
                 break;
             case 'transactions':
-                transactions.load();
+                console.log('💳 Loading transactions data...');
+                transactions.load().then(() => {
+                    console.log('✅ Transactions data loaded successfully');
+                    transactions.renderTransactions();
+                }).catch(error => {
+                    console.error('❌ Failed to load transactions data:', error);
+                    utils.showToast('Failed to load transactions data', 'error');
+                });
                 break;
         }
     }
@@ -366,19 +480,16 @@ const navigation = {
 const pos = {
     // Initialize POS
     init: () => {
-        // Set up event listeners
+        // Set up event listeners only - don't load data yet
         document.getElementById('new-sale-btn')?.addEventListener('click', pos.newSale);
         document.getElementById('hold-sale-btn')?.addEventListener('click', pos.holdSale);
         document.getElementById('checkout-btn')?.addEventListener('click', pos.checkout);
         document.getElementById('product-search')?.addEventListener('input', 
             utils.debounce(pos.searchProducts, 300)
         );
-
-        // Load initial data
-        pos.load();
     },
 
-    // Load POS data
+    // Load POS data (called after authentication)
     load: async () => {
         try {
             // Load products and categories
@@ -689,7 +800,7 @@ const pos = {
 const inventory = {
     // Initialize inventory
     init: () => {
-        // Set up event listeners
+        // Set up event listeners only - don't load data yet
         document.getElementById('inventory-search')?.addEventListener('input', 
             utils.debounce(inventory.searchProducts, 300)
         );
@@ -697,12 +808,9 @@ const inventory = {
         document.getElementById('inventory-stock-filter')?.addEventListener('change', inventory.filterProducts);
         document.getElementById('refresh-inventory-btn')?.addEventListener('click', inventory.load);
         document.getElementById('export-products-btn')?.addEventListener('click', inventory.exportProducts);
-
-        // Load initial data
-        inventory.load();
     },
 
-    // Load inventory data
+    // Load inventory data (called after authentication)
     load: async () => {
         try {
             await inventory.loadProducts();
@@ -921,18 +1029,15 @@ const inventory = {
 const customers = {
     // Initialize customers
     init: () => {
-        // Set up event listeners
+        // Set up event listeners only - don't load data yet
         document.getElementById('customer-search')?.addEventListener('input', 
             utils.debounce(customers.searchCustomers, 300)
         );
         document.getElementById('customer-tier-filter')?.addEventListener('change', customers.filterCustomers);
         document.getElementById('refresh-customers-btn')?.addEventListener('click', customers.load);
-
-        // Load initial data
-        customers.load();
     },
 
-    // Load customers data
+    // Load customers data (called after authentication)
     load: async () => {
         try {
             await customers.loadCustomers();
@@ -1098,16 +1203,13 @@ const customers = {
 const transactions = {
     // Initialize transactions
     init: () => {
-        // Set up event listeners
+        // Set up event listeners only - don't load data yet
         document.getElementById('refresh-transactions-btn')?.addEventListener('click', transactions.load);
         document.getElementById('export-transactions-btn')?.addEventListener('click', transactions.exportTransactions);
         document.getElementById('filter-transactions-btn')?.addEventListener('click', transactions.filterTransactions);
-
-        // Load initial data
-        transactions.load();
     },
 
-    // Load transactions data
+    // Load transactions data (called after authentication)
     load: async () => {
         try {
             await transactions.loadTransactions();
@@ -1232,36 +1334,94 @@ const transactions = {
 // Initialize Application
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        // Check authentication
-        const isAuthenticated = await auth.checkAuth();
+        console.log('🚀 PharmaMine Web Application Starting...');
         
-        if (!isAuthenticated) {
-            // Show auth buttons
+        // Initialize demo mode if enabled
+        const isDemoMode = initDemoMode();
+        console.log('🎭 Demo mode:', isDemoMode);
+        
+        // Check authentication (skipped if demo mode)
+        console.log('🔐 Checking authentication...');
+        const isAuthenticated = await auth.checkAuth();
+        console.log('✅ Authentication status:', isAuthenticated);
+        
+        if (!isAuthenticated && !isDemoMode) {
+            console.log('🔓 User not authenticated, showing auth buttons');
+            // Show auth buttons for non-demo mode
             document.getElementById('auth-buttons').style.display = 'flex';
         } else {
+            console.log('🔒 User authenticated, hiding auth buttons');
             // Hide auth buttons and show user info
             document.getElementById('auth-buttons').style.display = 'none';
-            document.getElementById('username-display').textContent = appState.user.fullname;
+            const usernameDisplay = document.getElementById('username-display');
+            if (usernameDisplay) {
+                usernameDisplay.textContent = isDemoMode ? 'Demo User' : appState.user.fullname;
+            }
+            
+            // Show demo mode indicator if applicable
+            if (isDemoMode) {
+                const userDropdown = document.getElementById('userDropdown');
+                if (userDropdown) {
+                    const badge = document.createElement('span');
+                    badge.className = 'badge bg-warning ms-2';
+                    badge.textContent = 'DEMO';
+                    userDropdown.appendChild(badge);
+                }
+            }
         }
 
         // Initialize modules
+        console.log('🔧 Initializing modules...');
         sync.init();
         navigation.init();
         pos.init();
         inventory.init();
         customers.init();
         transactions.init();
+        console.log('✅ All modules initialized');
+        
+        // Start sync monitoring only after authentication is confirmed
+        if (isAuthenticated || isDemoMode) {
+            console.log('📡 Starting sync monitoring...');
+            sync.startMonitoring();
+            
+            // Load default section after authentication
+            console.log('🧭 Loading default section (pos)...');
+            navigation.switchSection('pos');
+        } else {
+            console.log('⚠️  Skipping sync monitoring and section loading - not authenticated');
+        }
 
         // Set up global event listeners
         document.getElementById('logout-link')?.addEventListener('click', auth.logout);
+        
+        // Add demo mode toggle button if not in demo mode
+        if (!isDemoMode) {
+            addDemoModeButton();
+        }
 
-        utils.showToast('Application loaded successfully', 'success');
+        utils.showToast(isDemoMode ? 'Demo mode activated!' : 'Application loaded successfully', 'success');
         
     } catch (error) {
-        console.error('Failed to initialize application:', error);
+        console.error('❌ Failed to initialize application:', error);
         utils.showToast('Failed to load application', 'error');
     }
 });
+
+// Add demo mode toggle button
+const addDemoModeButton = () => {
+    const authButtons = document.getElementById('auth-buttons');
+    if (authButtons) {
+        const demoButton = document.createElement('button');
+        demoButton.className = 'btn btn-warning ms-2';
+        demoButton.innerHTML = '<i class="fas fa-play me-1"></i>Try Demo';
+        demoButton.onclick = () => {
+            demoMode.enable();
+            window.location.reload();
+        };
+        authButtons.appendChild(demoButton);
+    }
+};
 
 // Make functions globally available for onclick handlers
 window.pos = pos;
