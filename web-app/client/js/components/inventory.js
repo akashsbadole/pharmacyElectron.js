@@ -697,8 +697,8 @@ const initInventory = () => {
         });
     }
 
-    // Load initial data
-    inventoryHandlers.load();
+    // Load initial data (removed - will be called manually after authentication)
+    // inventoryHandlers.load();
 };
 
 // Export for global access

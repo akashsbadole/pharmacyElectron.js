@@ -821,8 +821,8 @@ const initPOS = () => {
         });
     }
 
-    // Load initial data
-    posHandlers.load();
+    // Load initial data (removed - will be called manually after authentication)
+    // posHandlers.load();
 };
 
 // Export for global access

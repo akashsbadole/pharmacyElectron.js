@@ -629,8 +629,8 @@ const initCustomers = () => {
         });
     }
 
-    // Load initial data
-    customersHandlers.load();
+    // Load initial data (removed - will be called manually after authentication)
+    // customersHandlers.load();
 };
 
 // Export for global access
