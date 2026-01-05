@@ -8,3 +8,7 @@ LICENSE
 coverage
 *.old*""  
 "release-builds/" 
+"/release-builds/garmentpos-win32-x64.zip"
+"/release-builds/garmentpos-win32-x64/"
+release-builds/garmentpos-win32-x64/garmentpos.exe
+release-builds/garmentpos-win32-x64.zip
