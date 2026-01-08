@@ -21,59 +21,137 @@ const logger = winston.createLogger({
   ]
 });
 
-// Database type configuration
-const dbType = process.env.DB_TYPE || 'sqlite'; // 'sqlite' or 'postgres'
+// Database type configuration with smart fallback
+const dbType = process.env.DB_TYPE || 'auto'; // 'auto', 'postgres', or 'sqlite'
 
-// Database connection configuration
+// Database connection configuration with fallback logic
 const getDbConfig = () => {
-  if (dbType === 'postgres') {
-    return {
+  if (dbType === 'postgres' || dbType === 'auto') {
+    const postgresConfig = {
       host: process.env.DB_HOST || 'localhost',
       port: process.env.DB_PORT || 5432,
       database: process.env.DB_NAME || 'garmentpos',
       user: process.env.DB_USER || 'postgres',
-      password: process.env.DB_PASSWORD || 'password',
+      password: process.env.DB_PASSWORD || 'root',
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
       max: 20, // Maximum number of clients in the pool
       min: 2,  // Minimum number of clients in the pool
       idle: 10000, // Close idle clients after 10 seconds
-      connectionTimeoutMillis: 2000, // Return an error after 2 seconds if connection could not be established
+      connectionTimeoutMillis: 3000, // Return an error after 3 seconds if connection could not be established
       idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
     };
+    return { postgresConfig, type: 'postgres' };
   } else {
     // SQLite configuration
     return {
-      filename: process.env.DB_FILE || './data/pharmamine_web.db',
+      sqliteConfig: {
+        filename: process.env.DB_FILE || './data/pharmamine_web.db',
+      },
+      type: 'sqlite'
     };
   }
 };
 
 const dbConfig = getDbConfig();
+let actualDbType = 'sqlite'; // Will be determined during connection
 
-// Create database connection
+// Create database connection with fallback logic
 let pool;
 let sqliteDb;
 
-if (dbType === 'postgres') {
+async function initializeDatabaseConnection() {
+  if (dbType === 'sqlite') {
+    // Force SQLite mode
+    actualDbType = 'sqlite';
+    await initializeSqlite();
+    return;
+  }
+
+  // Try PostgreSQL first if auto or postgres mode
+  if (dbType === 'postgres' || dbType === 'auto') {
+    try {
+      await initializePostgres();
+      actualDbType = 'postgres';
+      logger.info('✅ PostgreSQL connection established successfully');
+      return;
+    } catch (error) {
+      logger.warn('❌ PostgreSQL connection failed, falling back to SQLite', { error: error.message });
+      
+      if (dbType === 'postgres') {
+        // If explicitly configured for postgres, don't fallback
+        throw new Error('PostgreSQL connection failed and fallback is disabled');
+      }
+    }
+  }
+
+  // Fallback to SQLite
+  try {
+    await initializeSqlite();
+    actualDbType = 'sqlite';
+    logger.info('✅ SQLite connection established as fallback');
+  } catch (error) {
+    logger.error('❌ SQLite fallback also failed', { error: error.message });
+    throw new Error('Both PostgreSQL and SQLite connection failed');
+  }
+}
+
+async function initializePostgres() {
   const { Pool } = require('pg');
-  pool = new Pool(dbConfig);
-} else {
+  const config = dbConfig.postgresConfig;
+  
+  // Ensure password is a string
+  if (config.password && typeof config.password !== 'string') {
+    config.password = String(config.password);
+  }
+  
+  pool = new Pool(config);
+  
+  // Test connection
+  const client = await pool.connect();
+  const result = await client.query('SELECT NOW() as current_time');
+  client.release();
+  
+  logger.info('PostgreSQL connection test successful', {
+    timestamp: result.rows[0].current_time
+  });
+}
+
+async function initializeSqlite() {
   // Ensure directory exists for SQLite database
-  const dbDir = path.dirname(dbConfig.filename);
+  const dbDir = path.dirname(dbConfig.sqliteConfig.filename);
   if (!fs.existsSync(dbDir)) {
     fs.mkdirSync(dbDir, { recursive: true });
     logger.info('Created SQLite database directory', { directory: dbDir });
   }
-  sqliteDb = new sqlite3.Database(dbConfig.filename);
+  sqliteDb = new sqlite3.Database(dbConfig.sqliteConfig.filename);
+  
+  // Test SQLite connection
+  return new Promise((resolve, reject) => {
+    sqliteDb.get('SELECT datetime("now") as current_time', (err, row) => {
+      if (err) {
+        reject(err);
+      } else {
+        logger.info('SQLite connection test successful', {
+          timestamp: row.current_time
+        });
+        resolve(true);
+      }
+    });
+  });
 }
 
 // Connection status
 let isConnected = false;
 
+// Get current database type
+function getDatabaseType() {
+  return actualDbType;
+}
+
 // Test database connection
 async function testConnection() {
   try {
-    if (dbType === 'postgres') {
+    if (actualDbType === 'postgres') {
       const client = await pool.connect();
       const result = await client.query('SELECT NOW() as current_time');
       client.release();
@@ -84,7 +162,7 @@ async function testConnection() {
     } else {
       // SQLite test connection
       return new Promise((resolve, reject) => {
-        sqliteDb.get('SELECT datetime(\'now\') as current_time', (err, row) => {
+        sqliteDb.get('SELECT datetime("now") as current_time', (err, row) => {
           if (err) {
             reject(err);
           } else {
@@ -106,12 +184,14 @@ async function testConnection() {
   }
 }
 
-// Connect to database
+// Connect to database with smart fallback
 async function connect() {
   try {
+    await initializeDatabaseConnection();
     const connected = await testConnection();
+    
     if (connected) {
-      logger.info(`${dbType.toUpperCase()} connected successfully`);
+      logger.info(`${actualDbType.toUpperCase()} connected successfully`);
     } else {
       throw new Error('Database connection failed');
     }
@@ -121,14 +201,22 @@ async function connect() {
   }
 }
 
+// Convert ? placeholders to $1, $2, etc. for PostgreSQL
+function convertPlaceholders(text) {
+  let index = 0;
+  return text.replace(/\?/g, () => `$${++index}`);
+}
+
 // Execute query with error handling
 async function query(text, params = []) {
   const start = Date.now();
   try {
     let res;
 
-    if (dbType === 'postgres') {
-      res = await pool.query(text, params);
+    if (actualDbType === 'postgres') {
+      // Convert ? placeholders to $1, $2, etc. for PostgreSQL compatibility
+      const convertedText = convertPlaceholders(text);
+      res = await pool.query(convertedText, params);
       const duration = Date.now() - start;
 
       logger.debug('Executed PostgreSQL query', {
@@ -182,7 +270,7 @@ async function query(text, params = []) {
 // Execute transaction
 async function transaction(callback) {
   try {
-    if (dbType === 'postgres') {
+    if (actualDbType === 'postgres') {
       const client = await pool.connect();
 
       try {
@@ -224,7 +312,7 @@ async function transaction(callback) {
 // Close database connection
 async function close() {
   try {
-    if (dbType === 'postgres') {
+    if (actualDbType === 'postgres') {
       await pool.end();
       logger.info('PostgreSQL connection closed');
     } else {
@@ -248,7 +336,7 @@ async function close() {
 // Create tables
 const createTables = async () => {
     try {
-        if (dbType === 'postgres') {
+        if (actualDbType === 'postgres') {
             // PostgreSQL table creation
             await query(`
                 CREATE TABLE IF NOT EXISTS users (
@@ -486,7 +574,7 @@ const createTables = async () => {
 const dbUtils = {
   // Insert with conflict resolution
   async insertWithConflict(table, data, conflictFields = ['id']) {
-    if (dbType === 'postgres') {
+    if (actualDbType === 'postgres') {
       const columns = Object.keys(data);
       const values = Object.values(data);
       const conflictClause = conflictFields.map(field => `"${field}"`).join(', ');
@@ -520,7 +608,7 @@ const dbUtils = {
   async bulkInsertWithConflict(table, dataArray, conflictFields = ['id']) {
     if (dataArray.length === 0) return [];
 
-    if (dbType === 'postgres') {
+    if (actualDbType === 'postgres') {
       const columns = Object.keys(dataArray[0]);
       const conflictClause = conflictFields.map(field => `"${field}"`).join(', ');
 
@@ -553,7 +641,7 @@ const dbUtils = {
 
   // Get table schema
   async getTableSchema(table) {
-    if (dbType === 'postgres') {
+    if (actualDbType === 'postgres') {
       const queryStr = `
         SELECT column_name, data_type, is_nullable, column_default
         FROM information_schema.columns
@@ -577,7 +665,7 @@ const dbUtils = {
 
   // Check if table exists
   async tableExists(table) {
-    if (dbType === 'postgres') {
+    if (actualDbType === 'postgres') {
       const result = await query(
         'SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = $1)',
         [table]
@@ -593,6 +681,44 @@ const dbUtils = {
   }
 };
 
+// Seed default admin user
+const seedDefaultUser = async () => {
+  try {
+    const bcrypt = require('bcryptjs');
+    
+    // Check if any users exist
+    const existingUsers = await query('SELECT COUNT(*) as count FROM users');
+    const userCount = parseInt(existingUsers.rows[0].count || 0);
+    
+    if (userCount === 0) {
+      // Create default admin user
+      const defaultPassword = 'admin123';
+      const saltRounds = 12;
+      const hashedPassword = await bcrypt.hash(defaultPassword, saltRounds);
+      
+      if (actualDbType === 'postgres') {
+        await query(
+          `INSERT INTO users (username, email, password_hash, created_at, updated_at) 
+           VALUES ($1, $2, $3, NOW(), NOW())`,
+          ['admin', 'admin@pharmamine.com', hashedPassword]
+        );
+      } else {
+        await query(
+          `INSERT INTO users (username, email, password_hash, created_at, updated_at) 
+           VALUES (?, ?, ?, datetime('now'), datetime('now'))`,
+          ['admin', 'admin@pharmamine.com', hashedPassword]
+        );
+      }
+      
+      logger.info('✅ Default admin user created (username: admin, password: admin123)');
+    } else {
+      logger.info('Users already exist, skipping default user creation');
+    }
+  } catch (error) {
+    logger.error('Error seeding default user:', error.message);
+  }
+};
+
 // Export database connection and utilities
 module.exports = {
   pool,
@@ -602,6 +728,9 @@ module.exports = {
   close,
   testConnection,
   createTables,
+  seedDefaultUser,
   isConnected: () => isConnected,
+  getDatabaseType,
+  getDbConfig,
   ...dbUtils
 };

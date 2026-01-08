@@ -149,12 +149,16 @@ const utils = {
             ...options
         };
 
-        // Add auth token if available
+        // Skip auth token for authentication endpoints (login, register)
+        const publicEndpoints = ['auth/login', 'auth/register'];
+        const isPublicEndpoint = publicEndpoints.some(pe => endpoint.includes(pe));
+
+        // Add auth token if available and not a public endpoint
         const token = localStorage.getItem('authToken');
-        if (token) {
+        if (token && !isPublicEndpoint) {
             config.headers.Authorization = `Bearer ${token}`;
             console.log(`🔑 Using auth token for ${endpoint}`);
-        } else {
+        } else if (!isPublicEndpoint) {
             console.warn(`⚠️ No auth token available for ${endpoint} - this may cause 401 errors`);
         }
 
@@ -1340,6 +1344,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const isDemoMode = initDemoMode();
         console.log('🎭 Demo mode:', isDemoMode);
         
+        // Set up form event listeners
+        setupFormHandlers();
+        
         // Check authentication (skipped if demo mode)
         console.log('🔐 Checking authentication...');
         const isAuthenticated = await auth.checkAuth();
@@ -1423,8 +1430,231 @@ const addDemoModeButton = () => {
     }
 };
 
+// Set up form event handlers
+const setupFormHandlers = () => {
+    // Login form
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            
+            if (!username || !password) {
+                utils.showToast('Please enter both username and password', 'warning');
+                return;
+            }
+            
+            utils.showLoading();
+            const success = await auth.login(username, password);
+            utils.hideLoading();
+            
+            if (success) {
+                // Close modal
+                const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+                if (loginModal) loginModal.hide();
+                
+                // Reload page to initialize authenticated state
+                window.location.reload();
+            }
+        });
+    }
+    
+    // Register form
+    const registerForm = document.getElementById('registerForm');
+    if (registerForm) {
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fullname = document.getElementById('registerFullname').value.trim();
+            const username = document.getElementById('registerUsername').value.trim();
+            const email = document.getElementById('registerEmail').value.trim();
+            const phone = document.getElementById('registerPhone').value.trim();
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('registerConfirmPassword').value;
+            
+            // Validation
+            if (!fullname || !username || !password) {
+                utils.showToast('Please fill in all required fields', 'warning');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                utils.showToast('Passwords do not match', 'warning');
+                return;
+            }
+            
+            if (password.length < 6) {
+                utils.showToast('Password must be at least 6 characters long', 'warning');
+                return;
+            }
+            
+            const userData = {
+                fullname,
+                username,
+                email: email || null,
+                phone: phone || null,
+                password
+            };
+            
+            utils.showLoading();
+            const success = await auth.register(userData);
+            utils.hideLoading();
+            
+            if (success) {
+                // Close register modal
+                const registerModal = bootstrap.Modal.getInstance(document.getElementById('registerModal'));
+                if (registerModal) registerModal.hide();
+                
+                // Open login modal
+                const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
+                loginModal.show();
+            }
+        });
+    }
+};
+
 // Make functions globally available for onclick handlers
 window.pos = pos;
 window.inventory = inventory;
 window.customers = customers;
 window.transactions = transactions;
+
+// Add missing modal functions
+customers.addCustomer = async () => {
+    const name = document.getElementById('customerName').value.trim();
+    const email = document.getElementById('customerEmail').value.trim();
+    const phone = document.getElementById('customerPhone').value.trim();
+    const address = document.getElementById('customerAddress').value.trim();
+    
+    if (!name) {
+        utils.showToast('Please enter customer name', 'warning');
+        return;
+    }
+    
+    try {
+        utils.showLoading();
+        const customerData = {
+            name,
+            email: email || null,
+            phone: phone || null,
+            address: address || null,
+            loyalty_tier: 'bronze',
+            loyalty_points: 0
+        };
+        
+        const response = await utils.apiRequest('customers/customer', {
+            method: 'POST',
+            body: JSON.stringify(customerData)
+        });
+        
+        if (response.success) {
+            utils.showToast('Customer added successfully', 'success');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addCustomerModal'));
+            if (modal) modal.hide();
+            document.getElementById('addCustomerForm').reset();
+            // Refresh customers list if visible
+            if (document.getElementById('customers-section').style.display !== 'none') {
+                customers.load();
+            }
+        } else {
+            utils.showToast('Failed to add customer', 'error');
+        }
+    } catch (error) {
+        console.error('Failed to add customer:', error);
+        utils.showToast('Failed to add customer', 'error');
+    } finally {
+        utils.hideLoading();
+    }
+};
+
+inventory.addProduct = async () => {
+    const name = document.getElementById('productName').value.trim();
+    const price = parseFloat(document.getElementById('productPrice').value);
+    const quantity = parseInt(document.getElementById('productQuantity').value);
+    
+    if (!name || !price || !quantity) {
+        utils.showToast('Please fill in all required fields', 'warning');
+        return;
+    }
+    
+    try {
+        utils.showLoading();
+        const productData = {
+            name,
+            price,
+            quantity,
+            category_id: 1, // Default category
+            min_stock: 10, // Default minimum stock
+            description: ''
+        };
+        
+        const response = await utils.apiRequest('inventory/products', {
+            method: 'POST',
+            body: JSON.stringify(productData)
+        });
+        
+        if (response.success) {
+            utils.showToast('Product added successfully', 'success');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addProductModal'));
+            if (modal) modal.hide();
+            document.getElementById('addProductForm').reset();
+            // Refresh inventory list if visible
+            if (document.getElementById('inventory-section').style.display !== 'none') {
+                inventory.load();
+            }
+        } else {
+            utils.showToast('Failed to add product', 'error');
+        }
+    } catch (error) {
+        console.error('Failed to add product:', error);
+        utils.showToast('Failed to add product', 'error');
+    } finally {
+        utils.hideLoading();
+    }
+};
+
+inventory.importProducts = async () => {
+    const fileInput = document.getElementById('csvFileInput');
+    const duplicateAction = document.getElementById('duplicateAction').value;
+    
+    if (!fileInput.files[0]) {
+        utils.showToast('Please select a CSV file', 'warning');
+        return;
+    }
+    
+    try {
+        utils.showLoading();
+        
+        const formData = new FormData();
+        formData.append('csvfile', fileInput.files[0]);
+        formData.append('duplicate', duplicateAction);
+        
+        const response = await fetch(`${apiConfig.baseUrl}/inventory/import/csv`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+            },
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            utils.showToast('Products imported successfully', 'success');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('importProductsModal'));
+            if (modal) modal.hide();
+            fileInput.value = '';
+            // Refresh inventory list if visible
+            if (document.getElementById('inventory-section').style.display !== 'none') {
+                inventory.load();
+            }
+        } else {
+            utils.showToast(data.message || 'Import failed', 'error');
+        }
+    } catch (error) {
+        console.error('Import failed:', error);
+        utils.showToast('Import failed', 'error');
+    } finally {
+        utils.hideLoading();
+    }
+};

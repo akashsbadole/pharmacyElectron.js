@@ -29,3 +29,18 @@
 {"level":"info","message":"PostgreSQL connection test successful","timestamp":"2026-01-05T18:31:55.043Z"}
 {"level":"info","message":"POSTGRES connected successfully","timestamp":"2026-01-05T18:31:55.047Z"}
 {"level":"info","message":"Database tables created successfully","timestamp":"2026-01-05T18:31:55.058Z"}
+{"level":"info","message":"PostgreSQL connection test successful","timestamp":"2026-01-05T20:07:10.936Z"}
+{"level":"info","message":"✅ PostgreSQL connection established successfully","timestamp":"2026-01-05T20:07:10.957Z"}
+{"level":"info","message":"PostgreSQL connection test successful","timestamp":"2026-01-05T20:07:10.959Z"}
+{"level":"info","message":"POSTGRES connected successfully","timestamp":"2026-01-05T20:07:10.959Z"}
+{"level":"info","message":"Database tables created successfully","timestamp":"2026-01-05T20:07:10.985Z"}
+{"error":"syntax error at or near \"AND\"","level":"error","message":"Query failed","params":["1970-01-01T00:00:00Z"],"text":"\n          SELECT table_name, record_id, operation, data, created_at as timestamp, source\n          FROM sync_log\n          WHERE created_at > ? AND synced = 0\n          ORDER BY created_at\n        ","timestamp":"2026-01-05T20:07:41.045Z"}
+{"error":"syntax error at or near \"AND\"","level":"error","message":"Query failed","params":["2026-01-05T20:07:41.046Z"],"text":"\n          SELECT table_name, record_id, operation, data, created_at as timestamp, source\n          FROM sync_log\n          WHERE created_at > ? AND synced = 0\n          ORDER BY created_at\n        ","timestamp":"2026-01-05T20:08:11.121Z"}
+{"error":"syntax error at or near \"AND\"","level":"error","message":"Query failed","params":["2026-01-05T20:08:11.122Z"],"text":"\n          SELECT table_name, record_id, operation, data, created_at as timestamp, source\n          FROM sync_log\n          WHERE created_at > ? AND synced = 0\n          ORDER BY created_at\n        ","timestamp":"2026-01-05T20:08:41.092Z"}
+{"error":"syntax error at or near \"AND\"","level":"error","message":"Query failed","params":["2026-01-05T20:08:41.092Z"],"text":"\n          SELECT table_name, record_id, operation, data, created_at as timestamp, source\n          FROM sync_log\n          WHERE created_at > ? AND synced = 0\n          ORDER BY created_at\n        ","timestamp":"2026-01-05T20:09:11.124Z"}
+{"level":"info","message":"PostgreSQL connection test successful","timestamp":"2026-01-06T05:33:14.190Z"}
+{"level":"info","message":"✅ PostgreSQL connection established successfully","timestamp":"2026-01-06T05:33:14.214Z"}
+{"level":"info","message":"PostgreSQL connection test successful","timestamp":"2026-01-06T05:33:14.214Z"}
+{"level":"info","message":"POSTGRES connected successfully","timestamp":"2026-01-06T05:33:14.215Z"}
+{"level":"info","message":"Database tables created successfully","timestamp":"2026-01-06T05:33:14.230Z"}
+{"level":"info","message":"Users already exist, skipping default user creation","timestamp":"2026-01-06T05:33:14.239Z"}

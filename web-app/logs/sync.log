@@ -1814,3 +1814,642 @@
 {"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:18:55.910Z"}
 {"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:18:55.910Z"}
 {"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:18:55.911Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:19:25.907Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:19:25.908Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:19:25.908Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:19:25.909Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:19:25.909Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:19:55.921Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:19:55.927Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:19:55.927Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:19:55.927Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:19:55.930Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:20:25.949Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:20:25.951Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:20:25.951Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:20:25.951Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:20:25.952Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:20:55.961Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:20:55.964Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:20:55.965Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:20:55.965Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:20:55.966Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:21:25.975Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:21:25.977Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:21:25.977Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:21:25.977Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:21:25.978Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:21:55.989Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:21:55.996Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:21:55.996Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:21:55.996Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:21:55.999Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:22:25.996Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:22:25.998Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:22:25.998Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:22:25.998Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:22:25.998Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:22:55.997Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:22:55.999Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:22:55.999Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:22:55.999Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:22:56.000Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:23:26.007Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:23:26.009Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:23:26.010Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:23:26.010Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:23:26.017Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:23:56.046Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:23:56.068Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:23:56.068Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:23:56.068Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:23:56.077Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:24:26.046Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:24:26.051Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:24:26.051Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:24:26.051Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:24:26.052Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:24:56.055Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:24:56.057Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:24:56.057Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:24:56.057Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:24:56.058Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:25:26.058Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:25:26.060Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:25:26.061Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:25:26.061Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:25:26.062Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:25:56.069Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:25:56.071Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:25:56.071Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:25:56.071Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:25:56.072Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:26:26.072Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:26:26.077Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:26:26.077Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:26:26.077Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:26:26.078Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:26:56.073Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:26:56.075Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:26:56.075Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:26:56.075Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:26:56.076Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:27:26.088Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:27:26.091Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:27:26.091Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:27:26.091Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:27:26.091Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:27:56.092Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:27:56.098Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:27:56.098Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:27:56.099Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:27:56.100Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:28:26.097Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:28:26.100Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:28:26.100Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:28:26.100Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:28:26.102Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:28:56.110Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:28:56.111Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:28:56.111Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:28:56.111Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:28:56.112Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:29:26.113Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:29:26.119Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:29:26.119Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:29:26.119Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:29:26.121Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:29:56.113Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:29:56.115Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:29:56.115Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:29:56.115Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:29:56.115Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:30:26.117Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:30:26.119Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:30:26.119Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:30:26.119Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:30:26.121Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:30:56.125Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:30:56.126Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:30:56.126Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:30:56.126Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:30:56.127Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:31:26.137Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:31:26.141Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:31:26.142Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:31:26.142Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:31:26.147Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:31:56.145Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:31:56.147Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:31:56.147Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:31:56.147Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:31:56.147Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:32:26.150Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:32:26.155Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:32:26.155Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:32:26.155Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:32:26.157Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:32:56.161Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:32:56.169Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:32:56.169Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:32:56.169Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:32:56.172Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:33:26.173Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:33:26.181Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:33:26.181Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:33:26.181Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:33:26.182Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:33:56.184Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:33:56.187Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:33:56.188Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:33:56.188Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:33:56.189Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:34:26.199Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:34:26.347Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:34:26.348Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:34:26.348Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:34:26.364Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:34:56.202Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:34:56.205Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:34:56.205Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:34:56.205Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:34:56.207Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:35:26.212Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:35:26.214Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:35:26.214Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:35:26.215Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:35:26.215Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:35:56.213Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:35:56.216Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:35:56.216Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:35:56.216Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:35:56.217Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:36:26.223Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:36:26.226Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:36:26.226Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:36:26.226Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:36:26.227Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:36:56.224Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:36:56.226Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:36:56.226Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:36:56.226Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:36:56.227Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:37:26.239Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:37:26.247Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:37:26.247Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:37:26.247Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:37:26.250Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:37:56.246Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:37:56.249Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:37:56.249Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:37:56.249Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:37:56.251Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:38:26.252Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:38:26.254Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:38:26.254Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:38:26.254Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:38:26.255Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:38:56.332Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:38:56.336Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:38:56.337Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:38:56.337Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:38:56.354Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:39:26.340Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:39:26.343Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:39:26.343Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:39:26.344Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:39:26.345Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:39:56.341Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:39:56.345Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:39:56.346Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:39:56.347Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:39:56.350Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:40:26.351Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:40:26.354Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:40:26.355Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:40:26.355Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:40:26.355Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:40:56.353Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:40:56.360Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:40:56.360Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:40:56.361Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:40:56.363Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:41:26.361Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:41:26.368Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:41:26.369Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:41:26.370Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:41:26.373Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:41:56.375Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:41:56.377Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:41:56.377Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:41:56.377Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:41:56.378Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:42:26.379Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:42:26.381Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:42:26.381Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:42:26.381Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:42:26.382Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:42:56.398Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:42:56.417Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:42:56.417Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:42:56.417Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:42:56.419Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:43:26.404Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:43:26.407Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:43:26.410Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:43:26.410Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:43:26.412Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:43:56.418Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:43:56.420Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:43:56.421Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:43:56.421Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:43:56.423Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:44:26.426Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:44:26.437Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:44:26.437Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:44:26.437Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:44:26.439Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:44:56.435Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:44:56.438Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:44:56.438Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:44:56.438Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:44:56.440Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:45:26.443Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:45:26.447Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:45:26.447Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:45:26.447Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:45:26.449Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:45:56.455Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:45:56.461Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:45:56.461Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:45:56.461Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:45:56.463Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:46:26.462Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:46:26.466Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:46:26.466Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:46:26.466Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:46:26.468Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T19:46:56.478Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T19:46:56.485Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T19:46:56.485Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T19:46:56.485Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T19:46:56.491Z"}
+{"level":"info","message":"Initializing sync engine","service":"sync-engine","timestamp":"2026-01-05T20:07:10.986Z"}
+{"level":"info","message":"Sync log table already exists","service":"sync-engine","timestamp":"2026-01-05T20:07:11.011Z"}
+{"interval":"30000","level":"info","message":"Periodic sync started","service":"sync-engine","timestamp":"2026-01-05T20:07:11.012Z"}
+{"level":"info","message":"Sync engine initialized successfully","service":"sync-engine","timestamp":"2026-01-05T20:07:11.012Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T20:07:41.017Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T20:07:41.037Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T20:07:41.037Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T20:07:41.038Z"}
+{"error":"syntax error at or near \"AND\"","level":"error","message":"Failed to get changes from database","service":"sync-engine","timestamp":"2026-01-05T20:07:41.046Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T20:07:41.046Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T20:08:11.033Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T20:08:11.046Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T20:08:11.047Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T20:08:11.047Z"}
+{"error":"syntax error at or near \"AND\"","level":"error","message":"Failed to get changes from database","service":"sync-engine","timestamp":"2026-01-05T20:08:11.122Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T20:08:11.122Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T20:08:41.044Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T20:08:41.047Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T20:08:41.047Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T20:08:41.047Z"}
+{"error":"syntax error at or near \"AND\"","level":"error","message":"Failed to get changes from database","service":"sync-engine","timestamp":"2026-01-05T20:08:41.092Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T20:08:41.093Z"}
+{"level":"info","message":"Starting sync operation","service":"sync-engine","timestamp":"2026-01-05T20:09:11.058Z"}
+{"error":"Error","level":"warn","message":"NeDB API not available, attempting direct file access","service":"sync-engine","timestamp":"2026-01-05T20:09:11.067Z"}
+{"level":"warn","message":"NeDB synchronization requires desktop application to be running with sync API enabled","service":"sync-engine","timestamp":"2026-01-05T20:09:11.067Z"}
+{"level":"warn","message":"Please ensure the desktop PharmaMine application is running and accessible at","service":"sync-engine","timestamp":"2026-01-05T20:09:11.068Z"}
+{"error":"syntax error at or near \"AND\"","level":"error","message":"Failed to get changes from database","service":"sync-engine","timestamp":"2026-01-05T20:09:11.124Z"}
+{"changes":0,"conflicts":0,"duration":null,"errors":0,"level":"info","message":"Sync operation completed","processed":0,"service":"sync-engine","timestamp":"2026-01-05T20:09:11.125Z"}
+{"level":"info","message":"Initializing sync engine...","timestamp":"2026-01-06T05:33:14.240Z"}
+{"level":"info","message":"🔄 Periodic sync started (every 30 seconds)","timestamp":"2026-01-06T05:33:14.240Z"}
+{"level":"info","message":"✅ Sync engine initialized successfully","timestamp":"2026-01-06T05:33:14.241Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:33:44.253Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T05:33:44.254Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:34:14.264Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T05:34:14.264Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:34:44.266Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T05:34:44.266Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:35:14.269Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T05:35:14.270Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:35:44.282Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T05:35:44.283Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:36:14.293Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T05:36:14.293Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:36:44.300Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T05:36:44.301Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:37:14.304Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T05:37:14.304Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:37:44.305Z"}
+{"level":"info","message":"✅ Sync completed in 2ms","timestamp":"2026-01-06T05:37:44.307Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:38:14.313Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T05:38:14.314Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:38:44.314Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T05:38:44.315Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:39:14.328Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T05:39:14.328Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:39:44.328Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T05:39:44.328Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:40:14.334Z"}
+{"level":"info","message":"✅ Sync completed in 2ms","timestamp":"2026-01-06T05:40:14.336Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:40:44.347Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T05:40:44.348Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:41:14.361Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T05:41:14.361Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:41:44.363Z"}
+{"level":"info","message":"✅ Sync completed in 2ms","timestamp":"2026-01-06T05:41:44.365Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:42:14.371Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T05:42:14.371Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:42:44.372Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T05:42:44.373Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:43:14.384Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T05:43:14.385Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:43:44.385Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T05:43:44.385Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:44:14.398Z"}
+{"level":"info","message":"✅ Sync completed in 2ms","timestamp":"2026-01-06T05:44:14.400Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:44:44.412Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T05:44:44.413Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:45:14.413Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T05:45:14.413Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:45:44.422Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T05:45:44.423Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:46:14.435Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T05:46:14.436Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:46:44.448Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T05:46:44.449Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:47:14.455Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T05:47:14.455Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:47:44.465Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T05:47:44.465Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:48:14.474Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T05:48:14.475Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:48:44.480Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T05:48:44.480Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:49:14.486Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T05:49:14.486Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:49:44.494Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T05:49:44.494Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:50:14.508Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T05:50:14.509Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:50:44.514Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T05:50:44.515Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:51:14.520Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T05:51:14.521Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:51:44.523Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T05:51:44.524Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:52:14.529Z"}
+{"level":"info","message":"✅ Sync completed in 2ms","timestamp":"2026-01-06T05:52:14.531Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:52:44.531Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T05:52:44.532Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:53:14.536Z"}
+{"level":"info","message":"✅ Sync completed in 2ms","timestamp":"2026-01-06T05:53:14.538Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:53:44.551Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T05:53:44.551Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:54:14.563Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T05:54:14.563Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:54:44.573Z"}
+{"level":"info","message":"✅ Sync completed in 2ms","timestamp":"2026-01-06T05:54:44.575Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:55:14.587Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T05:55:14.587Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:55:44.601Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T05:55:44.601Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:56:14.610Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T05:56:14.610Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:56:44.623Z"}
+{"level":"info","message":"✅ Sync completed in 2ms","timestamp":"2026-01-06T05:56:44.625Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:57:14.627Z"}
+{"level":"info","message":"✅ Sync completed in 2ms","timestamp":"2026-01-06T05:57:14.629Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:57:44.633Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T05:57:44.634Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:58:14.644Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T05:58:14.645Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:58:44.656Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T05:58:44.656Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:59:14.663Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T05:59:14.663Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T05:59:44.675Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T05:59:44.676Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:00:14.686Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T06:00:14.686Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:00:44.690Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:00:44.691Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:01:14.704Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:01:14.705Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:01:44.717Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:01:44.718Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:02:14.724Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:02:14.725Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:02:44.729Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T06:02:44.729Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:03:14.733Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:03:14.734Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:03:44.744Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:03:44.745Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:04:14.748Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:04:14.749Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:04:44.760Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:04:44.761Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:05:14.762Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:05:14.763Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:05:44.769Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:05:44.770Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:06:14.774Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T06:06:14.774Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:06:44.780Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:06:44.781Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:07:14.796Z"}
+{"level":"info","message":"✅ Sync completed in 2ms","timestamp":"2026-01-06T06:07:14.797Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:07:44.805Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:07:44.806Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:08:14.815Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:08:14.816Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:08:44.830Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T06:08:44.830Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:09:14.843Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:09:14.844Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:09:44.846Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T06:09:44.846Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:10:14.854Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T06:10:14.854Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:10:44.855Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T06:10:44.855Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:11:14.856Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:11:14.857Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:11:44.865Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:11:44.866Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:12:14.869Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T06:12:14.869Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:12:44.875Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:12:44.876Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:13:14.879Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:13:14.880Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:13:44.881Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:13:44.882Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:14:14.891Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T06:14:14.891Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:14:44.895Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T06:14:44.895Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:15:14.906Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T06:15:14.906Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:15:44.906Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T06:15:44.906Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:16:14.906Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:16:14.907Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:16:44.915Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T06:16:44.915Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:17:14.918Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T06:17:14.918Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:17:44.928Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:17:44.929Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:18:14.933Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:18:14.934Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:18:44.942Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T06:18:44.942Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:19:14.953Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T06:19:14.953Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:19:44.959Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T06:19:44.959Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:20:14.973Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:20:14.974Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:20:44.977Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:20:44.978Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:21:14.988Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:21:14.989Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:21:44.995Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T06:21:44.995Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:22:14.996Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:22:14.997Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:22:44.996Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:22:44.997Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:23:14.999Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T06:23:14.999Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:23:45.002Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:23:45.003Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:24:15.005Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:24:15.006Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:24:45.010Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T06:24:45.011Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:25:15.023Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T06:25:15.023Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:25:45.025Z"}
+{"level":"info","message":"✅ Sync completed in 2ms","timestamp":"2026-01-06T06:25:45.027Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:26:15.031Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:26:15.032Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:26:45.039Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T06:26:45.039Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:27:15.050Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T06:27:15.051Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:27:45.062Z"}
+{"level":"info","message":"✅ Sync completed in 2ms","timestamp":"2026-01-06T06:27:45.064Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:28:15.069Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:28:15.070Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:28:45.074Z"}
+{"level":"info","message":"✅ Sync completed in 2ms","timestamp":"2026-01-06T06:28:45.076Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:29:15.080Z"}
+{"level":"info","message":"✅ Sync completed in 2ms","timestamp":"2026-01-06T06:29:15.081Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:29:45.090Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:29:45.091Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:30:15.099Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T06:30:15.099Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:30:45.109Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:30:45.110Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:31:15.124Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:31:15.125Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:31:45.128Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T06:31:45.128Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:32:15.129Z"}
+{"level":"info","message":"✅ Sync completed in 2ms","timestamp":"2026-01-06T06:32:15.131Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:32:45.134Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T06:32:45.134Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:33:15.146Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:33:15.147Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:33:45.149Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T06:33:45.149Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:34:15.151Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T06:34:15.151Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:34:45.162Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:34:45.162Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:35:15.172Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:35:15.173Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:35:45.173Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:35:45.174Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:36:15.175Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:36:15.176Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:36:45.185Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:36:45.186Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:37:15.198Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:37:15.199Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:37:45.204Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:37:45.205Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:38:15.220Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T06:38:15.220Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:38:45.231Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:38:45.232Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:39:15.237Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:39:15.238Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:39:45.252Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:39:45.253Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:40:15.253Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:40:15.254Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:40:45.264Z"}
+{"level":"info","message":"✅ Sync completed in 2ms","timestamp":"2026-01-06T06:40:45.266Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:41:15.266Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:41:15.267Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:41:45.272Z"}
+{"level":"info","message":"✅ Sync completed in 2ms","timestamp":"2026-01-06T06:41:45.274Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:42:15.288Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:42:15.289Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:42:45.298Z"}
+{"level":"info","message":"✅ Sync completed in 2ms","timestamp":"2026-01-06T06:42:45.300Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:43:15.300Z"}
+{"level":"info","message":"✅ Sync completed in 2ms","timestamp":"2026-01-06T06:43:15.301Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:43:45.303Z"}
+{"level":"info","message":"✅ Sync completed in 2ms","timestamp":"2026-01-06T06:43:45.304Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:44:15.304Z"}
+{"level":"info","message":"✅ Sync completed in 2ms","timestamp":"2026-01-06T06:44:15.306Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:44:45.317Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T06:44:45.317Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:45:15.328Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:45:15.329Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:45:45.334Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:45:45.335Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:46:15.346Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:46:15.348Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:46:45.348Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:46:45.349Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:47:15.349Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T06:47:15.349Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:47:45.354Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:47:45.355Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:48:15.356Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:48:15.357Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:48:45.360Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T06:48:45.360Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:49:15.364Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:49:15.365Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:49:45.373Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T06:49:45.373Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:50:15.376Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T06:50:15.376Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:50:45.384Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:50:45.385Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:51:15.384Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:51:15.385Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:51:45.388Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T06:51:45.388Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:52:15.393Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:52:15.394Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:52:45.398Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:52:45.399Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:53:15.413Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:53:15.414Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:53:45.422Z"}
+{"level":"info","message":"✅ Sync completed in 1ms","timestamp":"2026-01-06T06:53:45.423Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:54:15.427Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T06:54:15.427Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:54:45.430Z"}
+{"level":"info","message":"✅ Sync completed in 2ms","timestamp":"2026-01-06T06:54:45.432Z"}
+{"level":"info","message":"Starting sync operation...","timestamp":"2026-01-06T06:55:15.441Z"}
+{"level":"info","message":"✅ Sync completed in 0ms","timestamp":"2026-01-06T06:55:15.441Z"}

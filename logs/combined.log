@@ -4,3 +4,9 @@
 {"directory":"./data","level":"info","message":"Created SQLite database directory","timestamp":"2026-01-04T07:24:19.960Z"}
 {"level":"info","message":"SQLite connection test successful","timestamp":"2026-01-04 07:24:19"}
 {"level":"info","message":"SQLITE connected successfully","timestamp":"2026-01-04T07:24:19.968Z"}
+{"level":"info","message":"PostgreSQL connection test successful","timestamp":"2026-01-06T05:36:49.118Z"}
+{"level":"info","message":"✅ PostgreSQL connection established successfully","timestamp":"2026-01-06T05:36:49.122Z"}
+{"level":"info","message":"PostgreSQL connection test successful","timestamp":"2026-01-06T05:36:49.123Z"}
+{"level":"info","message":"POSTGRES connected successfully","timestamp":"2026-01-06T05:36:49.124Z"}
+{"level":"info","message":"Database tables created successfully","timestamp":"2026-01-06T05:36:49.131Z"}
+{"level":"info","message":"Users already exist, skipping default user creation","timestamp":"2026-01-06T05:36:49.134Z"}

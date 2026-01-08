@@ -3,13 +3,11 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { Pool } = require('pg');
 const { authenticateToken } = require('../middleware/auth');
 const { validateRegistration, validateLogin } = require('../middleware/validation');
-const config = require('../config/database');
+const db = require('../config/database');
 
 const router = express.Router();
-const pool = new Pool(config);
 
 // Register a new user
 router.post('/register', validateRegistration, async (req, res) => {
@@ -17,8 +15,8 @@ router.post('/register', validateRegistration, async (req, res) => {
         const { username, email, password } = req.body;
 
         // Check if user already exists
-        const existingUser = await pool.query(
-            'SELECT * FROM users WHERE username = $1 OR email = $2',
+        const existingUser = await db.query(
+            'SELECT * FROM users WHERE username = ? OR email = ?',
             [username, email]
         );
 
@@ -34,8 +32,8 @@ router.post('/register', validateRegistration, async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, saltRounds);
 
         // Insert new user
-        const result = await pool.query(
-            'INSERT INTO users (username, email, password_hash, created_at) VALUES ($1, $2, $3, NOW()) RETURNING id, username, email, created_at',
+        const result = await db.query(
+            'INSERT INTO users (username, email, password_hash, created_at) VALUES (?, ?, ?, datetime(\'now\')) RETURNING id, username, email, created_at',
             [username, email, hashedPassword]
         );
 
@@ -77,9 +75,9 @@ router.post('/login', validateLogin, async (req, res) => {
         const { username, password } = req.body;
 
         // Find user by username or email
-        const result = await pool.query(
-            'SELECT id, username, email, password_hash, created_at FROM users WHERE username = $1 OR email = $1',
-            [username]
+        const result = await db.query(
+            'SELECT id, username, email, password_hash, created_at FROM users WHERE username = ? OR email = ?',
+            [username, username]
         );
 
         if (result.rows.length === 0) {
@@ -134,8 +132,8 @@ router.post('/login', validateLogin, async (req, res) => {
 // Get current user
 router.get('/me', authenticateToken, async (req, res) => {
     try {
-        const result = await pool.query(
-            'SELECT id, username, email, created_at FROM users WHERE id = $1',
+        const result = await db.query(
+            'SELECT id, username, email, created_at FROM users WHERE id = ?',
             [req.userId]
         );
 
@@ -191,8 +189,8 @@ router.post('/change-password', authenticateToken, async (req, res) => {
         }
 
         // Get current user with password hash
-        const result = await pool.query(
-            'SELECT password_hash FROM users WHERE id = $1',
+        const result = await db.query(
+            'SELECT password_hash FROM users WHERE id = ?',
             [req.userId]
         );
 
@@ -220,8 +218,8 @@ router.post('/change-password', authenticateToken, async (req, res) => {
         const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
 
         // Update password
-        await pool.query(
-            'UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2',
+        await db.query(
+            'UPDATE users SET password_hash = ?, updated_at = datetime(\'now\') WHERE id = ?',
             [hashedNewPassword, req.userId]
         );
 

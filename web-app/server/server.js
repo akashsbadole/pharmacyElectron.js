@@ -84,7 +84,11 @@ app.get('/health', (req, res) => {
     res.json({
         status: 'healthy',
         timestamp: new Date().toISOString(),
-        database: database.isConnected ? 'connected' : 'disconnected',
+        database: {
+            status: database.isConnected ? 'connected' : 'disconnected',
+            type: database.getDatabaseType ? database.getDatabaseType() : 'unknown',
+            configured: process.env.DB_TYPE || 'auto'
+        },
         sync: syncEngine.isRunning ? 'running' : 'stopped'
     });
 });
@@ -122,6 +126,9 @@ async function startServer() {
         // Create tables if they don't exist
         await database.createTables();
         console.log('✅ Database tables created/verified');
+
+        // Seed default admin user
+        await database.seedDefaultUser();
 
         // Initialize sync engine
         await syncEngine.initialize();

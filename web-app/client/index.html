@@ -462,6 +462,106 @@
             </div>
         </section>
 
+        <!-- Add Customer Modal -->
+        <div class="modal fade" id="addCustomerModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Add Customer</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="addCustomerForm">
+                            <div class="mb-3">
+                                <label for="customerName" class="form-label">Full Name</label>
+                                <input type="text" class="form-control" id="customerName" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="customerEmail" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="customerEmail">
+                            </div>
+                            <div class="mb-3">
+                                <label for="customerPhone" class="form-label">Phone</label>
+                                <input type="tel" class="form-control" id="customerPhone">
+                            </div>
+                            <div class="mb-3">
+                                <label for="customerAddress" class="form-label">Address</label>
+                                <input type="text" class="form-control" id="customerAddress">
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="customers.addCustomer()">Add Customer</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Product Modal -->
+        <div class="modal fade" id="addProductModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Add Product</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="addProductForm">
+                            <div class="mb-3">
+                                <label for="productName" class="form-label">Product Name</label>
+                                <input type="text" class="form-control" id="productName" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="productPrice" class="form-label">Price</label>
+                                <input type="number" class="form-control" id="productPrice" step="0.01" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="productQuantity" class="form-label">Quantity</label>
+                                <input type="number" class="form-control" id="productQuantity" required>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="inventory.addProduct()">Add Product</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Import Products Modal -->
+        <div class="modal fade" id="importProductsModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Import Products</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="importProductsForm">
+                            <div class="mb-3">
+                                <label for="csvFileInput" class="form-label">CSV File</label>
+                                <input type="file" class="form-control" id="csvFileInput" accept=".csv" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="duplicateAction" class="form-label">On Duplicate</label>
+                                <select class="form-select" id="duplicateAction">
+                                    <option value="skip">Skip</option>
+                                    <option value="update">Update</option>
+                                    <option value="duplicate">Create Duplicate</option>
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="inventory.importProducts()">Import</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Transactions Section -->
         <section id="transactions-section" class="mb-4" style="display: none;">
             <div class="card">
@@ -542,10 +642,6 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="js/app.js"></script>
-    <script src="js/auth.js"></script>
     <script src="js/sync.js"></script>
-    <script src="js/components/pos.js"></script>
-    <script src="js/components/inventory.js"></script>
-    <script src="js/components/customers.js"></script>
 </body>
 </html>

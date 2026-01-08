@@ -1,0 +1,4 @@
+{"error":"syntax error at or near \"AND\"","level":"error","message":"Failed to get changes from database","service":"sync-engine","timestamp":"2026-01-05T20:07:41.046Z"}
+{"error":"syntax error at or near \"AND\"","level":"error","message":"Failed to get changes from database","service":"sync-engine","timestamp":"2026-01-05T20:08:11.122Z"}
+{"error":"syntax error at or near \"AND\"","level":"error","message":"Failed to get changes from database","service":"sync-engine","timestamp":"2026-01-05T20:08:41.092Z"}
+{"error":"syntax error at or near \"AND\"","level":"error","message":"Failed to get changes from database","service":"sync-engine","timestamp":"2026-01-05T20:09:11.124Z"}
