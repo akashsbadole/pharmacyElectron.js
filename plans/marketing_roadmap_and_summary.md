@@ -331,9 +331,9 @@ You now have a complete promotional package for your garment POS software that i
 
 **Update all promotional materials with your actual contact information:**
 
-- **Website**: https://Appivo.in/garmentpos
-- **Sales Email**: [sales@appivo.in]
-- **Support Email**: [support@appivo.in]
+- **Website**: https://appixen.com/garmentpos
+- **Sales Email**: [sales@appixen.com]
+- **Support Email**: [support@appixen.com]
 - **Phone**: [Your contact number]
 - **Address**: [Your business address]
 - **Demo Scheduling**: [Calendar booking link]

@@ -925,7 +925,7 @@ class POSModule {
       
       ${this.showPayment ? this.renderPaymentInterface(totals) : ''}
       
-      <!-- Appivo.in POS Footer -->
+      <!-- appixen.com POS Footer -->
     </div>
   `;
   }

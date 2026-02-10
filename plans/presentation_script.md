@@ -4,9 +4,9 @@
 **Title**: "Transform Your Retail Business with GarmentPOS & PharmaMine Web"
 **Subtitle**: "The Only Dual-Platform Solution for Garment Retailers"
 **Presenter**: [Your Name]
-**Company**: Appivo
+**Company**: appixen
 **Date**: [Date]
-**Website**: https://Appivo.in/garmentpos
+**Website**: https://appixen.com/garmentpos
 
 ---
 
@@ -327,8 +327,8 @@
 ✅ **Ongoing support** and updates  
 
 ### Contact Information:
-- **Website**: https://Appivo.in/garmentpos
-- **Email**: [sales@appivo.in]
+- **Website**: https://appixen.com/garmentpos
+- **Email**: [sales@appixen.com]
 - **Phone**: [Contact Number]
 - **Schedule Demo**: [Calendar Link]
 
@@ -344,8 +344,8 @@
 - **Comprehensive support** for successful implementation
 
 ### Contact Us:
-**Website**: https://Appivo.in/garmentpos  
-**Email**: [sales@appivo.in]  
+**Website**: https://appixen.com/garmentpos  
+**Email**: [sales@appixen.com]  
 **Phone**: [Contact Number]  
 
 **Questions?**

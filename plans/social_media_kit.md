@@ -15,7 +15,7 @@
 ✅ 4-tier loyalty program
 
 Ready to transform your retail operations? 
-👉 Learn more: https://Appivo.in/garmentpos
+👉 Learn more: https://appixen.com/garmentpos
 
 #RetailTech #POS #GarmentBusiness #InventoryManagement #RetailInnovation
 ```
@@ -117,7 +117,7 @@ What features would make your retail life easier? 🤔
 
 4/5 Features like inventory matrix, loyalty tiers, and real-time sync
 
-5/5 See it in action: https://Appivo.in/garmentpos #RetailTech #FashionRetail
+5/5 See it in action: https://appixen.com/garmentpos #RetailTech #FashionRetail
 ```
 
 #### Tweet 2: Industry Insight
@@ -140,7 +140,7 @@ A boutique increased sales by 30% in 3 months using our inventory management fea
 "Game-changing system!" - Sarah M., Boutique Owner
 
 Ready to transform your retail business? 
-Try free: https://Appivo.in/garmentpos
+Try free: https://appixen.com/garmentpos
 ```
 
 ## Instagram Content Strategy

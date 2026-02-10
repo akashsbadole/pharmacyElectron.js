@@ -10,7 +10,7 @@
 - **GarmentPOS Desktop**: Version 1.5.1
 - **PharmaMine Web**: Version 1.0.0
 - **Author**: Akash Badole
-- **Website**: https://Appivo.in/garmentpos
+- **Website**: https://appixen.com/garmentpos
 - **License**: MIT
 
 ---
@@ -376,19 +376,19 @@
 ## Contact Information
 
 ### Sales Inquiries
-- **Website**: https://Appivo.in/garmentpos
-- **Email**: [sales@appivo.in]
+- **Website**: https://appixen.com/garmentpos
+- **Email**: [sales@appixen.com]
 - **Phone**: [Contact Number]
 
 ### Technical Support
-- **Email**: [support@appivo.in]
+- **Email**: [support@appixen.com]
 - **Documentation**: [Online Documentation URL]
 - **Community**: [Community Forum URL]
 
 ### Partnership Opportunities
-- **Reseller Program**: [reseller@appivo.in]
-- **Integration Partners**: [partners@appivo.in]
-- **Technology Partners**: [tech@appivo.in]
+- **Reseller Program**: [reseller@appixen.com]
+- **Integration Partners**: [partners@appixen.com]
+- **Technology Partners**: [tech@appixen.com]
 
 ---
 

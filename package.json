@@ -4,13 +4,13 @@
   "version": "1.5.1",
   "description": "Easy Point of Sale for garment",
   "author": "Akash Badole",
-  "website": "https://Appivo.in/garmentpos",
+  "website": "https://appixen.com/garmentpos",
   "credits": "electronjs.org",
   "license": "MIT",
   "private": true,
   "main": "start.js",
   "build": {
-    "appId": "com.Appivo.in.garmentpos",
+    "appId": "com.appixen.com.garmentpos",
     "directories": {
       "buildResources": "assets"
     }

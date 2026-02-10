@@ -101,7 +101,7 @@ garmentpos-v1.5.1-win64/
 
 ## Support and Updates
 
-- **Website**: https://Appivo.in/garmentpos
+- **Website**: https://appixen.com/garmentpos
 - **GitHub Issues**: Report bugs and request features
 - **Updates**: Download new releases from the GitHub releases page
 

@@ -104,7 +104,7 @@ zip -r garmentpos-v1.5.1-win64.zip garmentpos-v1.5.1-win64/
 4. Start using your Point of Sale system!
 
 ## Support
-For support and updates, visit: https://Appivo.in/garmentpos
+For support and updates, visit: https://appixen.com/garmentpos
 
 ## License
 MIT License - See LICENSE file for details

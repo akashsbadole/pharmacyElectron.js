@@ -122,8 +122,8 @@
 
 ## Contact Information
 
-**Website**: https://Appivo.in/garmentpos  
-**Email**: [sales@appivo.in]  
+**Website**: https://appixen.com/garmentpos  
+**Email**: [sales@appixen.com]  
 **Phone**: [Contact Number]  
 
 **Ready to transform your retail business? Contact us today for a free consultation and demo.**
