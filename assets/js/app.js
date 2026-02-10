@@ -38,7 +38,9 @@ class EventEmitter {
 }
 
 // Browser-compatible Store implementation using localStorage
-class Store {
+// Check if Store class already exists to avoid redeclaration
+if (typeof window.AppStore === 'undefined') {
+  window.AppStore = class AppStore {
   constructor() {
     this.storage = window.localStorage;
   }
@@ -80,7 +82,11 @@ class Store {
       console.error('Error clearing localStorage:', error);
     }
   }
+  };
 }
+
+// Create alias for backward compatibility
+const Store = window.AppStore;
 
 // State management class
 class AppState extends EventEmitter {
@@ -1151,7 +1157,7 @@ class foodMineApp {
       }
 
       // Load dashboard data (this will handle its own errors)
-      this.state.dispatch(dashboardActions.loadDashboardData());
+      this.dispatch(dashboardActions.loadDashboardData());
 
     } catch (error) {
       console.error('Error loading initial data:', error);
@@ -1318,10 +1324,10 @@ class foodMineApp {
   switchToModule(moduleName, subtab = null) {
     if (this.modules.has(moduleName)) {
       // Update state first
-      this.state.dispatch(navigationActions.setActiveTab(moduleName));
+      this.dispatch(navigationActions.setActiveTab(moduleName));
 
       if (subtab) {
-        this.state.dispatch(navigationActions.setActiveSubtab(subtab));
+        this.dispatch(navigationActions.setActiveSubtab(subtab));
       }
 
       // Update UI via ViewManager

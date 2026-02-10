@@ -643,7 +643,7 @@ app.createKitchenOrderFromTransaction = function(transaction, menuItems, callbac
         const estimatedCompletion = new Date(Date.now() + totalPrepTime * 60 * 1000);
         
         const newKitchenOrder = {
-            _id: Math.floor(Date.now() / 1000),
+            _id: Date.now() + Math.floor(Math.random() * 1000),
             order_number: kitchenOrder.order_number,
             table_number: kitchenOrder.table_number,
             customer_name: kitchenOrder.customer_name,

@@ -199,7 +199,7 @@ app.post("/create", function (req, res) {
 
                 // Create reservation
                 const reservation = {
-                    _id: Math.floor(Date.now() / 1000),
+                    _id: Date.now() + Math.floor(Math.random() * 1000),
                     customer_name: validator.escape(customer_name),
                     customer_phone: validator.escape(customer_phone),
                     customer_email: customer_email ? validator.escape(customer_email) : "",

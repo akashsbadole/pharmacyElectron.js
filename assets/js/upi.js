@@ -1,4 +1,6 @@
-const QRCode = require("qrcode");
+// Use window to share QRCode and avoid redeclaration errors
+window.QRCode = window.QRCode || require("qrcode");
+const QRCode = window.QRCode;
 
 // UPI QR Payment Functions
 $(document).ready(function() {

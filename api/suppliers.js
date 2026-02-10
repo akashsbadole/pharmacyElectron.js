@@ -84,7 +84,7 @@ app.get("/:supplierId", function (req, res) {
  */
 app.post("/", function (req, res) {
     let supplier = {
-        _id: Math.floor(Date.now() / 1000),
+        _id: Date.now() + Math.floor(Math.random() * 1000),
         name: validator.escape(req.body.name),
         contact_person: validator.escape(req.body.contact_person || ""),
         phone: validator.escape(req.body.phone || ""),

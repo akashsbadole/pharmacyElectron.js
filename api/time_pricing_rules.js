@@ -71,7 +71,7 @@ app.get("/rules/:itemId", function (req, res) {
  */
 app.post("/rule", function (req, res) {
     const rule = {
-        _id: Math.floor(Date.now() / 1000),
+        _id: Date.now() + Math.floor(Math.random() * 1000),
         item_id: parseInt(validator.escape(req.body.item_id || "")),
         name: validator.escape(req.body.name || ""),
         description: validator.escape(req.body.description || ""),

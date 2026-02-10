@@ -264,7 +264,7 @@ app.post("/post", function (req, res) {
             delete User.id;
             delete User.pass;
             if (req.body.id === "") {
-                User._id = Math.floor(Date.now() / 1000);
+                User._id = Date.now() + Math.floor(Math.random() * 1000);
                 usersDB.insert(User, function (err, user) {
                     if (err) {
                         console.error(err);

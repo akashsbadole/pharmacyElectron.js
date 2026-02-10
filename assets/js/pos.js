@@ -1,17 +1,33 @@
-const jsPDF = require("jspdf");
-const html2canvas = require("html2canvas");
-const JsBarcode = require("jsbarcode");
-const QRCode = require("qrcode");
-const macaddress = require("macaddress");
-const notiflix = require("notiflix");
-window.notiflix = notiflix;
-window.validator = require("validator");
-const DOMPurify = require("dompurify");
-const _ = require("lodash");
-let fs = require("fs");
-let path = require("path");
-window.moment = require("moment");
-const { ipcRenderer } = require("electron");
+// Use window to share modules and avoid redeclaration errors
+window.jsPDF = window.jsPDF || require("jspdf");
+window.html2canvas = window.html2canvas || require("html2canvas");
+window.JsBarcode = window.JsBarcode || require("jsbarcode");
+window.QRCode = window.QRCode || require("qrcode");
+window.macaddress = window.macaddress || require("macaddress");
+window.notiflix = window.notiflix || require("notiflix");
+window.validator = window.validator || require("validator");
+window.DOMPurify = window.DOMPurify || require("dompurify");
+window._ = window._ || require("lodash");
+window.fs = window.fs || require("fs");
+window.path = window.path || require("path");
+window.moment = window.moment || require("moment");
+
+// Create local references
+const jsPDF = window.jsPDF;
+const html2canvas = window.html2canvas;
+const JsBarcode = window.JsBarcode;
+const QRCode = window.QRCode;
+const macaddress = window.macaddress;
+const notiflix = window.notiflix;
+const validator = window.validator;
+const DOMPurify = window.DOMPurify;
+const _ = window._;
+let fs = window.fs;
+let path = window.path;
+// Use global ipcRenderer from window (set by renderer.js)
+if (!window.ipcRenderer && typeof require !== 'undefined') {
+    window.ipcRenderer = require("electron").ipcRenderer;
+}
 
 // Import language support module
 let LanguageSupport;
@@ -43,7 +59,8 @@ try {
 let dotInterval = setInterval(function () {
   $(".dot").text(".");
 }, 3000);
-let Store = require("electron-store");
+// Use electron-store with a different name to avoid conflict with app.js Store class
+const ElectronStore = require("electron-store");
 window.host = "localhost";
 window.port = null; // Will be set via IPC
 window.api = null; // Will be configured when port is received
@@ -103,7 +120,7 @@ function configureAPI() {
 }
 
 // Listen for API configuration via IPC
-ipcRenderer.on('server-config', (event, data) => {
+window.ipcRenderer.on('server-config', (event, data) => {
   console.log('API configuration received via IPC:', data);
   window.port = data.port;
   window.host = data.host || 'localhost';
@@ -204,7 +221,7 @@ let auth_error = "Incorrect username or password";
 let auth_empty = "Please enter a username and password";
 let holdOrderlocation = $("#renderHoldOrders");
 let customerOrderLocation = $("#renderCustomerOrders");
-let storage = new Store();
+let storage = new ElectronStore();
 window.settings;
 let platform;
 window.user = {};
@@ -230,6 +247,23 @@ notiflix.Notify.init({
   clickToClose: true,
   closeButton: true
 });
+// Try to load utils module with fallback
+let utils;
+try {
+  utils = require("./utils");
+} catch (e) {
+  console.warn('Could not load utils module, using fallback values:', e.message);
+  utils = {
+    DATE_FORMAT: "DD-MMM-YYYY",
+    moneyFormat: (amount) => amount.toString(),
+    isExpired: () => false,
+    daysToExpire: () => 0,
+    getStockStatus: () => 1,
+    checkFileExists: () => false,
+    setContentSecurityPolicy: () => {}
+  };
+}
+
 const {
   DATE_FORMAT,
   moneyFormat,
@@ -238,7 +272,7 @@ const {
   getStockStatus,
   checkFileExists,
   setContentSecurityPolicy,
-} = require("./utils");
+} = utils;
 
 //set the content security policy of the app
 setContentSecurityPolicy();
@@ -374,7 +408,7 @@ function initializeApp() {
     console.log('⏳ DEBUG: API not yet configured, retrying in 500ms...');
 
     // Request server config from main process as fallback
-    ipcRenderer.send('get-server-config');
+    window.ipcRenderer.send('get-server-config');
 
     setTimeout(initializeApp, 500);
     return;
@@ -2097,7 +2131,7 @@ function initializeApp() {
         e.preventDefault();
 
         let custData = {
-          _id: Math.floor(Date.now() / 1000),
+          _id: Date.now() + Math.floor(Math.random() * 1000),
           name: $("#userName").val(),
           phone: $("#phoneNumber").val(),
           email: $("#emailAddress").val(),
@@ -2802,14 +2836,14 @@ function initializeApp() {
               .done(function () {
                 storage.delete("auth");
                 storage.delete("user");
-                ipcRenderer.send("app-reload", "");
+                window.ipcRenderer.send("app-reload", "");
               })
               .fail(function (xhr, status, error) {
                 console.error('Logout failed:', error);
                 // Even if logout fails, clear local storage and reload
                 storage.delete("auth");
                 storage.delete("user");
-                ipcRenderer.send("app-reload", "");
+                window.ipcRenderer.send("app-reload", "");
               });
           },
         );
@@ -2863,7 +2897,7 @@ function initializeApp() {
           $(this).ajaxSubmit({
             contentType: "application/json",
             success: function () {
-              ipcRenderer.send("app-reload", "");
+              window.ipcRenderer.send("app-reload", "");
             },
             error: function (jqXHR) {
               console.error(jqXHR.responseJSON.message);
@@ -2891,7 +2925,7 @@ function initializeApp() {
           if (isNumeric(formData.till)) {
             formData["app"] = $("#app").find("option:selected").text();
             storage.set("settings", formData);
-            ipcRenderer.send("app-reload", "");
+            window.ipcRenderer.send("app-reload", "");
           } else {
             notiflix.Report.warning(
               "Oops!",
@@ -2923,7 +2957,7 @@ function initializeApp() {
             processData: false,
             success: function () {
               if (ownUserEdit) {
-                ipcRenderer.send("app-reload", "");
+                window.ipcRenderer.send("app-reload", "");
               } else {
                 $("#userModal").modal("hide");
 
@@ -3048,11 +3082,11 @@ function initializeApp() {
 
       // Display toggle event handlers
       $("#toggleCustomerDisplay").on("click", function () {
-        ipcRenderer.send("toggle-customer-display");
+        window.ipcRenderer.send("toggle-customer-display");
       });
 
       $("#toggleKOTDisplay").on("click", function () {
-        ipcRenderer.send("toggle-kot-display");
+        window.ipcRenderer.send("toggle-kot-display");
       });
 
       // Update displays when cart changes
@@ -3070,10 +3104,10 @@ function initializeApp() {
             discount: $("#inputDiscount").val() || 0,
             status: 'pending'
           };
-          ipcRenderer.send("update-customer-display", orderData);
+          window.ipcRenderer.send("update-customer-display", orderData);
         } else {
           // Send empty order data to clear display
-          ipcRenderer.send("update-customer-display", null);
+          window.ipcRenderer.send("update-customer-display", null);
         }
       };
 
@@ -3094,7 +3128,7 @@ function initializeApp() {
         };
         
         // Send to KOT display
-        ipcRenderer.send("update-kot-display", [kotOrder]);
+        window.ipcRenderer.send("update-kot-display", [kotOrder]);
       };
 
       // Hook into cart changes to update displays
@@ -3806,7 +3840,7 @@ $("body").on("submit", "#account", function (e) {
         if (data.auth === true) {
           storage.set("auth", { auth: true });
           storage.set("user", data);
-          ipcRenderer.send("app-reload", "");
+          window.ipcRenderer.send("app-reload", "");
           $("#login").hide();
         } else {
           notiflix.Report.warning("Oops!", auth_error, "Ok");
@@ -3849,12 +3883,12 @@ $("#quit").on("click", function () {
     diagOptions.okButtonText,
     diagOptions.cancelButtonText,
     () => {
-      ipcRenderer.send("app-quit", "");
+      window.ipcRenderer.send("app-quit", "");
     },
   );
 });
 
-ipcRenderer.on("click-element", (event, elementId) => {
+window.ipcRenderer.on("click-element", (event, elementId) => {
   const element = document.getElementById(elementId);
   if (element) {
     element.click();

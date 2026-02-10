@@ -39,7 +39,7 @@ app.get("/all", function (req, res) {
  */
 app.post("/log", function (req, res) {
     let logEntry = {
-        _id: Math.floor(Date.now() / 1000),
+        _id: Date.now() + Math.floor(Math.random() * 1000),
         timestamp: new Date().toISOString(),
         action: req.body.action,
         user: req.body.user || "System",
@@ -61,7 +61,7 @@ app.post("/log", function (req, res) {
  */
 app.logTransaction = function (details) {
     let logEntry = {
-        _id: Math.floor(Date.now() / 1000),
+        _id: Date.now() + Math.floor(Math.random() * 1000),
         timestamp: new Date().toISOString(),
         action: "RESTRICTED_DRUG_SALE",
         user: details.user || "System",

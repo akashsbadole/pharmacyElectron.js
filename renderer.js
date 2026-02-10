@@ -1,7 +1,8 @@
 window.$ = window.jQuery = require('jquery');
 
 // IPC Communication for server configuration
-let { ipcRenderer } = require('electron');
+const { ipcRenderer } = require('electron');
+window.ipcRenderer = ipcRenderer;
 let serverConfig = { port: null, host: 'localhost' };
 
 // Initialize API configuration when server config is received

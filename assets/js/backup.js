@@ -3,6 +3,11 @@
  * Handles database backup creation, restoration, and file management
  */
 
+// Use global ipcRenderer from window (set by renderer.js)
+if (!window.ipcRenderer && typeof require !== 'undefined') {
+    window.ipcRenderer = require('electron').ipcRenderer;
+}
+
 class BackupManager {
     constructor() {
         this.selectedBackup = null;
@@ -61,6 +66,10 @@ class BackupManager {
      */
     async loadBackupStatistics() {
         try {
+            if (!window.api) {
+                console.log('API not ready, skipping backup statistics load');
+                return;
+            }
             const response = await fetch(window.api + 'backup/stats');
             const data = await response.json();
 
@@ -85,18 +94,38 @@ class BackupManager {
      */
     async loadSecuritySettings() {
         try {
+            if (!window.api) {
+                console.log('API not ready, skipping security settings load');
+                return;
+            }
             const response = await fetch(window.api + 'settings/get');
-            const data = await response.json();
-            const set = data.settings || {};
+            if (!response.ok) {
+                console.warn('Settings endpoint not available');
+                return;
+            }
+            
+            // Check if response has content before parsing JSON
+            const text = await response.text();
+            if (!text || text.trim() === '') {
+                console.warn('Empty response received for security settings');
+                return;
+            }
+            
+            try {
+                const data = JSON.parse(text);
+                const set = data.settings || {};
 
-            $('#backupFrequency').val(set.backup_frequency || 'off');
-            $('#backupTime').val(set.backup_time || '00:00');
-            $('#enableEncryption').prop('checked', !!set.enable_encryption);
+                $('#backupFrequency').val(set.backup_frequency || 'off');
+                $('#backupTime').val(set.backup_time || '00:00');
+                $('#enableEncryption').prop('checked', !!set.enable_encryption);
 
-            if (set.enable_encryption) {
-                $('#encryptionStatus').show();
-            } else {
-                $('#encryptionStatus').hide();
+                if (set.enable_encryption) {
+                    $('#encryptionStatus').show();
+                } else {
+                    $('#encryptionStatus').hide();
+                }
+            } catch (parseError) {
+                console.error('Error parsing security settings JSON:', parseError);
             }
         } catch (error) {
             console.error('Error loading security settings:', error);
@@ -108,11 +137,31 @@ class BackupManager {
      */
     async loadLocalBackupSettings() {
         try {
+            if (!window.api) {
+                console.log('API not ready, skipping local backup settings load');
+                return;
+            }
             const response = await fetch(window.api + 'settings/get');
-            const data = await response.json();
-            const set = data.settings || {};
+            if (!response.ok) {
+                console.warn('Settings endpoint not available');
+                return;
+            }
+            
+            // Check if response has content before parsing JSON
+            const text = await response.text();
+            if (!text || text.trim() === '') {
+                console.warn('Empty response received for local backup settings');
+                return;
+            }
+            
+            try {
+                const data = JSON.parse(text);
+                const set = data.settings || {};
 
-            $('#localBackupPath').val(set.local_backup_folder || '');
+                $('#localBackupPath').val(set.local_backup_folder || '');
+            } catch (parseError) {
+                console.error('Error parsing local backup settings JSON:', parseError);
+            }
         } catch (error) {
             console.error('Error loading local backup settings:', error);
         }
@@ -181,7 +230,7 @@ class BackupManager {
                 if (oldEncryption !== enableEncryption) {
                     this.showNotification('Security settings saved. Application will restart to apply changes.', 'success');
                     setTimeout(() => {
-                        ipcRenderer.send("app-reload", "");
+                        window.ipcRenderer.send("app-reload", "");
                     }, 3000);
                 } else {
                     this.showNotification('Security settings saved', 'success');
@@ -200,6 +249,10 @@ class BackupManager {
      */
     async loadBackupHistory() {
         try {
+            if (!window.api) {
+                console.log('API not ready, skipping backup history load');
+                return;
+            }
             const response = await fetch(window.api + 'backup/list');
             const data = await response.json();
 
@@ -708,6 +761,29 @@ class BackupManager {
     formatDate(dateString) {
         const date = new Date(dateString);
         return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    }
+
+    /**
+     * Show notification using notiflix or console
+     */
+    showNotification(message, type = 'info') {
+        if (window.notiflix) {
+            switch(type) {
+                case 'success':
+                    window.notiflix.Notify.success(message);
+                    break;
+                case 'error':
+                    window.notiflix.Notify.failure(message);
+                    break;
+                case 'warning':
+                    window.notiflix.Notify.warning(message);
+                    break;
+                default:
+                    window.notiflix.Notify.info(message);
+            }
+        } else {
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
     }
 }
 

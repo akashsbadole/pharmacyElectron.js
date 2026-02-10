@@ -730,7 +730,7 @@ app.post("/return", function (req, res) {
 
         // Create return transaction record
         const returnTransaction = {
-            _id: Math.floor(Date.now() / 1000),
+            _id: Date.now() + Math.floor(Math.random() * 1000),
             originalTransactionId: transactionId,
             type: 'return',
             order: Date.now(),

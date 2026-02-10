@@ -160,7 +160,7 @@ app.post("/new", function (req, res) {
     });
 
     let order = {
-        _id: Math.floor(Date.now() / 1000),
+        _id: Date.now() + Math.floor(Math.random() * 1000),
         supplier_id: validator.escape(req.body.supplier_id),
         items: req.body.items.map(item => ({
             product_id: validator.escape(item.product_id),

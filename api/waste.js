@@ -70,7 +70,7 @@ app.post("/waste", function (req, res) {
         const totalCost = unitCost * wasteQuantity;
 
         const wasteEntry = {
-            _id: Math.floor(Date.now() / 1000),
+            _id: Date.now() + Math.floor(Math.random() * 1000),
             productId: parseInt(productId),
             productName: validator.escape(product.name),
             quantity: wasteQuantity,

@@ -1,5 +1,23 @@
-const utils = require("./utils");
-const QRCode = require("qrcode");
+// Try to load utils module with fallback
+let utils;
+try {
+  utils = require("./utils");
+} catch (e) {
+  console.warn('Could not load utils module, using fallback values:', e.message);
+  utils = {
+    DATE_FORMAT: "DD-MMM-YYYY",
+    moneyFormat: (amount) => amount.toString(),
+    isExpired: () => false,
+    daysToExpire: () => 0,
+    getStockStatus: () => 1,
+    checkFileExists: () => false,
+    setContentSecurityPolicy: () => {}
+  };
+}
+
+// Use window to share QRCode and avoid redeclaration errors
+window.QRCode = window.QRCode || require("qrcode");
+const QRCode = window.QRCode;
 
 /** CheckOut Functions **/
 $(document).ready(function () {
