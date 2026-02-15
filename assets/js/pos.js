@@ -2473,20 +2473,20 @@ function testApiConnectivity() {
       console.log('✅ DEBUG: Response:', response);
     },
     error: function(xhr, status, error) {
-      console.error('❌ DEBUG: API connectivity test failed');
-      console.error('❌ DEBUG: Status:', status);
-      console.error('❌ DEBUG: Error:', error);
-      console.error('❌ DEBUG: XHR status:', xhr.status);
-      console.error('❌ DEBUG: XHR response:', xhr.responseText);
+      // console.error('❌ DEBUG: API connectivity test failed');
+      // console.error('❌ DEBUG: Status:', status);
+      // console.error('❌ DEBUG: Error:', error);
+      // console.error('❌ DEBUG: XHR status:', xhr.status);
+      // console.error('❌ DEBUG: XHR response:', xhr.responseText);
       
       // Show user-friendly error message
-      if (xhr.status === 0) {
-        notiflix.Report.failure(
-          'Server Connection Error', 
-          'Cannot connect to the server. Please check if the server is running.', 
-          'Ok'
-        );
-      }
+      // if (xhr.status === 0) {
+      //   notiflix.Report.failure(
+      //     'Server Connection Error', 
+      //     'Cannot connect to the server. Please check if the server is running.', 
+      //     'Ok'
+      //   );
+      // }
     }
   });
 }

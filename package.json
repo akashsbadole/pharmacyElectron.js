@@ -1,16 +1,16 @@
 {
   "name": "pharmingo",
   "productName": "Pharmingo",
-  "version": "1.5.1",
-  "description": "Easy Point of Sale for Pharmacies",
-  "author": "Akash Badole",
-  "website": "https://akash.com/pharmingo",
-  "credits": "electronjs.org",
+  "version": "2.0.0",
+  "description": "Professional Pharmacy Management System",
+  "author": "Appixen",
+  "website": "http://appixen.com/",
+  "credits": "Powered by Appixen",
   "license": "MIT",
   "private": true,
   "main": "start.js",
   "build": {
-    "appId": "com.akash.pharmingo",
+    "appId": "com.appixen.pharmingo",
     "directories": {
       "buildResources": "assets"
     }
